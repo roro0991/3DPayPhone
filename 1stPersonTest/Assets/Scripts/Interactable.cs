@@ -12,7 +12,6 @@ public class Interactable : MonoBehaviour
         interactable = this.gameObject;
     }
 
-    // Update is called once per frame
     void Update()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);

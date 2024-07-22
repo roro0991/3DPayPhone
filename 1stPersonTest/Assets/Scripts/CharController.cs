@@ -1,12 +1,21 @@
+using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CharController : MonoBehaviour
 {
     [SerializeField] private GameObject[] segments = new GameObject[14];
    
+
+    public void DisplaySegment(int number)
+    {
+        segments[number].SetActive(true);       
+    }
+
     public void DisplayChar(int number)
     {
         switch (number)
@@ -171,8 +180,431 @@ public class CharController : MonoBehaviour
                 segments[12].SetActive(false);
                 segments[13].SetActive(false);
                 break;            
-        }
+        }        
     }
+
+    public void DisplayChar(char letter)
+    {
+        switch (letter)
+        {
+            case 'a':
+                segments[0].SetActive(true);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(true);
+                segments[7].SetActive(true);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'b':
+                segments[0].SetActive(true);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(true);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(true);
+                segments[8].SetActive(false);
+                segments[9].SetActive(true);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(true);
+                segments[13].SetActive(false);
+                break;
+            case 'c':
+                segments[0].SetActive(true);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(true);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'd':
+                segments[0].SetActive(true);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(true);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(true);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(true);
+                segments[13].SetActive(false);
+                break;
+            case 'e':
+                segments[0].SetActive(true);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(true);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(true);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'f':
+                segments[0].SetActive(true);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(true);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'g':
+                segments[0].SetActive(true);
+                segments[1].SetActive(false);
+                segments[2].SetActive(true);
+                segments[3].SetActive(true);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(true);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'h':
+                segments[0].SetActive(false);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(true);
+                segments[7].SetActive(true);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'i':
+                segments[0].SetActive(true);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(true);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(true);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(true);
+                segments[13].SetActive(false);
+                break;
+            case 'j':
+                segments[0].SetActive(false);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(true);
+                segments[4].SetActive(true);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'k':
+                segments[0].SetActive(false);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(true);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(true);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(true);
+                break;
+            case 'l':
+                segments[0].SetActive(false);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(true);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'm':
+                segments[0].SetActive(false);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(true);
+                segments[9].SetActive(false);
+                segments[10].SetActive(true);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'n':
+                segments[0].SetActive(false);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(true);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(true);
+                break;
+            case 'o':
+                segments[0].SetActive(true);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(true);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'p':
+                segments[0].SetActive(true);
+                segments[1].SetActive(true);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(true);
+                segments[7].SetActive(true);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'q':
+                segments[0].SetActive(true);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(true);
+                segments[4].SetActive(true);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(true);
+                break;
+            case 'r':
+                segments[0].SetActive(true);
+                segments[1].SetActive(true);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(true);
+                segments[7].SetActive(true);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(true);
+                break;
+            case 's':
+                segments[0].SetActive(true);
+                segments[1].SetActive(false);
+                segments[2].SetActive(true);
+                segments[3].SetActive(true);
+                segments[4].SetActive(false);
+                segments[5].SetActive(true);
+                segments[6].SetActive(true);
+                segments[7].SetActive(true);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 't':
+                segments[0].SetActive(true);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(true);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(true);
+                segments[13].SetActive(false);
+                break;
+            case 'u':
+                segments[0].SetActive(false);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(true);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'v':
+                segments[0].SetActive(false);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(true);
+                segments[11].SetActive(true);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+            case 'w':
+                segments[0].SetActive(false);
+                segments[1].SetActive(true);
+                segments[2].SetActive(true);
+                segments[3].SetActive(false);
+                segments[4].SetActive(true);
+                segments[5].SetActive(true);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(true);
+                segments[12].SetActive(false);
+                segments[13].SetActive(true);
+                break;
+            case 'x':
+                segments[0].SetActive(false);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(true);
+                segments[9].SetActive(false);
+                segments[10].SetActive(true);
+                segments[11].SetActive(true);
+                segments[12].SetActive(false);
+                segments[13].SetActive(true);
+                break;
+            case 'y':
+                segments[0].SetActive(false);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(true);
+                segments[9].SetActive(false);
+                segments[10].SetActive(true);
+                segments[11].SetActive(false);
+                segments[12].SetActive(true);
+                segments[13].SetActive(false);
+                break;
+            case 'z':
+                segments[0].SetActive(true);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(true);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(true);
+                segments[11].SetActive(true);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
+        }
+    }  
 
     public void DisplayDash()
     {
@@ -208,5 +640,21 @@ public class CharController : MonoBehaviour
         segments[11].SetActive(false);
         segments[12].SetActive(false);
         segments[13].SetActive(false);
+    }
+
+    public void ChangeCharColor()
+    {
+        foreach (var segment in segments)
+        {
+            segment.gameObject.GetComponent<Image>().color = Color.green;
+        }
+    }
+
+    public void ChangeCharColorWhite()
+    {
+        foreach (var segment in segments)
+        {
+            segment.gameObject.GetComponent<Image>().color = Color.white;
+        }
     }
 }

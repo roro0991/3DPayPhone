@@ -4,11 +4,13 @@ using UnityEngine;
 
 public class PhoneDisplayController : MonoBehaviour
 {
-    [SerializeField] public GameObject[] chars = new GameObject[18];
-    private void Start()
+    [SerializeField] public GameObject[] chars = new GameObject[65];
+
+    private void Awake()
     {
-        ClearAllChars();
+        ClearAllChars();        
     }
+    
     public void ClearAllChars()
     {
         foreach (GameObject character in chars)
