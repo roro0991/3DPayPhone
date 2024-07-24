@@ -45816,18 +45816,30 @@ PrefabInstance:
       objectReference: {fileID: 471889443}
     - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
       propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.size
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
       propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
       value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
+      propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
       propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 508977923}
     - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
+      propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[1].m_Target
+      value: 
+      objectReference: {fileID: 774525501}
+    - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
       propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
+      propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[1].m_CallState
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
@@ -45835,15 +45847,31 @@ PrefabInstance:
       value: NumberButton
       objectReference: {fileID: 0}
     - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
+      propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
+      value: SwitchToNumbersOrLetters
+      objectReference: {fileID: 0}
+    - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
       propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
       value: PhoneManager, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
+      propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[1].m_TargetAssemblyTypeName
+      value: PuzzleManager, Assembly-CSharp
       objectReference: {fileID: 0}
     - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
       propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_IntArgument
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
+      propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_IntArgument
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
       propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
+    - target: {fileID: 2287607688097854571, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
+      propertyPath: unityEvent.m_PersistentCalls.m_Calls.Array.data[1].m_Arguments.m_ObjectArgumentAssemblyTypeName
       value: UnityEngine.Object, UnityEngine
       objectReference: {fileID: 0}
     - target: {fileID: 3949773915166957256, guid: f7527dd91c92aa04a8edc80710557a6b, type: 3}
@@ -53946,9 +53974,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 774525500}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7453ee8fe5bc854dba34797f5294a54, type: 3}
+  m_Script: {fileID: 11500000, guid: 9f29948eb9ce11741be64b34ba2c9eeb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  puzzle: {fileID: 11400000, guid: 74b11382d8bfc72418f2d3a2a55a4f07, type: 2}
   dialogueManager: {fileID: 1431152989}
   phoneDisplayController: {fileID: 486237450}
   inputChars:
@@ -53959,7 +53988,6 @@ MonoBehaviour:
   - {fileID: 184066056}
   - {fileID: 1834761139}
   - {fileID: 1217142844}
-  answerSequence: 04000000060000000600000005000000050000000500000005000000
   puzzleColumnOne:
   - {fileID: 884765187}
   - {fileID: 1283203757}

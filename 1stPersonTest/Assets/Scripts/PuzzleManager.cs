@@ -5,16 +5,22 @@ using System.Linq;
 using Microsoft.Win32.SafeHandles;
 using Ink.Parsed;
 using System.Collections.Generic;
+using Unity.VisualScripting;
+using System;
+using Random = UnityEngine.Random;
 
-public class Puzzle : MonoBehaviour
+public class PuzzleManager : MonoBehaviour
 {
+    public Puzzle puzzle;
+
     [SerializeField] private DialogueManager dialogueManager;
     [SerializeField] private PhoneDisplayController phoneDisplayController;
 
     [SerializeField] private GameObject[] inputChars = new GameObject[7]; // relevent phone display objects for displaying input
-    [SerializeField] private int[] answerSequence = new int[7]; // correct solution
+    private char[] answerSequence = new char[7]; // correct solution
+    int[] answerSequenceAsInt = new int[7];
     private int[] inputSequence = new int[7]; // storing input sequence
-    private int currentInputIndex; // tracking where int the input sequence we are
+    private int currentInputIndex; // tracking where int the input sequence we are    
 
     // jagged array for storing relevant display char segments for each possible number
     int[][] numbersArray = new int[][]
@@ -27,7 +33,34 @@ public class Puzzle : MonoBehaviour
           new int[] { 0, 2, 3, 4, 5, 6, 7 }, //6
           new int[] { 0, 1, 2 }, //7
           new int[] { 0, 1, 2, 3, 4, 5, 6, 7}, //8
-          new int[] { 0, 1, 2, 3, 5, 6, 7 } //9
+          new int[] { 0, 1, 2, 3, 5, 6, 7 }, //9
+          new int[] { 0, 1, 2, 4, 5, 6, 7}, //a
+          new int[] { 0, 1, 2, 3, 7, 9, 12}, //b
+          new int[] { 0, 3, 4, 5}, //c
+          new int[] { 0, 1, 2, 3, 9, 12}, //d
+          new int[] { 0, 3, 4, 5, 6}, //e
+          new int[] { 0, 4, 5, 6}, //f
+          new int[] { 0, 2, 3, 4, 5, 7}, //g
+          new int[] { 1, 2, 4, 5, 6, 7}, //h
+          new int[] { 0, 3, 9, 12}, //i
+          new int[] { 1, 2, 3, 4}, //j
+          new int[] { 4, 5, 6, 10, 13}, //k
+          new int[] { 3, 4, 5}, //l
+          new int[] { 1, 2, 4, 5, 8, 10}, //m
+          new int[] { 1, 2, 4, 5, 8, 13}, //n
+          new int[] { 0, 1, 2, 3, 4, 5,}, //o
+          new int[] { 0, 1, 4, 5, 6, 7}, //p
+          new int[] { 0, 1, 2, 3, 4, 5, 13}, //q
+          new int[] { 0, 1, 4, 5, 6, 7, 13}, //r
+          new int[] { 0, 2, 3, 5, 6, 7}, //s
+          new int[] { 0, 9, 12}, //t
+          new int[] { 1, 2, 3, 4}, //u
+          new int[] { 4, 5, 10, 11}, //v
+          new int[] { 1, 2, 4, 5, 11, 13}, //w
+          new int[] { 8, 10, 11, 13}, //x
+          new int[] { 8, 10, 12}, //y
+          new int[] { 0, 3, 10, 11} //z
+
         };
 
     // relevent display objects for randomizing number segments
@@ -41,10 +74,52 @@ public class Puzzle : MonoBehaviour
 
     private List<GameObject[]> puzzleColumns = new List<GameObject[]>(); // list of display column arrays above
 
+    bool inNumbers = true;
     private bool isPuzzleSolved;
 
     private void Start()
-    {        
+    {
+        Dictionary<char, int> keyValuePairs = new Dictionary<char, int>();
+        keyValuePairs.Add('0', 0);
+        keyValuePairs.Add('1', 1);
+        keyValuePairs.Add('2', 2);
+        keyValuePairs.Add('3', 3);
+        keyValuePairs.Add('4', 4);
+        keyValuePairs.Add('5', 5);
+        keyValuePairs.Add('6', 6);
+        keyValuePairs.Add('7', 7);
+        keyValuePairs.Add('8', 8);
+        keyValuePairs.Add('9', 9);
+        keyValuePairs.Add('a', 10);
+        keyValuePairs.Add('b', 11);
+        keyValuePairs.Add('c', 12);
+        keyValuePairs.Add('d', 13);
+        keyValuePairs.Add('e', 14);
+        keyValuePairs.Add('f', 15);
+        keyValuePairs.Add('g', 16);
+        keyValuePairs.Add('h', 17);
+        keyValuePairs.Add('i', 18);
+        keyValuePairs.Add('j', 19);
+        keyValuePairs.Add('k', 20);
+        keyValuePairs.Add('l', 21);
+        keyValuePairs.Add('m', 22);
+        keyValuePairs.Add('n', 23);
+        keyValuePairs.Add('o', 24);
+        keyValuePairs.Add('p', 25);
+        keyValuePairs.Add('q', 26);
+        keyValuePairs.Add('r', 27);
+        keyValuePairs.Add('s', 28);
+        keyValuePairs.Add('t', 29);
+        keyValuePairs.Add('u', 30);
+        keyValuePairs.Add('v', 31);
+        keyValuePairs.Add('w', 32);
+        keyValuePairs.Add('x', 33);
+        keyValuePairs.Add('y', 34);
+        keyValuePairs.Add('z', 35);
+
+
+        answerSequence = puzzle.answerSequence;
+
         puzzleColumns.AddRange(new List<GameObject[]>()
         {   puzzleColumnOne,
             puzzleColumnTwo,
@@ -55,13 +130,17 @@ public class Puzzle : MonoBehaviour
             puzzleColumnSeven}
         );
 
+        
         int index = 0;
-        foreach (int number in answerSequence)
+        foreach (char character in answerSequence)
         {
-            FillPuzzleColumn(puzzleColumns[index], number);
+            int characterAsInt = keyValuePairs[character];
+            answerSequenceAsInt[index] = characterAsInt;
+            FillPuzzleColumn(puzzleColumns[index], characterAsInt);
             index++;
         }
     }
+
 
     private void Update()
     {
@@ -140,6 +219,15 @@ public class Puzzle : MonoBehaviour
         else
         {
             currentInputIndex = 0;
+        }        
+
+        if (inputSequence[currentInputIndex] > 9)
+        {
+            inNumbers = false;
+        }
+        else
+        {
+            inNumbers = true;
         }
     }
 
@@ -153,49 +241,104 @@ public class Puzzle : MonoBehaviour
         {
             currentInputIndex = 6;
         }
-    }
 
-    public void IncreaseNumber()
-    {
-        if (inputSequence[currentInputIndex] < 9)
+        if (inputSequence[currentInputIndex] > 9)
         {
-            inputSequence[currentInputIndex]++;
+            inNumbers = false;
         }
         else
         {
-            inputSequence[currentInputIndex] = 0;
+            inNumbers = true;
+        }
+    }
+
+    public void IncreaseNumber()
+    {               
+        if (inNumbers)
+        {
+            if (inputSequence[currentInputIndex] < 9)
+            {
+                inputSequence[currentInputIndex]++;
+            }
+            else
+            {
+                inputSequence[currentInputIndex] = 0;
+            }
+        }
+        else if (!inNumbers)
+        {
+            if (inputSequence[currentInputIndex] < 35)
+            {
+                inputSequence[currentInputIndex]++;
+            }
+            else
+            {
+                inputSequence[currentInputIndex] = 10;
+            }
         }
         inputChars[currentInputIndex].GetComponent<CharController>().DisplayChar(inputSequence[currentInputIndex]);
+        
     }
 
     public void DecreaseNumber()
     {
-        if (inputSequence[currentInputIndex] > 0)
+        if (inNumbers)
         {
-            inputSequence[currentInputIndex]--;
+            if (inputSequence[currentInputIndex] > 0)
+            {
+                inputSequence[currentInputIndex]--;
+            }
+            else
+            {
+                inputSequence[currentInputIndex] = 9;
+            }
+        }
+        else if (!inNumbers)
+        {
+            if (inputSequence[currentInputIndex] > 10)
+            {
+                inputSequence[currentInputIndex]--;
+            }
+            else
+            {
+                inputSequence[currentInputIndex] = 35;
+            }
+        }
+        inputChars[currentInputIndex].GetComponent<CharController>().DisplayChar(inputSequence[currentInputIndex]);        
+    }
+
+    public void SwitchToNumbersOrLetters()
+    {
+        if (!inNumbers)
+        {
+            inNumbers = true;
+            inputSequence[currentInputIndex] = 0;
         }
         else
         {
-            inputSequence[currentInputIndex] = 9;
+            inNumbers = false;
+            inputSequence[currentInputIndex] = 10;
         }
         inputChars[currentInputIndex].GetComponent<CharController>().DisplayChar(inputSequence[currentInputIndex]);
     }
 
     public void SubmitInputSequence()
     {
-        if (inputSequence.SequenceEqual(answerSequence) != true)
+
+        if (inputSequence.SequenceEqual(answerSequenceAsInt) != true)
         {
             return;
         }
 
-         isPuzzleSolved = true;
+
+        isPuzzleSolved = true;
         foreach (GameObject inputChar in inputChars)
         {
             inputChar.gameObject.GetComponent<CharController>().ChangeCharColor();
-        }           
+        } 
     }
 
-    private bool EqualityOperator(int[] firstArray, int[] secondArray) //for checking if inputSequence matches answerSequence.
+    private bool EqualityOperator(char[] firstArray, char[] secondArray) //for checking if inputSequence matches answerSequence.
     {
         return firstArray == secondArray;
     }

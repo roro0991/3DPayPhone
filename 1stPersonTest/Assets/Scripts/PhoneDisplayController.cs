@@ -6,9 +6,11 @@ public class PhoneDisplayController : MonoBehaviour
 {
     [SerializeField] public GameObject[] chars = new GameObject[65];
 
-    private void Awake()
+    private void Start()
     {
-        ClearAllChars();        
+        ClearAllChars();  
+        
+
     }
     
     public void ClearAllChars()
