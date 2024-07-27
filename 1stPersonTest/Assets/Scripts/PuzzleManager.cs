@@ -1,11 +1,7 @@
 
 using UnityEngine;
-using UnityEngine.UI;
 using System.Linq;
-using Microsoft.Win32.SafeHandles;
-using Ink.Parsed;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using System;
 using Random = UnityEngine.Random;
 
@@ -20,7 +16,7 @@ public class PuzzleManager : MonoBehaviour
     private char[] answerSequence = new char[7]; // correct solution
     int[] answerSequenceAsInt = new int[7]; // converted to int to compare to inputsequence
     private int[] inputSequence = new int[7]; // storing input sequence
-    private int currentInputIndex; // tracking where int the input sequence we are       
+    private int currentInputIndex; // tracking where int the input sequence we are
 
     // relevent display objects for randomizing number segments
     [SerializeField] private GameObject[] puzzleColumnOne = new GameObject[4];
@@ -59,30 +55,10 @@ public class PuzzleManager : MonoBehaviour
             FillPuzzleColumn(puzzleColumns[index], characterAsInt);
             index++;
         }
+
+        inputChars[currentInputIndex].GetComponent<CharController>().ChangeCharColor();
     }
-
-
-    private void Update()
-    {
-
-        // changing char color to indicate which one you have selected & when you've submitted correct sequence.
-        foreach (GameObject inputChar in inputChars)
-        {
-            if (isPuzzleSolved)
-            {
-                return;
-            }
-
-            if (inputChar == inputChars[currentInputIndex])
-            {
-                inputChar.gameObject.GetComponent<CharController>().ChangeCharColor();
-            }
-            else
-            {
-                inputChar.gameObject.GetComponent<CharController>().ChangeCharColorWhite();
-            }
-        }
-    }
+    
 
     private void FillPuzzleColumn(GameObject[] column, int correctNumber)
     {
@@ -149,6 +125,19 @@ public class PuzzleManager : MonoBehaviour
         {
             inNumbers = true;
         }
+
+        foreach (GameObject inputChar in inputChars)
+        {
+            if (inputChar == inputChars[currentInputIndex])
+            {
+                inputChar.GetComponent<CharController>().ChangeCharColor();
+            }
+            else
+            {
+                inputChar.GetComponent<CharController>().ChangeCharColorWhite();
+            }
+        }
+
     }
 
     public void MoveToLeftChar()
@@ -169,6 +158,18 @@ public class PuzzleManager : MonoBehaviour
         else
         {
             inNumbers = true;
+        }
+
+        foreach (GameObject inputChar in inputChars)
+        {
+            if (inputChar == inputChars[currentInputIndex])
+            {
+                inputChar.GetComponent<CharController>().ChangeCharColor();
+            }
+            else
+            {
+                inputChar.GetComponent<CharController>().ChangeCharColorWhite();                
+            }
         }
     }
 

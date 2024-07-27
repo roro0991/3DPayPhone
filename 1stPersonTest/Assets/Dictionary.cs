@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class Dictionary : MonoBehaviour
@@ -9,7 +7,7 @@ public class Dictionary : MonoBehaviour
     public Dictionary<char, int> charIntPairs = new Dictionary<char, int>(); //to treat char inputs as ints for method arguments
     public Dictionary<int, int[]> charSegments = new Dictionary<int, int[]>(); //for accessing segment arrays of each char
 
-    private void Start()
+    private void Awake()
     {
         if (instance != null)
         {
@@ -17,6 +15,7 @@ public class Dictionary : MonoBehaviour
         }
         instance = this;
 
+        charIntPairs.Add(' ', 99);
         charIntPairs.Add('0', 0);
         charIntPairs.Add('1', 1);
         charIntPairs.Add('2', 2);

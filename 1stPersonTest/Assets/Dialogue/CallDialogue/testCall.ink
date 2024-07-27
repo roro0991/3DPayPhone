@@ -5,7 +5,14 @@ INCLUDE ../globals.ink
 {testcall_Count == 3: -> third_call}
 
 === main ===
-Make a choice!
+hello there
+~ inDisplayMessageMode = true
+dontreact.
+heislistening.
+buthecantseethis.
+donttrusthim.
+~ inDisplayMessageMode = false
+make a choice
     + [choice 1]
         -> chosen("choice 1")
     + [choice 2]

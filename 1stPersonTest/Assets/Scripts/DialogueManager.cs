@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using Ink.UnityIntegration; 
+using Ink.UnityIntegration;
 
 public class DialogueManager : MonoBehaviour
 {
@@ -20,6 +20,8 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private GameObject[] callChoices;
     private TextMeshProUGUI[] callChoicesText;
     public Animator callPanelAnimator;
+
+    [SerializeField] PhoneDisplayController phoneDisplayController;
 
     //ink story related elements
     private Story currentStory;
@@ -42,7 +44,6 @@ public class DialogueManager : MonoBehaviour
             index++;
         }
     }
-
     public void EnterCallMode(TextAsset inkJSON)
     {
         currentStory = new Story(inkJSON.text); // load in relevant dialogue information
@@ -54,6 +55,7 @@ public class DialogueManager : MonoBehaviour
 
     public void ExitCallMode()
     {
+        phoneDisplayController.ClearAllChars();
         callText.text = string.Empty; // clear dialogue panel
         callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
         dialogueVariables.StopListening(currentStory); // stop listening to story variables
@@ -70,7 +72,7 @@ public class DialogueManager : MonoBehaviour
         {
             string line = currentStory.Continue();
             StopAllCoroutines(); // so we don't have multiple coroutines running at the same time
-            StartCoroutine(TypeLine(line));            
+            StartCoroutine(TypeLine(line));
         }
         else
         {
@@ -84,20 +86,40 @@ public class DialogueManager : MonoBehaviour
         DisableConitnueCallButton();
         callText.text = "";
         bool isAddingRichTextTag = false; // so we don't print the richtext code from ink into the dialogue
-        foreach (char letter in line.ToCharArray())
+        bool isInDisplayMode = ((Ink.Runtime.BoolValue)this.GetVariableState("inDisplayMessageMode")).value;
+        if (!isInDisplayMode)
         {
-            if (letter == '<' || isAddingRichTextTag)
+            foreach (char letter in line.ToCharArray())
             {
-                isAddingRichTextTag = true;
-                callText.text += letter;
-                if (letter == '>')
+                if (letter == '<' || isAddingRichTextTag)
                 {
-                    isAddingRichTextTag = false;
+                    isAddingRichTextTag = true;
+                    callText.text += letter;
+                    if (letter == '>')
+                    {
+                        isAddingRichTextTag = false;
+                    }
+                }
+                else
+                {
+                    callText.text += letter;
+                    yield return new WaitForSeconds(textSpeed);
                 }
             }
-            else
+        }
+        else
+        {
+            phoneDisplayController.ClearAllChars();
+            int index = 0;
+            foreach (char letter in line.ToCharArray())
             {
-                callText.text += letter;
+                if (letter == '.')
+                {
+                    break;
+                }
+                int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
+                phoneDisplayController.chars[index].GetComponent<CharController>().DisplayChar(letterAsInt);
+                index++;
                 yield return new WaitForSeconds(textSpeed);
             }
         }

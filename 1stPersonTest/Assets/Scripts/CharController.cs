@@ -1,8 +1,3 @@
-using JetBrains.Annotations;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,6 +14,22 @@ public class CharController : MonoBehaviour
     {
         switch (number)
         {
+            case 99:
+                segments[0].SetActive(false);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(false);
+                segments[9].SetActive(false);
+                segments[10].SetActive(false);
+                segments[11].SetActive(false);
+                segments[12].SetActive(false);
+                segments[13].SetActive(false);
+                break;
             case 0:
                 segments[0].SetActive(true);
                 segments[1].SetActive(true);
