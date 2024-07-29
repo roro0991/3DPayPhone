@@ -8,6 +8,7 @@ public class CallTrigger : MonoBehaviour
     
     [Header("Ink JSON Files")]
     [SerializeField] private TextAsset testCall; //555-5555
+    [SerializeField] private TextAsset directory; //411
 
 
     int numberToCall;
@@ -23,6 +24,19 @@ public class CallTrigger : MonoBehaviour
     {
         int numberToCall = phoneManager.GetPhoneNumber();
 
+        if (!callIsInProgress && numberToCall.ToString().Length == 3)
+        {
+            switch (numberToCall)
+            {
+                case 411:
+                    callIsInProgress = true;
+                    StartCoroutine(Call(directory));
+                    break;
+                default:
+                    break;
+            }
+        }
+
         if (!callIsInProgress && numberToCall.ToString().Length == 7)
         {
             switch (numberToCall)
@@ -31,8 +45,11 @@ public class CallTrigger : MonoBehaviour
                     callIsInProgress = true;
                     StartCoroutine(Call(testCall));
                     break;
+                default:
+                    break;
             }
         }
+        
 
         if (phoneManager.GetReceiverStatus() == false)
         {

@@ -7,6 +7,7 @@ public class Dictionary : MonoBehaviour
     public Dictionary<char, int> charIntPairs = new Dictionary<char, int>(); //to treat char inputs as ints for method arguments
     public Dictionary<int, int[]> charSegments = new Dictionary<int, int[]>(); //for accessing segment arrays of each char
     public Dictionary<int, char> charSegmentLetters = new Dictionary<int, char>();
+    public Dictionary<string, string> directoryNumbers = new Dictionary<string, string>();
 
     private void Awake()
     {
@@ -15,6 +16,8 @@ public class Dictionary : MonoBehaviour
             Debug.LogWarning("Found more than one Dictionary in the scene");
         }
         instance = this;
+
+        directoryNumbers.Add("LondonJohn Smith", "555-5555");
 
         charSegmentLetters.Add(0, 'a');
         charSegmentLetters.Add(1, 'b');

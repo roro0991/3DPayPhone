@@ -19,6 +19,7 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI callText;
     [SerializeField] private Button continueButton;
     [SerializeField] private GameObject[] callChoices;
+    [SerializeField] private GameObject inputField;
     private TextMeshProUGUI[] callChoicesText;
     public Animator callPanelAnimator;
 
@@ -27,10 +28,16 @@ public class DialogueManager : MonoBehaviour
     //ink story related elements
     private Story currentStory;
     private DialogueVariables dialogueVariables;
+    private string playerInputCity;
+    private string playerInputName;
+    private string directoryFinalInput;
 
     private float textSpeed = 0.05f;
     private float displayTextSpeed = 0.1f;
     private bool isInDialogue = false;
+    private bool isInDirectory = false;
+    private bool isInputingCity = true;
+    
 
     private void Awake()
     {
@@ -47,6 +54,12 @@ public class DialogueManager : MonoBehaviour
             index++;
         }
     }
+
+    private void Update()
+    {
+        Debug.Log(playerInputCity);
+        Debug.Log(playerInputName);
+    }
     public void EnterCallMode(TextAsset inkJSON)
     {
         isInDialogue = true;
@@ -60,6 +73,7 @@ public class DialogueManager : MonoBehaviour
     public void ExitCallMode()
     {
         isInDialogue = false;
+        isInDirectory = false;
         StopAllCoroutines();
         phoneDisplayController.ClearAllChars();
         callText.text = string.Empty; // clear dialogue panel
@@ -91,6 +105,7 @@ public class DialogueManager : MonoBehaviour
         DisableCallChoices();
         DisableConitnueCallButton();       
         callText.text = "";
+        isInDirectory = ((Ink.Runtime.BoolValue)GetVariableState("directory_Active")).value; 
         bool isAddingRichTextTag = false; // so we don't print the richtext code from ink into the dialogue
         bool isPrintingToDisplay = false; // to know when to print secret messages to display
         int index = 0;
@@ -137,7 +152,7 @@ public class DialogueManager : MonoBehaviour
     {
         List<Choice> currentChoices = currentStory.currentChoices;
 
-        if (currentChoices.Count == 0)
+        if (currentChoices.Count == 0 && !isInDirectory)
         {
             EnableContinueCallButton();
         }
@@ -158,6 +173,15 @@ public class DialogueManager : MonoBehaviour
         for (int i = index; i < callChoices.Length; i++)
         {
             callChoices[i].gameObject.SetActive(false);
+        }
+
+        if (isInDirectory == true)
+        {
+            inputField.SetActive(true);
+        }
+        else
+        {
+            inputField.SetActive(false);
         }
     }
 
@@ -204,8 +228,38 @@ public class DialogueManager : MonoBehaviour
         return variableValue;
     }
 
+    public void ReadPlayerInput(string s)
+    {
+        if (Input.GetKeyDown(KeyCode.Return))
+        {
+            if (isInputingCity)
+            {
+                isInputingCity = false;
+                playerInputCity = s;
+                s = string.Empty;
+                ContinueCall();
+            }
+            else if (!isInputingCity)
+            {                
+                playerInputName = s;
+                directoryFinalInput = playerInputCity + playerInputName;
+                if (!Dictionary.GetInstance().directoryNumbers.ContainsKey(directoryFinalInput))
+                {
+                    string line = "The number you are searching for is unlisted";
+                    StartCoroutine(TypeLine(line));
+                }
+                else
+                {
+                    currentStory.variablesState["directoryReturn"] = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];
+                    ContinueCall();                                       
+                }
+            }
+        }
+    }
+
     public bool GetInDialogueStatus()
     {
         return isInDialogue;
     }
+
 }

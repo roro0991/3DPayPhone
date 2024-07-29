@@ -9,7 +9,7 @@ public class PhoneManager : MonoBehaviour
     public Animator receiverAnimator;
     public Animator cameraAnimator;
         
-    private int[] phoneNumber = new int[7]; // to store the player input
+    private int?[] phoneNumber = new int?[7]; // to store the player input
     private int currentNumberIndex = 0; // to track where in the phone number we are
     private int currentDisplayCharIndex = 38; // to set where to display numbers on phone display
     private int numberAsInt; // to send to call trigger

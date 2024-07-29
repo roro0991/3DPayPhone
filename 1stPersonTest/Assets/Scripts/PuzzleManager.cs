@@ -304,6 +304,11 @@ public class PuzzleManager : MonoBehaviour
 
     public void SwitchToNumbersOrLetters()
     {
+        if (!isInPuzzleMode)
+        {
+            return;
+        }
+
         if (!inNumbers)
         {
             inNumbers = true;
