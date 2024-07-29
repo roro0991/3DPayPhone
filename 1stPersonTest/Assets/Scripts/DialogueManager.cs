@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using Ink.UnityIntegration;
+using System;
 
 public class DialogueManager : MonoBehaviour
 {
@@ -28,6 +29,8 @@ public class DialogueManager : MonoBehaviour
     private DialogueVariables dialogueVariables;
 
     private float textSpeed = 0.05f;
+    private float displayTextSpeed = 0.1f;
+    private bool isInDialogue = false;
 
     private void Awake()
     {
@@ -46,6 +49,7 @@ public class DialogueManager : MonoBehaviour
     }
     public void EnterCallMode(TextAsset inkJSON)
     {
+        isInDialogue = true;
         currentStory = new Story(inkJSON.text); // load in relevant dialogue information
         callPanelAnimator.SetBool("inCall", true); // bring up dialogue panel
         dialogueVariables.StartListening(currentStory);  // listen to story variables
@@ -55,6 +59,8 @@ public class DialogueManager : MonoBehaviour
 
     public void ExitCallMode()
     {
+        isInDialogue = false;
+        StopAllCoroutines();
         phoneDisplayController.ClearAllChars();
         callText.text = string.Empty; // clear dialogue panel
         callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
@@ -83,43 +89,43 @@ public class DialogueManager : MonoBehaviour
     IEnumerator TypeLine(string line)
     {
         DisableCallChoices();
-        DisableConitnueCallButton();
+        DisableConitnueCallButton();       
         callText.text = "";
         bool isAddingRichTextTag = false; // so we don't print the richtext code from ink into the dialogue
-        bool isInDisplayMode = ((Ink.Runtime.BoolValue)this.GetVariableState("inDisplayMessageMode")).value;
-        if (!isInDisplayMode)
-        {
-            foreach (char letter in line.ToCharArray())
+        bool isPrintingToDisplay = false; // to know when to print secret messages to display
+        int index = 0;
+        foreach (char letter in line.ToCharArray())
+        {            
+            if (letter == '<' || isAddingRichTextTag)
             {
-                if (letter == '<' || isAddingRichTextTag)
+                isAddingRichTextTag = true;
+                callText.text += letter;
+                if (letter == '>')
                 {
-                    isAddingRichTextTag = true;
-                    callText.text += letter;
-                    if (letter == '>')
-                    {
-                        isAddingRichTextTag = false;
-                    }
-                }
-                else
-                {
-                    callText.text += letter;
-                    yield return new WaitForSeconds(textSpeed);
+                    isAddingRichTextTag = false;
                 }
             }
-        }
-        else
-        {
-            phoneDisplayController.ClearAllChars();
-            int index = 0;
-            foreach (char letter in line.ToCharArray())
+            else if (letter == '@')
             {
-                if (letter == '.')
+                phoneDisplayController.ClearAllChars();
+                isPrintingToDisplay = true;
+                continue;
+            }
+            else if (isPrintingToDisplay)
+            {
+                if (letter == '^' && isPrintingToDisplay)
                 {
-                    break;
+                    isPrintingToDisplay = false;
+                    continue;
                 }
                 int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
                 phoneDisplayController.chars[index].GetComponent<CharController>().DisplayChar(letterAsInt);
                 index++;
+                yield return new WaitForSeconds(displayTextSpeed);
+            }                
+            else
+            {
+                callText.text += letter;
                 yield return new WaitForSeconds(textSpeed);
             }
         }
@@ -196,5 +202,10 @@ public class DialogueManager : MonoBehaviour
             Debug.LogWarning("Ink Variable was found to be null: " + variableName);
         }
         return variableValue;
+    }
+
+    public bool GetInDialogueStatus()
+    {
+        return isInDialogue;
     }
 }

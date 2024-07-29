@@ -4,6 +4,8 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using Random = UnityEngine.Random;
+using TMPro.EditorUtilities;
+using Unity.Burst;
 
 public class PuzzleManager : MonoBehaviour
 {
@@ -31,6 +33,7 @@ public class PuzzleManager : MonoBehaviour
 
     private bool inNumbers = true;
     private bool isPuzzleSolved;
+    private bool isInPuzzleMode = false;
 
     private void Start()
     {
@@ -45,8 +48,28 @@ public class PuzzleManager : MonoBehaviour
             puzzleColumnSix,
             puzzleColumnSeven}
         );
-
         
+    }
+
+    public void EnterPuzzleMode(int puzzleType, char[] answerSequence)
+    {
+        if (!isInPuzzleMode)
+        {
+            isInPuzzleMode = true;
+            switch (puzzleType)
+            {
+                case 1:
+                    PuzzleTypeOne(answerSequence);
+                    break;
+                case 2:
+                    PuzzleTypeTwo(answerSequence);
+                    break;
+            }
+        }
+    }
+    
+    private void PuzzleTypeOne(char[] answerSequence)
+    {
         int index = 0;
         foreach (char character in answerSequence)
         {
@@ -56,11 +79,18 @@ public class PuzzleManager : MonoBehaviour
             index++;
         }
 
-        inputChars[currentInputIndex].GetComponent<CharController>().ChangeCharColor();
+        isPuzzleSolved = false;
+        currentInputIndex = 0;
+        foreach (GameObject digit in inputChars)
+        {
+            digit.GetComponent<CharController>().DisplayChar(0);
+        }
+
+        inputChars[currentInputIndex].GetComponent<CharController>().ChangeCharColorGreen();
     }
     
 
-    private void FillPuzzleColumn(GameObject[] column, int correctNumber)
+    private void FillPuzzleColumn(GameObject[] column, int correctCharacterAsInt)
     {
         // generating randomized column char list       
         int count = column.Length;
@@ -76,13 +106,13 @@ public class PuzzleManager : MonoBehaviour
 
         int randomizedColumnSegmentsIndex = 0;
         int numberOfColumnIterations = 0;
-        for (int i = 0; i < Dictionary.GetInstance().charSegments[correctNumber].Length; i++)
+        for (int i = 0; i < Dictionary.GetInstance().charSegments[correctCharacterAsInt].Length; i++)
         {
             if (numberOfColumnIterations < column.Length)
             {
                 column[randomizedColumnSegments[randomizedColumnSegmentsIndex]].
                 GetComponent<CharController>().
-                DisplaySegment(Dictionary.GetInstance().charSegments[correctNumber][i]);
+                DisplaySegment(Dictionary.GetInstance().charSegments[correctCharacterAsInt][i]);
                 numberOfColumnIterations++;
                 randomizedColumnSegmentsIndex++; 
             }
@@ -92,9 +122,31 @@ public class PuzzleManager : MonoBehaviour
                 randomizedColumnSegmentsIndex = 0;
                 column[randomizedColumnSegments[randomizedColumnSegmentsIndex]].
                 GetComponent<CharController>().
-                DisplaySegment(Dictionary.GetInstance().charSegments[correctNumber][i]);                
+                DisplaySegment(Dictionary.GetInstance().charSegments[correctCharacterAsInt][i]);                
                 randomizedColumnSegmentsIndex++;
             }
+        }        
+    }
+
+    private void PuzzleTypeTwo(char[] answerSequence)
+    {
+        int index = 0;
+        int answerSequenceIndex = 0;
+        foreach (char character in answerSequence)
+        {
+            int characterAsInt = Dictionary.GetInstance().charIntPairs[character];
+            answerSequenceAsInt[answerSequenceIndex] = characterAsInt;
+            answerSequenceIndex++;
+            for (int i = 0; i < Dictionary.GetInstance().charSegments[characterAsInt].Length; i++)
+            {
+                phoneDisplayController.chars[index].GetComponent<CharController>().
+                DisplayChar(Dictionary.GetInstance().charSegmentLetters
+                [Dictionary.GetInstance().charSegments[characterAsInt][i]]);
+                index++; 
+            }
+            phoneDisplayController.chars[index].GetComponent<CharController>().DisplayDash();
+
+            index++;
         }
 
         isPuzzleSolved = false;
@@ -103,11 +155,18 @@ public class PuzzleManager : MonoBehaviour
         {
             digit.GetComponent<CharController>().DisplayChar(0);
         }
+
+        inputChars[currentInputIndex].GetComponent<CharController>().ChangeCharColorGreen();
     }
 
 
     public void MoveToRightChar()
     {
+        if (!isInPuzzleMode)
+        {
+            return;
+        }
+
         if (currentInputIndex < inputChars.Length - 1)
         {
             currentInputIndex = currentInputIndex += 1;
@@ -130,7 +189,7 @@ public class PuzzleManager : MonoBehaviour
         {
             if (inputChar == inputChars[currentInputIndex])
             {
-                inputChar.GetComponent<CharController>().ChangeCharColor();
+                inputChar.GetComponent<CharController>().ChangeCharColorGreen();
             }
             else
             {
@@ -142,6 +201,11 @@ public class PuzzleManager : MonoBehaviour
 
     public void MoveToLeftChar()
     {
+        if (!isInPuzzleMode)
+        {
+            return;
+        }
+
         if (currentInputIndex > 0)
         {
             currentInputIndex = currentInputIndex -= 1;
@@ -164,7 +228,7 @@ public class PuzzleManager : MonoBehaviour
         {
             if (inputChar == inputChars[currentInputIndex])
             {
-                inputChar.GetComponent<CharController>().ChangeCharColor();
+                inputChar.GetComponent<CharController>().ChangeCharColorGreen();
             }
             else
             {
@@ -174,7 +238,12 @@ public class PuzzleManager : MonoBehaviour
     }
 
     public void IncreaseNumber()
-    {               
+    {
+        if (!isInPuzzleMode)
+        {
+            return;
+        }
+
         if (inNumbers)
         {
             if (inputSequence[currentInputIndex] < 9)
@@ -203,6 +272,11 @@ public class PuzzleManager : MonoBehaviour
 
     public void DecreaseNumber()
     {
+        if (!isInPuzzleMode)
+        {
+            return;
+        }
+
         if (inNumbers)
         {
             if (inputSequence[currentInputIndex] > 0)
@@ -255,7 +329,7 @@ public class PuzzleManager : MonoBehaviour
         isPuzzleSolved = true;
         foreach (GameObject inputChar in inputChars)
         {
-            inputChar.gameObject.GetComponent<CharController>().ChangeCharColor();
+            inputChar.gameObject.GetComponent<CharController>().ChangeCharColorGreen();
         } 
     }
 

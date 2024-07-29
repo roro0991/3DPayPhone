@@ -6,6 +6,7 @@ public class Dictionary : MonoBehaviour
     public static Dictionary instance { get; private set; }
     public Dictionary<char, int> charIntPairs = new Dictionary<char, int>(); //to treat char inputs as ints for method arguments
     public Dictionary<int, int[]> charSegments = new Dictionary<int, int[]>(); //for accessing segment arrays of each char
+    public Dictionary<int, char> charSegmentLetters = new Dictionary<int, char>();
 
     private void Awake()
     {
@@ -15,7 +16,24 @@ public class Dictionary : MonoBehaviour
         }
         instance = this;
 
+        charSegmentLetters.Add(0, 'a');
+        charSegmentLetters.Add(1, 'b');
+        charSegmentLetters.Add(2, 'c');
+        charSegmentLetters.Add(3, 'd');
+        charSegmentLetters.Add(4, 'e');
+        charSegmentLetters.Add(5, 'f');
+        charSegmentLetters.Add(6, 'g');
+        charSegmentLetters.Add(7, 'g');
+        charSegmentLetters.Add(8, 'h');
+        charSegmentLetters.Add(9, 'i');
+        charSegmentLetters.Add(10, 'j');
+        charSegmentLetters.Add(11, 'k');
+        charSegmentLetters.Add(12, 'l');
+        charSegmentLetters.Add(13, 'm');
+
+
         charIntPairs.Add(' ', 99);
+        charIntPairs.Add('*', 98);
         charIntPairs.Add('0', 0);
         charIntPairs.Add('1', 1);
         charIntPairs.Add('2', 2);

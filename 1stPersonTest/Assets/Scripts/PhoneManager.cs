@@ -11,7 +11,7 @@ public class PhoneManager : MonoBehaviour
         
     private int[] phoneNumber = new int[7]; // to store the player input
     private int currentNumberIndex = 0; // to track where in the phone number we are
-    private int currentDisplayCharIndex = 28; // to set where to display numbers on phone display
+    private int currentDisplayCharIndex = 38; // to set where to display numbers on phone display
     private int numberAsInt; // to send to call trigger
 
     private bool receiverIsPickedUp = false;
@@ -30,7 +30,7 @@ public class PhoneManager : MonoBehaviour
             {
                 phoneNumber[currentNumberIndex] = input;
                 currentNumberIndex++;
-                if (currentDisplayCharIndex == 31)
+                if (currentDisplayCharIndex == 41)
                 {
                     phoneDisplayController.chars[currentDisplayCharIndex].GetComponent<CharController>().DisplayDash();
                     currentDisplayCharIndex++;
@@ -47,20 +47,28 @@ public class PhoneManager : MonoBehaviour
         {
             receiverAnimator.SetBool("isPickedUp", true);
             receiverIsPickedUp = true;
+            phoneDisplayController.ClearAllChars();
+        }
+        else if (receiverIsPickedUp && dialogueManager.GetInDialogueStatus() == true)
+        {
+            dialogueManager.ExitCallMode();
+            currentDisplayCharIndex = 38;
+            Array.Clear(phoneNumber, 0, phoneNumber.Length);
+            currentNumberIndex = 0;
+            receiverAnimator.SetBool("isPickedUp", false);
+            receiverIsPickedUp = false;
+            phoneDisplayController.PickUpReceiverMessage();
+
         }
         else
         {
-            // end call
-            dialogueManager.ExitCallMode();
-            // update receiver status
-            receiverAnimator.SetBool("isPickedUp", false);
-            receiverIsPickedUp = false;
-            // clear phone number array            
+            phoneDisplayController.ClearAllChars();
+            currentDisplayCharIndex = 38;
             Array.Clear(phoneNumber, 0, phoneNumber.Length);
             currentNumberIndex = 0;
-            // clear phone display
-            phoneDisplayController.ClearAllChars();
-            currentDisplayCharIndex = 28;
+            receiverAnimator.SetBool("isPickedUp", false);
+            receiverIsPickedUp = false;
+            phoneDisplayController.PickUpReceiverMessage();
         }
     }
 

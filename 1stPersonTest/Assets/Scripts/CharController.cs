@@ -30,6 +30,22 @@ public class CharController : MonoBehaviour
                 segments[12].SetActive(false);
                 segments[13].SetActive(false);
                 break;
+            case 98:
+                segments[0].SetActive(false);
+                segments[1].SetActive(false);
+                segments[2].SetActive(false);
+                segments[3].SetActive(false);
+                segments[4].SetActive(false);
+                segments[5].SetActive(false);
+                segments[6].SetActive(false);
+                segments[7].SetActive(false);
+                segments[8].SetActive(true);
+                segments[9].SetActive(true);
+                segments[10].SetActive(true);
+                segments[11].SetActive(true);
+                segments[12].SetActive(true);
+                segments[13].SetActive(true);
+                break;
             case 0:
                 segments[0].SetActive(true);
                 segments[1].SetActive(true);
@@ -1068,7 +1084,7 @@ public class CharController : MonoBehaviour
         segments[13].SetActive(false);
     }
 
-    public void ChangeCharColor()
+    public void ChangeCharColorGreen()
     {
         foreach (var segment in segments)
         {
