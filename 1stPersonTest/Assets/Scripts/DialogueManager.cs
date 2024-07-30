@@ -19,7 +19,7 @@ public class DialogueManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI callText;
     [SerializeField] private Button continueButton;
     [SerializeField] private GameObject[] callChoices;
-    [SerializeField] private GameObject inputField;
+    [SerializeField] private TMP_InputField inputField;
     private TextMeshProUGUI[] callChoicesText;
     public Animator callPanelAnimator;
 
@@ -37,6 +37,7 @@ public class DialogueManager : MonoBehaviour
     private bool isInDialogue = false;
     private bool isInDirectory = false;
     private bool isInputingCity = true;
+    private bool areBothInputsFilled = false;
     
 
     private void Awake()
@@ -79,6 +80,7 @@ public class DialogueManager : MonoBehaviour
         callText.text = string.Empty; // clear dialogue panel
         callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
         dialogueVariables.StopListening(currentStory); // stop listening to story variables
+        currentStory = null;
     }
     public void ContinueCall()
     {
@@ -105,7 +107,6 @@ public class DialogueManager : MonoBehaviour
         DisableCallChoices();
         DisableConitnueCallButton();       
         callText.text = "";
-        isInDirectory = ((Ink.Runtime.BoolValue)GetVariableState("directory_Active")).value; 
         bool isAddingRichTextTag = false; // so we don't print the richtext code from ink into the dialogue
         bool isPrintingToDisplay = false; // to know when to print secret messages to display
         int index = 0;
@@ -144,15 +145,18 @@ public class DialogueManager : MonoBehaviour
                 yield return new WaitForSeconds(textSpeed);
             }
         }
-        EnableChoices();
-        DisplayCallChoices();
+     if (!isInDirectory)
+        {
+            EnableChoices();
+            DisplayCallChoices();
+        }
     }
 
     private void DisplayCallChoices()
     {
         List<Choice> currentChoices = currentStory.currentChoices;
 
-        if (currentChoices.Count == 0 && !isInDirectory)
+        if (currentChoices.Count == 0 && !isInDirectory);
         {
             EnableContinueCallButton();
         }
@@ -173,15 +177,6 @@ public class DialogueManager : MonoBehaviour
         for (int i = index; i < callChoices.Length; i++)
         {
             callChoices[i].gameObject.SetActive(false);
-        }
-
-        if (isInDirectory == true)
-        {
-            inputField.SetActive(true);
-        }
-        else
-        {
-            inputField.SetActive(false);
         }
     }
 
@@ -204,7 +199,7 @@ public class DialogueManager : MonoBehaviour
         foreach (GameObject choice in callChoices)
         {
             choice.SetActive(true);
-        }
+        }       
     }
 
     private void EnableContinueCallButton()
@@ -234,27 +229,63 @@ public class DialogueManager : MonoBehaviour
         {
             if (isInputingCity)
             {
+                StopAllCoroutines();
                 isInputingCity = false;
                 playerInputCity = s;
-                s = string.Empty;
-                ContinueCall();
+                string line = "Please provide the first and last name of the person you're attempting to reach";
+                StartCoroutine(TypeLine(line));
             }
-            else if (!isInputingCity)
+            else if (!isInputingCity && !areBothInputsFilled)
             {                
                 playerInputName = s;
+                areBothInputsFilled = true;
                 directoryFinalInput = playerInputCity + playerInputName;
                 if (!Dictionary.GetInstance().directoryNumbers.ContainsKey(directoryFinalInput))
                 {
-                    string line = "The number you are searching for is unlisted";
+                    StopAllCoroutines();
+                    string line = "The number for " + playerInputName + " in " + playerInputCity + " is not listed.";
                     StartCoroutine(TypeLine(line));
                 }
                 else
                 {
-                    currentStory.variablesState["directoryReturn"] = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];
-                    ContinueCall();                                       
+                    StopAllCoroutines();
+                    string output = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];
+                    //currentStory.variablesState["directoryReturn"] = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];
+                    string line = "The number for " + playerInputName + " in " + playerInputCity + " is " + output + ".";
+                    StartCoroutine(TypeLine(line));
                 }
+                
             }
+            else if (areBothInputsFilled)
+            {
+                areBothInputsFilled = false;
+                playerInputCity = string.Empty;
+                playerInputName = string.Empty;
+                directoryFinalInput = string.Empty;
+                isInputingCity = true;
+                ExitDirectoryMode();
+            }
+            inputField.text = string.Empty;
         }
+    }
+
+    public void EnterDirectoryMode()
+    {
+        isInDirectory = true;
+        inputField.gameObject.SetActive(true);
+        callPanelAnimator.SetBool("inCall", true);
+        string line = "You've reached the directory.\n Please provide the name of the city you are trying to reach.";
+        StartCoroutine(TypeLine(line)); 
+    }
+
+    public void ExitDirectoryMode()
+    {
+        callPanelAnimator.SetBool("inCall", false);
+        inputField.gameObject.SetActive(false);
+        playerInputCity = string.Empty;
+        playerInputName = string.Empty;
+        StopAllCoroutines();
+        isInDirectory = false;
     }
 
     public bool GetInDialogueStatus()

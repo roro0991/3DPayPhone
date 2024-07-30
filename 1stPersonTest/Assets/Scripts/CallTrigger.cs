@@ -30,7 +30,7 @@ public class CallTrigger : MonoBehaviour
             {
                 case 411:
                     callIsInProgress = true;
-                    StartCoroutine(Call(directory));
+                    dialogueManager.EnterDirectoryMode();
                     break;
                 default:
                     break;
