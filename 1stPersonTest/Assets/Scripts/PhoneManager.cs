@@ -49,27 +49,25 @@ public class PhoneManager : MonoBehaviour
             receiverIsPickedUp = true;
             phoneDisplayController.ClearAllChars();
         }
-        else if (receiverIsPickedUp && dialogueManager.GetInDialogueStatus() == true)
+        else if (receiverIsPickedUp)
         {
-            dialogueManager.ExitCallMode();
-            currentDisplayCharIndex = 38;
-            Array.Clear(phoneNumber, 0, phoneNumber.Length);
-            currentNumberIndex = 0;
+            if (dialogueManager.GetInDialogueStatus() == true)
+            {
+                dialogueManager.ExitCallMode();
+            }
+            else if (dialogueManager.GetInDirectoryStatus() == true)
+            {
+                dialogueManager.ExitDirectoryMode();
+            }
+
             receiverAnimator.SetBool("isPickedUp", false);
             receiverIsPickedUp = false;
-            phoneDisplayController.PickUpReceiverMessage();
-
-        }
-        else
-        {
             phoneDisplayController.ClearAllChars();
             currentDisplayCharIndex = 38;
             Array.Clear(phoneNumber, 0, phoneNumber.Length);
             currentNumberIndex = 0;
-            receiverAnimator.SetBool("isPickedUp", false);
-            receiverIsPickedUp = false;
             phoneDisplayController.PickUpReceiverMessage();
-        }
+        }                   
     }
 
     public void ZoomInOnDisplay()

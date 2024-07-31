@@ -33,7 +33,6 @@ public class DialogueManager : MonoBehaviour
     private string directoryFinalInput;
 
     private float textSpeed = 0.05f;
-    private float displayTextSpeed = 0.1f;
     private bool isInDialogue = false;
     private bool isInDirectory = false;
     private bool isInputingCity = true;
@@ -54,12 +53,6 @@ public class DialogueManager : MonoBehaviour
             callChoicesText[index] = choice.GetComponentInChildren<TextMeshProUGUI>();
             index++;
         }
-    }
-
-    private void Update()
-    {
-        Debug.Log(playerInputCity);
-        Debug.Log(playerInputName);
     }
     public void EnterCallMode(TextAsset inkJSON)
     {
@@ -137,7 +130,7 @@ public class DialogueManager : MonoBehaviour
                 int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
                 phoneDisplayController.chars[index].GetComponent<CharController>().DisplayChar(letterAsInt);
                 index++;
-                yield return new WaitForSeconds(displayTextSpeed);
+                yield return new WaitForSeconds(textSpeed);
             }                
             else
             {
@@ -234,6 +227,7 @@ public class DialogueManager : MonoBehaviour
                 playerInputCity = s;
                 string line = "Please provide the first and last name of the person you're attempting to reach";
                 StartCoroutine(TypeLine(line));
+                inputField.ActivateInputField();
             }
             else if (!isInputingCity && !areBothInputsFilled)
             {                
@@ -243,7 +237,8 @@ public class DialogueManager : MonoBehaviour
                 if (!Dictionary.GetInstance().directoryNumbers.ContainsKey(directoryFinalInput))
                 {
                     StopAllCoroutines();
-                    string line = "The number for " + playerInputName + " in " + playerInputCity + " is not listed.";
+                    string line = "The number for " + playerInputName + " in " + playerInputCity + " is not listed. \n " +
+                    "Do you need further assistance?";
                     StartCoroutine(TypeLine(line));
                 }
                 else
@@ -251,7 +246,8 @@ public class DialogueManager : MonoBehaviour
                     StopAllCoroutines();
                     string output = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];
                     //currentStory.variablesState["directoryReturn"] = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];
-                    string line = "The number for " + playerInputName + " in " + playerInputCity + " is " + output + ".";
+                    string line = "The number for " + playerInputName + " in " + playerInputCity + " is " + output + ".\n" +
+                    "Do you need further assistance?";
                     StartCoroutine(TypeLine(line));
                 }
                 
@@ -259,9 +255,6 @@ public class DialogueManager : MonoBehaviour
             else if (areBothInputsFilled)
             {
                 areBothInputsFilled = false;
-                playerInputCity = string.Empty;
-                playerInputName = string.Empty;
-                directoryFinalInput = string.Empty;
                 isInputingCity = true;
                 ExitDirectoryMode();
             }
@@ -275,7 +268,8 @@ public class DialogueManager : MonoBehaviour
         inputField.gameObject.SetActive(true);
         callPanelAnimator.SetBool("inCall", true);
         string line = "You've reached the directory.\n Please provide the name of the city you are trying to reach.";
-        StartCoroutine(TypeLine(line)); 
+        StartCoroutine(TypeLine(line));
+        inputField.ActivateInputField();
     }
 
     public void ExitDirectoryMode()
@@ -284,6 +278,7 @@ public class DialogueManager : MonoBehaviour
         inputField.gameObject.SetActive(false);
         playerInputCity = string.Empty;
         playerInputName = string.Empty;
+        directoryFinalInput = string.Empty;
         StopAllCoroutines();
         isInDirectory = false;
     }
@@ -291,6 +286,11 @@ public class DialogueManager : MonoBehaviour
     public bool GetInDialogueStatus()
     {
         return isInDialogue;
+    }
+
+    public bool GetInDirectoryStatus()
+    {
+        return isInDirectory;
     }
 
 }
