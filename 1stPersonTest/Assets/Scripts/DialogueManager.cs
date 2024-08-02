@@ -140,7 +140,6 @@ public class DialogueManager : MonoBehaviour
         }
      if (!isInDirectory)
         {
-            EnableChoices();
             DisplayCallChoices();
         }
     }
@@ -149,7 +148,7 @@ public class DialogueManager : MonoBehaviour
     {
         List<Choice> currentChoices = currentStory.currentChoices;
 
-        if (currentChoices.Count == 0 && !isInDirectory);
+        if (currentChoices.Count == 0 && !isInDirectory)
         {
             EnableContinueCallButton();
         }

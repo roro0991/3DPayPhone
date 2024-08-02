@@ -8,7 +8,6 @@ public class CallTrigger : MonoBehaviour
     
     [Header("Ink JSON Files")]
     [SerializeField] private TextAsset testCall; //555-5555
-    [SerializeField] private TextAsset directory; //411
 
 
     int numberToCall;
