@@ -4,7 +4,8 @@ using UnityEngine;
 public class PhoneManager : MonoBehaviour
 {    
     [SerializeField] private PhoneDisplayController phoneDisplayController;
-    [SerializeField] private DialogueManager dialogueManager;
+    [SerializeField] private CallManager callManager;
+    [SerializeField] private PuzzleManager puzzleManager;
         
     public Animator receiverAnimator;
     public Animator cameraAnimator;
@@ -51,13 +52,17 @@ public class PhoneManager : MonoBehaviour
         }
         else if (receiverIsPickedUp)
         {
-            if (dialogueManager.GetInDialogueStatus() == true)
+            if (callManager.GetInDialogueStatus() == true)
             {
-                dialogueManager.ExitCallMode();
+                callManager.ExitCallMode();
             }
-            else if (dialogueManager.GetInDirectoryStatus() == true)
+            if (callManager.GetInDirectoryStatus() == true)
             {
-                dialogueManager.ExitDirectoryMode();
+                callManager.ExitDirectoryMode();
+            }
+            if (puzzleManager.GetPuzzleStatus() == true)
+            {
+                puzzleManager.ExitPuzzleMode();
             }
 
             receiverAnimator.SetBool("isPickedUp", false);

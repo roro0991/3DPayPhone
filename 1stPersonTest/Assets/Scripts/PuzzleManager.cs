@@ -11,11 +11,14 @@ public class PuzzleManager : MonoBehaviour
 {
     public Puzzle puzzle;
 
-    [SerializeField] private DialogueManager dialogueManager;
-    [SerializeField] private PhoneDisplayController phoneDisplayController;
+    [SerializeField] private CallManager callManager;
+    public Animator callPanelAnimator;
+    [SerializeField] private ContactsManager contactManager;
+    [SerializeField] private PhoneDisplayController phoneDisplayController;    
 
     [SerializeField] private GameObject[] inputChars = new GameObject[7]; // relevent phone display objects for displaying input
     private char[] answerSequence = new char[7]; // correct solution
+    private string answerSequenceAsString = string.Empty;
     int[] answerSequenceAsInt = new int[7]; // converted to int to compare to inputsequence
     private int[] inputSequence = new int[7]; // storing input sequence
     private int currentInputIndex; // tracking where int the input sequence we are
@@ -32,12 +35,23 @@ public class PuzzleManager : MonoBehaviour
     private List<GameObject[]> puzzleColumns = new List<GameObject[]>(); // list of display column arrays above
 
     private bool inNumbers = true;
-    private bool isPuzzleSolved;
     private bool isInPuzzleMode = false;
 
     private void Start()
     {
         answerSequence = puzzle.answerSequence;
+
+        //answerSequence = puzzle.answerSequence;
+        int index = 0;
+        foreach (char letter in answerSequence)
+        {
+            if (index == 3)
+            {
+                answerSequenceAsString += "-";                
+            }
+            answerSequenceAsString += letter;
+            index++;
+        }
 
         puzzleColumns.AddRange(new List<GameObject[]>()
         {   puzzleColumnOne,
@@ -48,11 +62,12 @@ public class PuzzleManager : MonoBehaviour
             puzzleColumnSix,
             puzzleColumnSeven}
         );
-        
     }
 
     public void EnterPuzzleMode(int puzzleType, char[] answerSequence)
     {
+        callPanelAnimator.SetBool("inCall", false);
+        phoneDisplayController.ClearAllChars();
         if (!isInPuzzleMode)
         {
             isInPuzzleMode = true;
@@ -67,6 +82,12 @@ public class PuzzleManager : MonoBehaviour
             }
         }
     }
+
+    public void ExitPuzzleMode()
+    {
+        isInPuzzleMode = false;
+        phoneDisplayController.ClearAllChars();
+    }
     
     private void PuzzleTypeOne(char[] answerSequence)
     {
@@ -79,7 +100,6 @@ public class PuzzleManager : MonoBehaviour
             index++;
         }
 
-        isPuzzleSolved = false;
         currentInputIndex = 0;
         foreach (GameObject digit in inputChars)
         {
@@ -148,8 +168,7 @@ public class PuzzleManager : MonoBehaviour
 
             index++;
         }
-
-        isPuzzleSolved = false;
+       
         currentInputIndex = 0;
         foreach (GameObject digit in inputChars)
         {
@@ -323,23 +342,30 @@ public class PuzzleManager : MonoBehaviour
     }
 
     public void SubmitInputSequence()
-    {
-
-        if (inputSequence.SequenceEqual(answerSequenceAsInt) != true)
+    {        
+        if (inputSequence.SequenceEqual(answerSequenceAsInt) != true || !isInPuzzleMode)
         {
             return;
         }
 
-
-        isPuzzleSolved = true;
+        
         foreach (GameObject inputChar in inputChars)
         {
             inputChar.gameObject.GetComponent<CharController>().ChangeCharColorGreen();
-        } 
+            ExitPuzzleMode();
+            callPanelAnimator.SetBool("inCall", true);
+        }
     }
 
     private bool EqualityOperator(char[] firstArray, char[] secondArray) //for checking if inputSequence matches answerSequence.
     {
         return firstArray == secondArray;
+    }
+
+    // Getter methods
+
+    public bool GetPuzzleStatus()
+    {
+        return isInPuzzleMode;
     }
 }

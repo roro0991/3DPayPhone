@@ -4,11 +4,10 @@ using UnityEngine;
 public class CallTrigger : MonoBehaviour
 {
     [SerializeField] PhoneManager phoneManager;
-    [SerializeField] DialogueManager dialogueManager;
+    [SerializeField] CallManager callManager;
     
     [Header("Ink JSON Files")]
     [SerializeField] private TextAsset testCall; //555-5555
-
 
     int numberToCall;
 
@@ -29,7 +28,7 @@ public class CallTrigger : MonoBehaviour
             {
                 case 411:
                     callIsInProgress = true;
-                    dialogueManager.EnterDirectoryMode();
+                    callManager.EnterDirectoryMode();
                     break;
                 default:
                     break;
@@ -60,6 +59,6 @@ public class CallTrigger : MonoBehaviour
     IEnumerator Call(TextAsset Number)
     {
         yield return new WaitForSeconds(1.5f);
-        dialogueManager.EnterCallMode(Number);
+        callManager.EnterCallMode(Number);
     }
 }
