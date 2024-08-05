@@ -24,22 +24,25 @@ public class CallManager : MonoBehaviour
     public Animator callPanelAnimator;
 
     [SerializeField] PhoneDisplayController phoneDisplayController;
+    [SerializeField] PhoneManager phoneManager;
     [SerializeField] PuzzleManager puzzleManager;
 
     //ink story related elements
     private Story currentStory;
     private DialogueVariables dialogueVariables;
-    private string playerInputCity;
-    private string playerInputName;
-    private string directoryFinalInput;
+    private string playerInputCity; // store city name for directory
+    private string playerInputName; // story person name for directory
+    private string directoryFinalInput; // concatenate above values for dictionary key
 
     private float textSpeed = 0.05f;
     
     //state bools
-    private bool isInDialogue = false;
-    private bool isInDirectory = false;
-    private bool isInputingCity = true;
-    private bool isInputingName = false;
+    private bool isInDialogue = false; // check if in dialogue
+    private bool isInDirectory = false; // check if in directory
+    private bool isInputingCity = true; // check if inputing city into directory
+    private bool isInputingName = false; // check if inputing name into directory
+    private bool isInAutomatedSystem = false; // check if in automated system
+    private bool isInExtentionSystem = false; // check if inputing extention number
     
 
     private void Awake()
@@ -64,9 +67,21 @@ public class CallManager : MonoBehaviour
         callPanelAnimator.SetBool("inCall", true); // bring up dialogue panel
         dialogueVariables.StartListening(currentStory);  // listen to story variables
         // allow access to C# functions/methods from ink
-        currentStory.BindExternalFunction("enterPuzzleMode", (int puzzleType, string answerSequence) =>
+        currentStory.BindExternalFunction("EnterPuzzleMode", (int puzzleType, string answerSequence) =>
         {
             puzzleManager.EnterPuzzleMode(puzzleType, answerSequence.ToCharArray());
+        });
+        currentStory.BindExternalFunction("SetAutomatedSystem", (bool status) =>
+        {
+            SetAutomatedSystemStatus(status);
+        });
+        currentStory.BindExternalFunction("SetExtentionSystem", (bool status) =>
+        {
+            SetExtentionStatus(status);
+        });
+        currentStory.BindExternalFunction("ResetExtention", () =>
+        {
+            phoneManager.ResetExtention();
         });
 
         ContinueCall(); // begin dialogue 
@@ -80,7 +95,10 @@ public class CallManager : MonoBehaviour
         callText.text = string.Empty; // clear dialogue panel
         callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
         dialogueVariables.StopListening(currentStory); // stop listening to story variables
-        currentStory.UnbindExternalFunction("enterPuzzleMode");
+        currentStory.UnbindExternalFunction("EnterPuzzleMode");
+        currentStory.UnbindExternalFunction("SetAutomatedSystem");
+        currentStory.UnbindExternalFunction("SetExtentionSystem");
+        currentStory.UnbindExternalFunction("ResetExtention");
     }
     public void ContinueCall()
     {
@@ -88,6 +106,14 @@ public class CallManager : MonoBehaviour
         {
             StopAllCoroutines(); // so we don't have multiple coroutines running at the same time
             string line = currentStory.Continue();
+            if (line.Equals("") && currentStory.canContinue)
+            {
+                line = currentStory.Continue();
+            }
+            else if (line.Equals("") && !currentStory.canContinue)
+            {
+                ExitCallMode();
+            }
             StartCoroutine(TypeLine(line));
         }
         else
@@ -99,7 +125,7 @@ public class CallManager : MonoBehaviour
     IEnumerator TypeLine(string line)
     {
         DisableCallChoices();
-        DisableConitnueCallButton();       
+        DisableContinueButton();       
         callText.text = "";
         bool isAddingRichTextTag = false; // so we don't print the richtext code from ink into the dialogue
         bool isPrintingToDisplay = false; // to know when to print secret messages to display
@@ -149,37 +175,63 @@ public class CallManager : MonoBehaviour
     {
         List<Choice> currentChoices = currentStory.currentChoices;
 
-        if (currentChoices.Count == 0 && !isInDirectory)
+        if (currentChoices.Count == 0 && !isInDirectory &&!isInExtentionSystem)
         {
             EnableContinueCallButton();
         }
 
-        if (currentChoices.Count > callChoices.Length)
+        if (!isInAutomatedSystem) // disable call panel choice buttons when using phone buttons instead
         {
-            Debug.LogError("There are too many choices to fit the UI");
-        }
+            if (currentChoices.Count > callChoices.Length)
+            {
+                Debug.LogError("There are too many choices to fit the UI");
+            }
 
-        int index = 0;
-        foreach (Choice choice in currentChoices)
-        {
-            callChoices[index].gameObject.SetActive(true);
-            callChoicesText[index].text = choice.text;
-            index++;
-        }
+            int index = 0;
+            foreach (Choice choice in currentChoices)
+            {
+                callChoices[index].gameObject.SetActive(true);
+                callChoicesText[index].text = choice.text;
+                index++;
+            }
 
-        for (int i = index; i < callChoices.Length; i++)
-        {
-            callChoices[i].gameObject.SetActive(false);
+            for (int i = index; i < callChoices.Length; i++)
+            {
+                callChoices[i].gameObject.SetActive(false);
+            }
         }
     }
 
-    public void MakeCallChoice(int callChoiceIndex)
+    public void MakeCallChoice(int callChoiceIndex) // for when choices use call panel buttons
     {
         if (isInDirectory)
         {
             return;
         }
         currentStory.ChooseChoiceIndex(callChoiceIndex);
+        ContinueCall();
+    }
+
+    public void MakeAutomatedCallChoice(int callChoiceIndex) // for when choices use phone buttons
+    {
+        if (!isInAutomatedSystem)
+        {
+            return;
+        }
+        if (callChoiceIndex < currentStory.currentChoices.Count)
+        {
+            currentStory.ChooseChoiceIndex(callChoiceIndex);
+            ContinueCall();
+        }
+    }
+
+    public void EnterExtention()
+    {
+        if (!isInExtentionSystem)
+        {
+            return;
+        }
+        currentStory.variablesState["extention"] = phoneManager.GetExtentionNumber();
         ContinueCall();
     }
 
@@ -204,7 +256,7 @@ public class CallManager : MonoBehaviour
         continueButton.gameObject.SetActive(true);
     }
 
-    private void DisableConitnueCallButton()
+    private void DisableContinueButton()
     {
         continueButton.gameObject.SetActive(false);
     }
@@ -220,7 +272,7 @@ public class CallManager : MonoBehaviour
         return variableValue;
     }
 
-    public void ReadPlayerInput(string s)
+    public void ReadPlayerInput(string s) // reading player input for directory (expand for other functions?)
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
@@ -317,7 +369,7 @@ public class CallManager : MonoBehaviour
         return result; 
     }
 
-    private void ContinueExitDirectoryOptions() // exit directory or search again
+    private void ContinueExitDirectoryOptions() // exit directory or search again options
     {
         foreach (GameObject choice in callChoices)
         {
@@ -338,8 +390,23 @@ public class CallManager : MonoBehaviour
         }
     }
 
+    public void SetAutomatedSystemStatus(bool status)
+    {
+        isInAutomatedSystem = status;
+    }
+
+    public void SetExtentionStatus(bool status)
+    {
+        isInExtentionSystem = status;
+    }
 
     // Getter Methods
+
+    public bool GetExtentionStatus()
+    {
+        return isInExtentionSystem;
+    }
+
     public bool GetInDialogueStatus()
     {
         return isInDialogue;

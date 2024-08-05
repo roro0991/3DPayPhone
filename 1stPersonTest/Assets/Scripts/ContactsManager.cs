@@ -19,7 +19,7 @@ public class ContactsManager : MonoBehaviour
         }        
     }
 
-    public void openContacts()
+    public void OpenContacts()
     {
         if (!contactSheetOpen)
         {
