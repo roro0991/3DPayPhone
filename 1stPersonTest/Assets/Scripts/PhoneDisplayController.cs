@@ -6,15 +6,15 @@ using UnityEngine;
 public class PhoneDisplayController : MonoBehaviour
 {
     [SerializeField] public GameObject[] chars = new GameObject[85];
-    [SerializeField] private GameObject[] messageLine = new GameObject[17];
+    [SerializeField] private GameObject[] messageLine = new GameObject[18];
     [SerializeField] private PhoneManager phoneManager;
+    private GameObject[] shiftedLine = new GameObject[17];
     private string pickUpReceiver = "pick up receiver";
-    
 
     private void Start()
     {        
         ClearAllChars();
-        PickUpReceiverMessage();
+        StartCoroutine(AnimateMessage());
     }
 
 
@@ -37,17 +37,29 @@ public class PhoneDisplayController : MonoBehaviour
         }
     }
 
-    private GameObject[] Shift(GameObject[] array, int k)
+
+    IEnumerator AnimateMessage()
     {
-        var result = new GameObject[array.Length];
-        for (int i = 0; i < array.Length; i++)
+        while (true)
         {
-            if (i == array.Length)
+            while (phoneManager.GetReceiverStatus() == false)
             {
-                i = 0;
+                for (int i = messageLine.Length - 1; i >= 0; i--)
+                {
+                    if (i > 0)
+                    {
+                        messageLine[i] = messageLine[i - 1];
+                    }
+                    else
+                    {
+                        messageLine[i] = messageLine[messageLine.Length - 1];
+                    }
+                }
+                PickUpReceiverMessage();
+                yield return new WaitForSeconds(.30f);                
+
             }
-            result[(i + k) % array.Length] = array[i];
+            yield return null;
         }
-        return result;    
     }
 }

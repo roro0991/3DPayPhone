@@ -285,7 +285,7 @@ public class CallManager : MonoBehaviour
                 isInputingCity = false;
                 isInputingName = true;
                 string line = "Please provide the first and last name of the person you're attempting to reach";
-                StartCoroutine(TypeLine(line));
+                callText.text = line;
                 inputField.ActivateInputField();
             }
             else if (!isInputingCity && isInputingName)
@@ -302,32 +302,32 @@ public class CallManager : MonoBehaviour
                     inputField.gameObject.SetActive(false);
                     string line = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is not listed.\n" +
                     "Do you need further assistance?";
-                    StartCoroutine(TypeLine(line));
-                    ContinueExitDirectoryOptions();                           
+                    callText.text = line;                       
                 }
                 else
                 {
-                    // if ke is in dictionary
+                    // if key is in dictionary
                     StopAllCoroutines();
                     inputField.gameObject.SetActive(false);
                     string directoryOutput = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];                    
                     string line = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is " + directoryOutput + ".\n" +
                     "Do you need further assistance?";
-                    StartCoroutine(TypeLine(line));
-                    ContinueExitDirectoryOptions();
+                    callText.text = line;
                 }
-                
+                ContinueExitDirectoryOptions();                
             }
             inputField.text = string.Empty;
         }
     }
     public void EnterDirectoryMode()
     {
+        DisableCallChoices();
+        DisableContinueButton();
         isInDirectory = true;
         callPanelAnimator.SetBool("inCall", true);
         inputField.gameObject.SetActive(true);
-        string line = "You've reached the directory.\n Please provide the name of the city you are trying to reach.";
-        StartCoroutine(TypeLine(line));
+        string line = "You've reached the directory.\nPlease provide the name of the city you are trying to reach.";
+        callText.text = line;
         inputField.ActivateInputField();
     }
     public void ExitDirectoryMode()
@@ -360,7 +360,7 @@ public class CallManager : MonoBehaviour
         isInputingName = false;
         inputField.gameObject.SetActive(true);
         string line = "Please provide the name of the city you are trying to reach.";
-        StartCoroutine(TypeLine(line));
+        callText.text = line;
         inputField.ActivateInputField();
     }
     private string ReplaceSpacesInString(string s)
