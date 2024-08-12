@@ -10,6 +10,7 @@ public class PhoneDisplayController : MonoBehaviour
     [SerializeField] private PhoneManager phoneManager;
     private GameObject[] shiftedLine = new GameObject[17];
     private string pickUpReceiver = "pick up receiver";
+    private string insterCoins = "insert money";
 
     private void Start()
     {        
@@ -32,7 +33,8 @@ public class PhoneDisplayController : MonoBehaviour
         ClearAllChars();
         foreach (char letter in pickUpReceiver.ToCharArray())
         {
-            messageLine[index].GetComponent<CharController>().DisplayChar(letter);
+            int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
+            messageLine[index].GetComponent<CharController>().DisplayChar(letterAsInt);
             index++;
         }
     }

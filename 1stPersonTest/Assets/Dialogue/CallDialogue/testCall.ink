@@ -29,7 +29,7 @@ This is a test of choices.
 === chosen(choice) ===
 You've chosen {choice}
 ~ SetAutomatedSystem(true)
-Would you like to try a puzzle? <br> Press 1 for "yes" <br> Press 2 for "no"
+Would you like to try a puzzle? <br>Press 1 for "yes" <br>Press 2 for "no"
 + [yes]
 -> FirstPuzzle
 + [no]

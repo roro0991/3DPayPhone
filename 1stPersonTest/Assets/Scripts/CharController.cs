@@ -30,7 +30,7 @@ public class CharController : MonoBehaviour
                 segments[12].SetActive(false);
                 segments[13].SetActive(false);
                 break;
-            case 98: // dash
+            case 98: // star
                 segments[0].SetActive(false);
                 segments[1].SetActive(false);
                 segments[2].SetActive(false);

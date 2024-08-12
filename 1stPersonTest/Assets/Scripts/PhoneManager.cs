@@ -1,12 +1,19 @@
 using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PhoneManager : MonoBehaviour
 {    
     [SerializeField] private PhoneDisplayController phoneDisplayController;
     [SerializeField] private CallManager callManager;
     [SerializeField] private PuzzleManager puzzleManager;
-        
+
+    [SerializeField] private Transform receiver;
+    [SerializeField] private Transform mainCamera;
+
+    [SerializeField] private Animator[] buttonAnimators = new Animator[12];
+
     public Animator receiverAnimator;
     public Animator cameraAnimator;
     
@@ -25,6 +32,7 @@ public class PhoneManager : MonoBehaviour
     private bool receiverIsPickedUp = false;
     private bool cameraIsZoomedIn = false;
 
+    
     private void Update()
     {
         string phoneNumberAsString = string.Join(string.Empty, phoneNumber);
@@ -48,8 +56,8 @@ public class PhoneManager : MonoBehaviour
                 }
                 phoneDisplayController.chars[currentDisplayCharIndex].GetComponent<CharController>().DisplayChar(input);
                 currentDisplayCharIndex++;
-            }     
-            
+            }
+
             if (callManager.GetExtentionStatus() == true)
             {
                 if (currentExtentionNumberIndex < extentionNumber.Length)
@@ -58,18 +66,36 @@ public class PhoneManager : MonoBehaviour
                     currentExtentionNumberIndex++;
                     phoneDisplayController.chars[currentExtentionDisplayCharIndex].GetComponent<CharController>().DisplayChar(input);
                     currentExtentionDisplayCharIndex++;
-                }                
+                }
             }
+        }
+        if (input == 0)
+        {
+            buttonAnimators[10].SetTrigger("isPressed");
+        }
+        else
+        {
+            buttonAnimators[input - 1].SetTrigger("isPressed");            
         }
     }
 
+    public void SymbolButton (int input)
+    {
+        if (input == 97) // # symbol
+        {
+            buttonAnimators[11].SetTrigger("isPressed");
+        }
+        else if (input == 98) // * symbol{
+            buttonAnimators[9].SetTrigger("isPressed");
+    }
 
     public void PickUpReceiver()
     {
         if (!receiverIsPickedUp)
         {
-            receiverAnimator.SetBool("isPickedUp", true);
             receiverIsPickedUp = true;
+            receiver.transform.SetParent(mainCamera);
+            receiverAnimator.SetBool("isPickedUp", true);
             phoneDisplayController.ClearAllChars();
         }
         else if (receiverIsPickedUp)
@@ -122,6 +148,19 @@ public class PhoneManager : MonoBehaviour
         currentExtentionDisplayCharIndex = 46;
         Array.Clear(extentionNumber, 0, extentionNumber.Length);
         currentExtentionNumberIndex = 0;
+    }
+
+    private void SetParent(Transform child, Transform newParent)
+    {
+        child.transform.SetParent(newParent);
+    }
+
+    IEnumerator AnimateReceiver()
+    {
+        receiverIsPickedUp = true;
+        receiverAnimator.SetBool("isPickedUp", true);
+        yield return new WaitForSeconds(1f);
+        SetParent(receiver, mainCamera);
     }
 
     // Getter methods
