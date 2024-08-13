@@ -8,6 +8,7 @@ public class PhoneManager : MonoBehaviour
     [SerializeField] private PhoneDisplayController phoneDisplayController;
     [SerializeField] private CallManager callManager;
     [SerializeField] private PuzzleManager puzzleManager;
+    [SerializeField] private SFXManager sfxManager;
 
     [SerializeField] private Transform receiver;
     [SerializeField] private Transform mainCamera;
@@ -77,6 +78,7 @@ public class PhoneManager : MonoBehaviour
         {
             buttonAnimators[input - 1].SetTrigger("isPressed");            
         }
+        sfxManager.ButtonPress();
     }
 
     public void SymbolButton (int input)
@@ -85,7 +87,7 @@ public class PhoneManager : MonoBehaviour
         {
             buttonAnimators[11].SetTrigger("isPressed");
         }
-        else if (input == 98) // * symbol{
+        else if (input == 98) // * symbol
             buttonAnimators[9].SetTrigger("isPressed");
     }
 
@@ -97,6 +99,7 @@ public class PhoneManager : MonoBehaviour
             receiver.transform.SetParent(mainCamera);
             receiverAnimator.SetBool("isPickedUp", true);
             phoneDisplayController.ClearAllChars();
+            sfxManager.ReceiverUP();
         }
         else if (receiverIsPickedUp)
         {
@@ -123,6 +126,7 @@ public class PhoneManager : MonoBehaviour
             Array.Clear(extentionNumber, 0, extentionNumber.Length);
             currentExtentionNumberIndex = 0;
             phoneDisplayController.PickUpReceiverMessage();
+            sfxManager.ReceiverDown();
         }                   
     }
 
