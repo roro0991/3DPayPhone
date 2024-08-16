@@ -26,6 +26,7 @@ public class CallManager : MonoBehaviour
     [SerializeField] PhoneDisplayController phoneDisplayController;
     [SerializeField] PhoneManager phoneManager;
     [SerializeField] PuzzleManager puzzleManager;
+    [SerializeField] SFXManager sfxManager;
 
     //ink story related elements
     private Story currentStory;
@@ -34,7 +35,7 @@ public class CallManager : MonoBehaviour
     private string playerInputName; // story person name for directory
     private string directoryFinalInput; // concatenate above values for dictionary key
 
-    private float textSpeed = 0.05f;
+    private float textSpeed = 0.03f;
     
     //state bools
     private bool isInDialogue = false; // check if in dialogue
@@ -87,6 +88,16 @@ public class CallManager : MonoBehaviour
         ContinueCall(); // begin dialogue 
     }
 
+    public void NotInService()
+    {
+        StopAllCoroutines();
+        callPanelAnimator.SetBool("inCall", true);
+        isInDialogue = true;
+        string line = "The number you have dialed is not in service.";
+        StartCoroutine(TypeLine(line));
+        EnableContinueCallButton();
+    }
+
     public void ExitCallMode()
     {
         StopAllCoroutines();
@@ -94,15 +105,21 @@ public class CallManager : MonoBehaviour
         phoneDisplayController.ClearAllChars();
         callText.text = string.Empty; // clear dialogue panel
         callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
-        dialogueVariables.StopListening(currentStory); // stop listening to story variables
-        currentStory.UnbindExternalFunction("EnterPuzzleMode");
-        currentStory.UnbindExternalFunction("SetAutomatedSystem");
-        currentStory.UnbindExternalFunction("SetExtentionSystem");
-        currentStory.UnbindExternalFunction("ResetExtention");
+        if (currentStory != null)
+        {                 
+            currentStory.variablesState["extention"] = "";
+            SetExtentionStatus(false);
+            dialogueVariables.StopListening(currentStory); // stop listening to story variables
+            currentStory.UnbindExternalFunction("EnterPuzzleMode");
+            currentStory.UnbindExternalFunction("SetAutomatedSystem");
+            currentStory.UnbindExternalFunction("SetExtentionSystem");
+            currentStory.UnbindExternalFunction("ResetExtention");
+        }
+        currentStory = null;
     }
     public void ContinueCall()
-    {
-        if (currentStory.canContinue)
+    {        
+        if (currentStory != null && currentStory.canContinue)
         {
             StopAllCoroutines(); // so we don't have multiple coroutines running at the same time
             string line = currentStory.Continue();
@@ -164,8 +181,9 @@ public class CallManager : MonoBehaviour
                 callText.text += letter;
                 yield return new WaitForSeconds(textSpeed);
             }
+            sfxManager.DialogueBlip();
         }
-     if (!isInDirectory)
+     if (!isInDirectory && currentStory != null)
         {
             DisplayCallChoices();
         }
@@ -284,8 +302,8 @@ public class CallManager : MonoBehaviour
                 Debug.Log(playerInputCity);
                 isInputingCity = false;
                 isInputingName = true;
-                string line = "Please provide the first and last name of the person you're attempting to reach";
-                callText.text = line;
+                string line = "Please provide the first and last name of the person you're attempting to reach.";
+                StartCoroutine(TypeLine(line));
                 inputField.ActivateInputField();
             }
             else if (!isInputingCity && isInputingName)
@@ -302,7 +320,7 @@ public class CallManager : MonoBehaviour
                     inputField.gameObject.SetActive(false);
                     string line = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is not listed.\n" +
                     "Do you need further assistance?";
-                    callText.text = line;                       
+                    StartCoroutine(TypeLine(line));
                 }
                 else
                 {
@@ -312,9 +330,9 @@ public class CallManager : MonoBehaviour
                     string directoryOutput = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];                    
                     string line = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is " + directoryOutput + ".\n" +
                     "Do you need further assistance?";
-                    callText.text = line;
+                    StartCoroutine(TypeLine(line));
                 }
-                ContinueExitDirectoryOptions();                
+                Invoke("ContinueExitDirectoryOptions", 2.9f);
             }
             inputField.text = string.Empty;
         }
@@ -327,7 +345,7 @@ public class CallManager : MonoBehaviour
         callPanelAnimator.SetBool("inCall", true);
         inputField.gameObject.SetActive(true);
         string line = "You've reached the directory.\nPlease provide the name of the city you are trying to reach.";
-        callText.text = line;
+        StartCoroutine(TypeLine(line));
         inputField.ActivateInputField();
     }
     public void ExitDirectoryMode()
@@ -360,7 +378,7 @@ public class CallManager : MonoBehaviour
         isInputingName = false;
         inputField.gameObject.SetActive(true);
         string line = "Please provide the name of the city you are trying to reach.";
-        callText.text = line;
+        StartCoroutine(TypeLine(line));
         inputField.ActivateInputField();
     }
     private string ReplaceSpacesInString(string s)

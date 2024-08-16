@@ -7,11 +7,12 @@ public class PhoneManager : MonoBehaviour
 {    
     [SerializeField] private PhoneDisplayController phoneDisplayController;
     [SerializeField] private CallManager callManager;
+    [SerializeField] private CallTrigger callTrigger;
     [SerializeField] private PuzzleManager puzzleManager;
     [SerializeField] private SFXManager sfxManager;
 
-    [SerializeField] private Transform receiver;
-    [SerializeField] private Transform mainCamera;
+    [SerializeField] private GameObject upReceiver;
+    [SerializeField] private GameObject downReceiver;
 
     [SerializeField] private Animator[] buttonAnimators = new Animator[12];
 
@@ -96,13 +97,19 @@ public class PhoneManager : MonoBehaviour
         if (!receiverIsPickedUp)
         {
             receiverIsPickedUp = true;
-            receiver.transform.SetParent(mainCamera);
-            receiverAnimator.SetBool("isPickedUp", true);
+            downReceiver.SetActive(false);
+            upReceiver.SetActive(true);
+            //receiverAnimator.SetBool("isPickedUp", true);
             phoneDisplayController.ClearAllChars();
             sfxManager.ReceiverUP();
         }
         else if (receiverIsPickedUp)
         {
+            if (callTrigger.GetIsDailingStatus() == true)
+            {
+                callTrigger.SetIsDailingStatus(false);
+                sfxManager.audioSource.Stop();
+            }
             if (callManager.GetInDialogueStatus() == true)
             {
                 callManager.ExitCallMode();
@@ -116,7 +123,9 @@ public class PhoneManager : MonoBehaviour
                 puzzleManager.ExitPuzzleMode();
             }
 
-            receiverAnimator.SetBool("isPickedUp", false);
+            //receiverAnimator.SetBool("isPickedUp", false);
+            downReceiver.SetActive(true);
+            upReceiver.SetActive(false);
             receiverIsPickedUp = false;
             phoneDisplayController.ClearAllChars();
             currentDisplayCharIndex = 38;
@@ -152,19 +161,6 @@ public class PhoneManager : MonoBehaviour
         currentExtentionDisplayCharIndex = 46;
         Array.Clear(extentionNumber, 0, extentionNumber.Length);
         currentExtentionNumberIndex = 0;
-    }
-
-    private void SetParent(Transform child, Transform newParent)
-    {
-        child.transform.SetParent(newParent);
-    }
-
-    IEnumerator AnimateReceiver()
-    {
-        receiverIsPickedUp = true;
-        receiverAnimator.SetBool("isPickedUp", true);
-        yield return new WaitForSeconds(1f);
-        SetParent(receiver, mainCamera);
     }
 
     // Getter methods

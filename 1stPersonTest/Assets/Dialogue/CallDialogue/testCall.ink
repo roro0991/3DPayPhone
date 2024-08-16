@@ -1,7 +1,5 @@
 INCLUDE ../globals.ink
 
-{testcall_Count == 0: -> main}
-
 === main ===
 
 Hello.
