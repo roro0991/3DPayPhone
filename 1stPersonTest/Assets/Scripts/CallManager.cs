@@ -7,6 +7,8 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System;
 using System.Linq;
+using Unity.VisualScripting;
+using UnityEngine.InputSystem.Android;
 
 public class CallManager : MonoBehaviour
 {
@@ -22,6 +24,7 @@ public class CallManager : MonoBehaviour
     [SerializeField] private TMP_InputField inputField;
     private TextMeshProUGUI[] callChoicesText;
     public Animator callPanelAnimator;
+    bool secretMessage = false;
 
     [SerializeField] PhoneDisplayController phoneDisplayController;
     [SerializeField] PhoneManager phoneManager;
@@ -119,6 +122,11 @@ public class CallManager : MonoBehaviour
     }
     public void ContinueCall()
     {        
+        if (secretMessage == true)
+        {
+            phoneDisplayController.ClearAllChars();
+            secretMessage = false;
+        }
         if (currentStory != null && currentStory.canContinue)
         {
             StopAllCoroutines(); // so we don't have multiple coroutines running at the same time
@@ -142,13 +150,13 @@ public class CallManager : MonoBehaviour
     IEnumerator TypeLine(string line)
     {
         DisableCallChoices();
-        DisableContinueButton();       
-        callText.text = "";
+        DisableContinueButton();
+        /*callText.text = "";
         bool isAddingRichTextTag = false; // so we don't print the richtext code from ink into the dialogue
         bool isPrintingToDisplay = false; // to know when to print secret messages to display
         int index = 0; // for when we print to phone display instead of call panel
         foreach (char letter in line.ToCharArray())
-        {            
+        {    
             if (letter == '<' || isAddingRichTextTag)
             {
                 isAddingRichTextTag = true;
@@ -182,8 +190,60 @@ public class CallManager : MonoBehaviour
                 yield return new WaitForSeconds(textSpeed);
             }
             sfxManager.DialogueBlip();
+        }*/
+        string lineForCallPanel = "";
+        foreach (char letter in line.ToCharArray())
+        {
+            if (letter != '@')
+            {
+                lineForCallPanel += letter;
+            }
+            else
+            {
+                secretMessage = true;
+                break;
+            }
         }
-     if (!isInDirectory && currentStory != null)
+
+        callText.text = lineForCallPanel;
+        int totalVisibleCharacters = line.Length;
+        int counter = 0;
+
+        bool isPrintingToDisplay = false; // to know when to print secret messages to display
+        int index = 0;
+        foreach (char letter in line.ToCharArray())
+        {
+            if (letter == '@')
+            {                
+                isPrintingToDisplay = true;
+                phoneDisplayController.ClearAllChars();
+                continue;
+            }
+            else if (isPrintingToDisplay)
+            {
+                if (letter == '^' && isPrintingToDisplay)
+                {
+                    isPrintingToDisplay = false;
+                    break;
+                }
+                int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
+                phoneDisplayController.chars[index].GetComponent<CharController>().DisplayChar(letterAsInt);
+                index++;
+                yield return new WaitForSeconds(textSpeed);
+            }
+
+            int visibleCount = counter % (totalVisibleCharacters + 1);
+            callText.maxVisibleCharacters = visibleCount;
+            counter++;
+            if (!isPrintingToDisplay)
+            {
+                sfxManager.DialogueBlip();
+            }
+            yield return new WaitForSeconds(textSpeed);
+
+        }
+
+        if (!isInDirectory && currentStory != null)
         {
             DisplayCallChoices();
         }
@@ -250,6 +310,15 @@ public class CallManager : MonoBehaviour
             return;
         }
         currentStory.variablesState["extention"] = phoneManager.GetExtentionNumber();
+        StartCoroutine(ConnectExtention());
+    }
+
+    IEnumerator ConnectExtention()
+    {
+        yield return new WaitForSeconds(1.5f);
+        sfxManager.DialRing();
+        yield return new WaitForSeconds(2.5f);
+        sfxManager.dialSource.Stop();
         ContinueCall();
     }
 
@@ -357,6 +426,7 @@ public class CallManager : MonoBehaviour
         StopAllCoroutines();
         isInDirectory = false;
         callPanelAnimator.SetBool("inCall", false);
+        inputField.text = "";
         inputField.gameObject.SetActive(false);
         playerInputCity = string.Empty;
         playerInputName = string.Empty;

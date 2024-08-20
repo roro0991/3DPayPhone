@@ -5,17 +5,15 @@ using UnityEngine;
 public class SFXManager : MonoBehaviour
 {
     public AudioSource audioSource;
+    public AudioSource dialSource;
     public AudioClip receiverUp, receiverDown, dialRinging, dialogueBlip;
     public List<AudioClip> buttonPresses = new List<AudioClip>();
     public List<AudioClip> coinInserts = new List<AudioClip>();
-       
 
     public void DialogueBlip()
     {
-        audioSource.volume = .1f;
-        audioSource.clip = dialogueBlip;
-        audioSource.loop = false;
-        audioSource.Play();
+        audioSource.PlayOneShot(dialogueBlip, .1f);
+        
     }
     public void coinInsert()
     {
@@ -27,29 +25,24 @@ public class SFXManager : MonoBehaviour
     {
         int index = Random.Range(0, buttonPresses.Count);
         AudioClip buttonPressClip = buttonPresses[index];
-        audioSource.PlayOneShot(buttonPressClip);
+        audioSource.PlayOneShot(buttonPressClip, 1f);
     }
 
     public void DialRing()
     {
-        audioSource.volume = .5f;
-        audioSource.clip = dialRinging;
-        audioSource.loop = true;
-        audioSource.Play();
-
+        dialSource.clip = dialRinging;
+        dialSource.loop = true;
+        dialSource.volume = 0.4f;
+        dialSource.Play();
     }
     public void ReceiverUP()
     {
-        audioSource.volume = 1f;
-        audioSource.loop = false;
-        audioSource.PlayOneShot(receiverUp);
+        audioSource.PlayOneShot(receiverUp, 1f);
     }
 
     public void ReceiverDown()
     {
-        audioSource.volume = 1f;
-        audioSource.loop = false;
-        audioSource.PlayOneShot(receiverDown);
+        audioSource.PlayOneShot(receiverDown, 1f);
     }
 
 }

@@ -22,13 +22,13 @@ public class PhoneManager : MonoBehaviour
     // phone number variables
     private int?[] phoneNumber = new int?[7]; // to store the player input
     private int currentNumberIndex = 0; // to track where in the phone number we are
-    private int numberAsInt; // to send to call trigger
+    private string phoneNumberAsString; // for calltrigger
     private int currentDisplayCharIndex = 38; // to set where to display numbers on phone display    
 
     // extention variables
     private int?[] extentionNumber = new int?[3];
     private int currentExtentionNumberIndex = 0;
-    private int extentionAsInt;
+    private string extentionAsString;
     private int currentExtentionDisplayCharIndex = 46;
     
     private bool receiverIsPickedUp = false;
@@ -37,11 +37,10 @@ public class PhoneManager : MonoBehaviour
     
     private void Update()
     {
-        string phoneNumberAsString = string.Join(string.Empty, phoneNumber);
-        int.TryParse(phoneNumberAsString, out numberAsInt);
+        phoneNumberAsString = string.Join(string.Empty, phoneNumber);
 
-        string extentionAsString = string.Join(string.Empty, extentionNumber);
-        int.TryParse(extentionAsString, out extentionAsInt);
+        extentionAsString = string.Join(string.Empty, extentionNumber);
+
     }
     public void NumberButton(int input)
     {
@@ -89,7 +88,10 @@ public class PhoneManager : MonoBehaviour
             buttonAnimators[11].SetTrigger("isPressed");
         }
         else if (input == 98) // * symbol
+        {
             buttonAnimators[9].SetTrigger("isPressed");
+        }
+        sfxManager.ButtonPress();
     }
 
     public void PickUpReceiver()
@@ -165,13 +167,13 @@ public class PhoneManager : MonoBehaviour
 
     // Getter methods
 
-    public int GetExtentionNumber()
+    public string GetExtentionNumber()
     {
-        return extentionAsInt;
+        return extentionAsString;
     }
-    public int GetPhoneNumber()
+    public string GetPhoneNumber()
     {
-        return numberAsInt;
+        return phoneNumberAsString;
     }
 
     public bool GetReceiverStatus()

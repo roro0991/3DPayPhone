@@ -1,21 +1,23 @@
 INCLUDE ../globals.ink
 
+{testcall_Count == 0: -> main}
+
 === main ===
 
-Hello.
+Hello there my friend.@this is a secret message^
 This is a test.
 -> Extention
 === Extention ===
 ~SetExtentionSystem(true)
 If you know the extention you're trying to reach please dial it now followed by \#.
 ~SetExtentionSystem(false)
-{extention == 444: -> SallyJones}
+{extention == "444": -> SallyJones}
 The extention you have dialed is not recognized.
 ~ResetExtention()
 -> Extention
 
 === SallyJones ===
-You've reached Sally Jones
+You've reached John Smith.@john smith is dead^
 This is a test of choices.
 + [apples]
 -> chosen("apples")
@@ -27,7 +29,7 @@ This is a test of choices.
 === chosen(choice) ===
 You've chosen {choice}
 ~ SetAutomatedSystem(true)
-Would you like to try a puzzle? <br>Press 1 for "yes" <br>Press 2 for "no"
+Would you like to try a puzzle?<br>Press 1 for "yes"<br>Press 2 for "no"
 + [yes]
 -> FirstPuzzle
 + [no]

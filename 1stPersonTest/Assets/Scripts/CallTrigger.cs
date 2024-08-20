@@ -26,13 +26,13 @@ public class CallTrigger : MonoBehaviour
 
     private void Update()
     {
-        int numberToCall = phoneManager.GetPhoneNumber();
+        string numberToCall = phoneManager.GetPhoneNumber();
 
-        if (!callIsInProgress && numberToCall.ToString().Length == 3)
+        if (!callIsInProgress && numberToCall.Length == 3)
         {
             switch (numberToCall)
             {
-                case 411:
+                case "411":
                     callIsInProgress = true;
                     StartCoroutine(EnterDirectoryMode());
                     break;
@@ -45,7 +45,7 @@ public class CallTrigger : MonoBehaviour
         {
             switch (numberToCall)
             {
-                case 5555555:
+                case "5555555":
                     callIsInProgress = true;
                     StartCoroutine(Call(testCall));
                     break;
@@ -71,7 +71,7 @@ public class CallTrigger : MonoBehaviour
         sfxManager.DialRing();
         isDailing = true;
         yield return new WaitForSeconds(ringTime);
-        sfxManager.audioSource.Stop();
+        sfxManager.dialSource.Stop();
         callManager.EnterCallMode(Number);
     }
 
@@ -82,7 +82,7 @@ public class CallTrigger : MonoBehaviour
         isDailing = true;
         yield return new WaitForSeconds(2.5f);
         isDailing = false;
-        sfxManager.audioSource.Stop();
+        sfxManager.dialSource.Stop();
         callManager.NotInService();
     }
 
@@ -93,7 +93,7 @@ public class CallTrigger : MonoBehaviour
         isDailing = true;
         yield return new WaitForSeconds(2.5f);
         isDailing = false;
-        sfxManager.audioSource.Stop();
+        sfxManager.dialSource.Stop();
         callManager.EnterDirectoryMode();
     }
 

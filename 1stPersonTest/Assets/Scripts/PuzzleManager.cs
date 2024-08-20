@@ -14,7 +14,7 @@ public class PuzzleManager : MonoBehaviour
     [SerializeField] private CallManager callManager;
     public Animator callPanelAnimator;
     [SerializeField] private ContactsManager contactManager;
-    [SerializeField] private PhoneDisplayController phoneDisplayController;    
+    [SerializeField] private PhoneDisplayController phoneDisplayController;
 
     [SerializeField] private GameObject[] inputChars = new GameObject[7]; // relevent phone display objects for displaying input
     private char[] answerSequence = new char[7]; // correct solution
@@ -215,7 +215,6 @@ public class PuzzleManager : MonoBehaviour
                 inputChar.GetComponent<CharController>().ChangeCharColorWhite();
             }
         }
-
     }
 
     public void MoveToLeftChar()
@@ -285,8 +284,7 @@ public class PuzzleManager : MonoBehaviour
                 inputSequence[currentInputIndex] = 10;
             }
         }
-        inputChars[currentInputIndex].GetComponent<CharController>().DisplayChar(inputSequence[currentInputIndex]);
-        
+        inputChars[currentInputIndex].GetComponent<CharController>().DisplayChar(inputSequence[currentInputIndex]);        
     }
 
     public void DecreaseNumber()
@@ -338,7 +336,7 @@ public class PuzzleManager : MonoBehaviour
             inNumbers = false;
             inputSequence[currentInputIndex] = 10;
         }
-        inputChars[currentInputIndex].GetComponent<CharController>().DisplayChar(inputSequence[currentInputIndex]);
+        inputChars[currentInputIndex].GetComponent<CharController>().DisplayChar(inputSequence[currentInputIndex]);        
     }
 
     public void SubmitInputSequence()
@@ -354,7 +352,7 @@ public class PuzzleManager : MonoBehaviour
             inputChar.gameObject.GetComponent<CharController>().ChangeCharColorGreen();
             ExitPuzzleMode();
             callPanelAnimator.SetBool("inCall", true);
-        }
+        }        
     }
 
     private bool EqualityOperator(char[] firstArray, char[] secondArray) //for checking if inputSequence matches answerSequence.
