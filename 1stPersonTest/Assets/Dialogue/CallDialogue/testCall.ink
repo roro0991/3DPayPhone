@@ -3,7 +3,6 @@ INCLUDE ../globals.ink
 {testcall_Count == 0: -> main}
 
 === main ===
-
 Hello there my friend.@this is a secret message^
 This is a test.
 -> Extention

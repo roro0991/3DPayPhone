@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine.InputSystem.Android;
+using Palmmedia.ReportGenerator.Core.Reporting.Builders;
 
 public class CallManager : MonoBehaviour
 {
@@ -131,14 +132,14 @@ public class CallManager : MonoBehaviour
         {
             StopAllCoroutines(); // so we don't have multiple coroutines running at the same time
             string line = currentStory.Continue();
-            if (line.Equals("") && currentStory.canContinue)
+           /*if (line.Equals("") && currentStory.canContinue)
             {
                 line = currentStory.Continue();
             }
             else if (line.Equals("") && !currentStory.canContinue)
             {
                 ExitCallMode();
-            }
+            }*/ //I think this is unnecessary, but I'm leaving it as a comment until I'm sure
             StartCoroutine(TypeLine(line));
         }
         else
@@ -195,7 +196,7 @@ public class CallManager : MonoBehaviour
         foreach (char letter in line.ToCharArray())
         {
             if (letter != '@')
-            {
+            {                
                 lineForCallPanel += letter;
             }
             else
@@ -205,9 +206,9 @@ public class CallManager : MonoBehaviour
             }
         }
 
-        callText.text = lineForCallPanel;
+        callText.text = "<font=\"LiberationSans SDF\"><mark=#2F4F4F>"+lineForCallPanel+"</mark>";
         int totalVisibleCharacters = line.Length;
-        int counter = 0;
+        int counter = 1;
 
         bool isPrintingToDisplay = false; // to know when to print secret messages to display
         int index = 0;
@@ -367,7 +368,7 @@ public class CallManager : MonoBehaviour
             {
                 // inputting city into directory
                 StopAllCoroutines();
-                playerInputCity = s;
+                playerInputCity = s.ToUpper();
                 Debug.Log(playerInputCity);
                 isInputingCity = false;
                 isInputingName = true;
@@ -378,7 +379,7 @@ public class CallManager : MonoBehaviour
             else if (!isInputingCity && isInputingName)
             {
                 // inputing name into directory
-                playerInputName = s;
+                playerInputName = s.ToUpper();
                 Debug.Log(playerInputName);
                 isInputingName = false;
                 directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() + playerInputName.ToLower());
@@ -386,24 +387,41 @@ public class CallManager : MonoBehaviour
                 {
                     // if key is not in dictionary
                     StopAllCoroutines();
-                    inputField.gameObject.SetActive(false);
-                    string line = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is not listed.\n" +
-                    "Do you need further assistance?";
-                    StartCoroutine(TypeLine(line));
+                    StartCoroutine(DirectoryAnswer(false));
                 }
                 else
                 {
                     // if key is in dictionary
                     StopAllCoroutines();
-                    inputField.gameObject.SetActive(false);
-                    string directoryOutput = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];                    
-                    string line = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is " + directoryOutput + ".\n" +
-                    "Do you need further assistance?";
-                    StartCoroutine(TypeLine(line));
+                    StartCoroutine(DirectoryAnswer(true));
                 }
-                Invoke("ContinueExitDirectoryOptions", 2.9f);
+                Invoke("ContinueExitDirectoryOptions", 4.9f);
             }
             inputField.text = string.Empty;
+        }
+    }
+
+    IEnumerator DirectoryAnswer(bool listed)
+    {
+        inputField.gameObject.SetActive(false);
+        if (!listed)
+        {
+            string line = "Please hold...";
+            StartCoroutine(TypeLine(line));
+            yield return new WaitForSeconds(2f);
+            string line2 = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is not listed.\n" +
+            "Do you need further assistance?";
+            StartCoroutine(TypeLine(line2));
+        }
+        else
+        {
+            string line = "Please hold...";
+            StartCoroutine(TypeLine(line));
+            yield return new WaitForSeconds(2f);
+            string directoryOutput = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];
+            string line2 = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is " + directoryOutput + ".\n" +
+            "Do you need further assistance?";
+            StartCoroutine(TypeLine(line2));
         }
     }
     public void EnterDirectoryMode()
@@ -413,7 +431,7 @@ public class CallManager : MonoBehaviour
         isInDirectory = true;
         callPanelAnimator.SetBool("inCall", true);
         inputField.gameObject.SetActive(true);
-        string line = "You've reached the directory.\nPlease provide the name of the city you are trying to reach.";
+        string line = "You've reached the automated directory service.\nPlease provide the name of the city you are trying to reach.";
         StartCoroutine(TypeLine(line));
         inputField.ActivateInputField();
     }

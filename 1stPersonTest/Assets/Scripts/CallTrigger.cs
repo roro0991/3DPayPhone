@@ -48,7 +48,7 @@ public class CallTrigger : MonoBehaviour
                 case "5555555":
                     callIsInProgress = true;
                     StartCoroutine(Call(testCall));
-                    break;
+                    break;                
                 default:
                     callIsInProgress = true;
                     StartCoroutine(NumberNotInService());
@@ -99,6 +99,10 @@ public class CallTrigger : MonoBehaviour
 
     // getter methods
 
+    public bool GetCallStatus()
+    {
+        return callIsInProgress;
+    }
     public bool GetIsDailingStatus()
     {
         return isDailing;
