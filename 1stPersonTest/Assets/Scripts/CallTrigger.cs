@@ -8,7 +8,10 @@ public class CallTrigger : MonoBehaviour
     [SerializeField] SFXManager sfxManager;
     
     [Header("Ink JSON Files")]
-    [SerializeField] private TextAsset testCall; //555-5555
+    [SerializeField] private TextAsset handler; //555-3473
+    [SerializeField] private TextAsset informant; //554-8923
+    [SerializeField] private TextAsset falseNumber; //639-9675
+    [SerializeField] private TextAsset johnMccoy; //442-4542
 
     int numberToCall;
 
@@ -45,10 +48,22 @@ public class CallTrigger : MonoBehaviour
         {
             switch (numberToCall)
             {
-                case "5555555":
+                case "5553473":
                     callIsInProgress = true;
-                    StartCoroutine(Call(testCall));
-                    break;                
+                    StartCoroutine(Call(handler));
+                    break;
+                case "5548923":
+                    callIsInProgress = true;
+                    StartCoroutine(Call(informant));
+                    break;
+                case "6399675":
+                    callIsInProgress = true;
+                    StartCoroutine(Call(falseNumber));                    
+                    return;
+                case "4424542":
+                    callIsInProgress = true;
+                    StartCoroutine(Call(johnMccoy));
+                    break;
                 default:
                     callIsInProgress = true;
                     StartCoroutine(NumberNotInService());

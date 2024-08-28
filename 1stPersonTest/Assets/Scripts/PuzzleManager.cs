@@ -4,8 +4,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using Random = UnityEngine.Random;
-using TMPro.EditorUtilities;
-using Unity.Burst;
+using System.Collections;
 
 public class PuzzleManager : MonoBehaviour
 {
@@ -13,7 +12,6 @@ public class PuzzleManager : MonoBehaviour
 
     [SerializeField] private CallManager callManager;
     public Animator callPanelAnimator;
-    [SerializeField] private ContactsManager contactManager;
     [SerializeField] private PhoneDisplayController phoneDisplayController;
 
     [SerializeField] private GameObject[] inputChars = new GameObject[7]; // relevent phone display objects for displaying input
@@ -341,18 +339,37 @@ public class PuzzleManager : MonoBehaviour
 
     public void SubmitInputSequence()
     {        
-        if (inputSequence.SequenceEqual(answerSequenceAsInt) != true || !isInPuzzleMode)
+        if (!isInPuzzleMode)
         {
             return;
         }
 
-        
+        if (isInPuzzleMode && inputSequence.SequenceEqual(answerSequenceAsInt) != true)
+        {
+            StartCoroutine(WrongSequence());
+            return;
+        }
+        else
+        {
+            foreach (GameObject inputChar in inputChars)
+            {
+                inputChar.gameObject.GetComponent<CharController>().ChangeCharColorGreen();
+            }        
+        }        
+    }
+
+    IEnumerator WrongSequence()
+    {
         foreach (GameObject inputChar in inputChars)
         {
-            inputChar.gameObject.GetComponent<CharController>().ChangeCharColorGreen();
-            ExitPuzzleMode();
-            callPanelAnimator.SetBool("inCall", true);
-        }        
+            inputChar.gameObject.GetComponent<CharController>().ChangeCharColorRed();
+        }
+        yield return new WaitForSeconds(1.5f);
+        foreach (GameObject inputChar in inputChars)
+        {
+            inputChar.gameObject.GetComponent<CharController>().ChangeCharColorWhite();
+        }
+        inputChars[currentInputIndex].GetComponent<CharController>().ChangeCharColorGreen();
     }
 
     private bool EqualityOperator(char[] firstArray, char[] secondArray) //for checking if inputSequence matches answerSequence.

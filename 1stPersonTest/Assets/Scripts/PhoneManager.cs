@@ -129,6 +129,7 @@ public class PhoneManager : MonoBehaviour
             }
 
             //receiverAnimator.SetBool("isPickedUp", false);
+            callManager.SetAutomatedSystemStatus(false);
             downReceiver.SetActive(true);
             upReceiver.SetActive(false);
             receiverIsPickedUp = false;

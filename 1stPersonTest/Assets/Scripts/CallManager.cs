@@ -4,12 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
-using System;
-using System.Linq;
 using Unity.VisualScripting;
-using UnityEngine.InputSystem.Android;
-using Palmmedia.ReportGenerator.Core.Reporting.Builders;
 
 public class CallManager : MonoBehaviour
 {
@@ -36,7 +31,8 @@ public class CallManager : MonoBehaviour
     private Story currentStory;
     private DialogueVariables dialogueVariables;
     private string playerInputCity; // store city name for directory
-    private string playerInputName; // story person name for directory
+    private string playerInputBusiness; // store business name for directory
+    private string playerInputName; // store person name for directory
     private string directoryFinalInput; // concatenate above values for dictionary key
 
     private float textSpeed = 0.03f;
@@ -44,7 +40,9 @@ public class CallManager : MonoBehaviour
     //state bools
     private bool isInDialogue = false; // check if in dialogue
     private bool isInDirectory = false; // check if in directory
+    private bool isChoosingBetweenResidentialOrBusinessListing = false;
     private bool isInputingCity = true; // check if inputing city into directory
+    private bool isInputingBusiness = false; // check if inputing business into directory
     private bool isInputingName = false; // check if inputing name into directory
     private bool isInAutomatedSystem = false; // check if in automated system
     private bool isInExtentionSystem = false; // check if inputing extention number
@@ -359,71 +357,6 @@ public class CallManager : MonoBehaviour
         }
         return variableValue;
     }
-
-    public void ReadPlayerInput(string s) // reading player input for directory (expand for other functions?)
-    {
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            if (isInputingCity)
-            {
-                // inputting city into directory
-                StopAllCoroutines();
-                playerInputCity = s.ToUpper();
-                Debug.Log(playerInputCity);
-                isInputingCity = false;
-                isInputingName = true;
-                string line = "Please provide the first and last name of the person you're attempting to reach.";
-                StartCoroutine(TypeLine(line));
-                inputField.ActivateInputField();
-            }
-            else if (!isInputingCity && isInputingName)
-            {
-                // inputing name into directory
-                playerInputName = s.ToUpper();
-                Debug.Log(playerInputName);
-                isInputingName = false;
-                directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() + playerInputName.ToLower());
-                if (!Dictionary.GetInstance().directoryNumbers.ContainsKey(directoryFinalInput))
-                {
-                    // if key is not in dictionary
-                    StopAllCoroutines();
-                    StartCoroutine(DirectoryAnswer(false));
-                }
-                else
-                {
-                    // if key is in dictionary
-                    StopAllCoroutines();
-                    StartCoroutine(DirectoryAnswer(true));
-                }
-                Invoke("ContinueExitDirectoryOptions", 4.9f);
-            }
-            inputField.text = string.Empty;
-        }
-    }
-
-    IEnumerator DirectoryAnswer(bool listed)
-    {
-        inputField.gameObject.SetActive(false);
-        if (!listed)
-        {
-            string line = "Please hold...";
-            StartCoroutine(TypeLine(line));
-            yield return new WaitForSeconds(2f);
-            string line2 = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is not listed.\n" +
-            "Do you need further assistance?";
-            StartCoroutine(TypeLine(line2));
-        }
-        else
-        {
-            string line = "Please hold...";
-            StartCoroutine(TypeLine(line));
-            yield return new WaitForSeconds(2f);
-            string directoryOutput = Dictionary.GetInstance().directoryNumbers[directoryFinalInput];
-            string line2 = "The number for " + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is " + directoryOutput + ".\n" +
-            "Do you need further assistance?";
-            StartCoroutine(TypeLine(line2));
-        }
-    }
     public void EnterDirectoryMode()
     {
         DisableCallChoices();
@@ -437,7 +370,7 @@ public class CallManager : MonoBehaviour
     }
     public void ExitDirectoryMode()
     {
-        if (!isInDirectory)
+        if (!isInDirectory | isChoosingBetweenResidentialOrBusinessListing)
         {
             return;
         }
@@ -448,14 +381,179 @@ public class CallManager : MonoBehaviour
         inputField.gameObject.SetActive(false);
         playerInputCity = string.Empty;
         playerInputName = string.Empty;
+        playerInputBusiness = string.Empty;
         directoryFinalInput = string.Empty;
         isInputingCity = true;
         isInputingName = false;
+        isInputingBusiness = false;
+        isChoosingBetweenResidentialOrBusinessListing = false;
+    }
+
+    public void ReadPlayerInput(string s) // reading player input for directory (expand for other functions?)
+    {
+        if (Input.GetKeyDown(KeyCode.Return))
+        {
+            if (isInputingCity)
+            {
+                // inputting city into directory
+                StopAllCoroutines();
+                inputField.GameObject().SetActive(false);
+                playerInputCity = s.ToUpper();
+                Debug.Log(playerInputCity);
+                isInputingCity = false;
+                string line = "Is this a residential or business listing?";
+                StartCoroutine(TypeLine(line));
+                isChoosingBetweenResidentialOrBusinessListing = true;
+                Invoke("ResidentialOrBusinessListing", 1.5f);
+            }
+            else if (!isInputingCity)
+            {
+                if (isInputingName)
+                {
+                    // inputing name into directory
+                    playerInputName = s.ToUpper();
+                    Debug.Log(playerInputName);
+                    isInputingName = false;
+                    directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() + playerInputName.ToLower());
+                    if (!Dictionary.GetInstance().directoryResidentialNumbers.ContainsKey(directoryFinalInput))
+                    {
+                        // if key is not in dictionary
+                        StopAllCoroutines();
+                        StartCoroutine(DirectoryAnswer(false, 0));
+                    }
+                    else
+                    {
+                        // if key is in dictionary
+                        StopAllCoroutines();
+                        StartCoroutine(DirectoryAnswer(true, 0));
+                    }
+                }
+                else if (isInputingBusiness)
+                {
+                    //inputing business into directory
+                    playerInputBusiness = s.ToUpper();
+                    Debug.Log(playerInputBusiness);
+                    isInputingBusiness = false;
+                    directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() + playerInputBusiness.ToLower());
+                    if (!Dictionary.GetInstance().directoryBusinessNumbers.ContainsKey(directoryFinalInput))
+                    {
+                        // if key is not in dictionary
+                        StopAllCoroutines();
+                        StartCoroutine(DirectoryAnswer(false, 1));
+                    }
+                    else
+                    {
+                        StopAllCoroutines();
+                        StartCoroutine(DirectoryAnswer(true, 1));
+                    }
+                }
+                Invoke("ContinueExitDirectoryOptions", 5.5f);
+            }
+            inputField.text = string.Empty;
+        }
+    }
+
+    private void ResidentialOrBusinessListing()
+    {
+        foreach (GameObject choice in callChoices)
+        {
+            if (choice == callChoices[0])
+            {
+                choice.SetActive(true);
+                callChoicesText[0].GetComponent<TextMeshProUGUI>().text = "Business";
+            }
+            if (choice == callChoices[1])
+            {
+                choice.SetActive(true);
+                callChoicesText[1].GetComponent<TextMeshProUGUI>().text = "Residential";
+            }
+            if (choice == callChoices[2])
+            {
+                choice.SetActive(false);                
+            }
+        }
+    }
+
+    public void ResidentialListing()
+    {
+        if (!isInDirectory | !isChoosingBetweenResidentialOrBusinessListing)        
+        {
+            return;
+        }
+        isInputingName = true;
+        isChoosingBetweenResidentialOrBusinessListing = false;
+        string line = "Please provide the given name and surname of the person you are trying to reach.";
+        StartCoroutine(TypeLine(line));
+        inputField.GameObject().SetActive(true);
+        inputField.ActivateInputField();
+    }
+
+    public void BusinessListing()
+    {
+        if (!isInDirectory | !isChoosingBetweenResidentialOrBusinessListing)
+        {
+            return;
+        }
+        isInputingBusiness = true;
+        isChoosingBetweenResidentialOrBusinessListing = false;
+        string line = "Please provide the name of the business you are trying to reach.";
+        StartCoroutine(TypeLine(line));
+        inputField.GameObject().SetActive(true);
+        inputField.ActivateInputField();
+    }
+
+    IEnumerator DirectoryAnswer(bool listed, int residentialOrBusiness)
+    {
+        inputField.gameObject.SetActive(false);
+        if (residentialOrBusiness == 0)
+        {
+            if (!listed)
+            {
+                string line = "Please hold...";
+                StartCoroutine(TypeLine(line));
+                yield return new WaitForSeconds(2f);
+                string line2 = "The residential number for...\n" + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is...\nnot listed.\n" +
+                "Do you need further assistance?";
+                StartCoroutine(TypeLine(line2));
+            }
+            else
+            {
+                string line = "Please hold...";
+                StartCoroutine(TypeLine(line));
+                yield return new WaitForSeconds(2f);
+                string directoryOutput = Dictionary.GetInstance().directoryResidentialNumbers[directoryFinalInput];
+                string line2 = "The residential number for...\n" + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is...\n" + directoryOutput + ".\n" +
+                "Do you need further assistance?";
+                StartCoroutine(TypeLine(line2));
+            }
+        }
+        else if (residentialOrBusiness == 1)
+        {
+            if (!listed)
+            {
+                string line = "Please hold...";
+                StartCoroutine(TypeLine(line));
+                yield return new WaitForSeconds(2f);
+                string line2 = "The business number for...\n" + playerInputBusiness.Trim() + " in " + playerInputCity.Trim() + " is...\nnot listed.\n" +
+                "Do you need further assistance?";
+                StartCoroutine(TypeLine(line2));
+            }
+            else
+            {
+                string line = "Please hold...";
+                StartCoroutine(TypeLine(line));
+                yield return new WaitForSeconds(2f);
+                string directoryOutput = Dictionary.GetInstance().directoryBusinessNumbers[directoryFinalInput];
+                string line2 = "The business number for...\n" + playerInputBusiness.Trim() + " in " + playerInputCity.Trim() + " is...\n" + directoryOutput + ".\n" +
+                "Do you need further assistance?";
+                StartCoroutine(TypeLine(line2));
+            }
+        }
     }
 
     public void FurtherAssistace()
     {
-        if (!isInDirectory)
+        if (!isInDirectory | isChoosingBetweenResidentialOrBusinessListing)
         {
             return;
         }
@@ -464,6 +562,8 @@ public class CallManager : MonoBehaviour
         directoryFinalInput = string.Empty;
         isInputingCity = true;
         isInputingName = false;
+        isInputingBusiness = false;
+        isChoosingBetweenResidentialOrBusinessListing = false;
         inputField.gameObject.SetActive(true);
         string line = "Please provide the name of the city you are trying to reach.";
         StartCoroutine(TypeLine(line));
@@ -481,7 +581,8 @@ public class CallManager : MonoBehaviour
         {
             if (choice == callChoices[0])
             {
-                choice.SetActive(false);
+                choice.SetActive(true);
+                callChoicesText[0].GetComponent<TextMeshProUGUI>().text = "No";
             }
             if (choice == callChoices[1])
             {
@@ -490,8 +591,7 @@ public class CallManager : MonoBehaviour
             }
             if (choice == callChoices[2])
             {
-                choice.SetActive(true);
-                callChoicesText[2].GetComponent<TextMeshProUGUI>().text = "No";
+                choice.SetActive(false);
             }
         }
     }
@@ -504,6 +604,16 @@ public class CallManager : MonoBehaviour
     public void SetExtentionStatus(bool status)
     {
         isInExtentionSystem = status;
+    }
+
+    // Setter Methods
+
+    public void SetCallCount(int callcount)
+    {
+        if (currentStory != null)
+        {
+            currentStory.variablesState["handlercallcount"] = callcount; 
+        }
     }
 
     // Getter Methods

@@ -1,9 +1,12 @@
+using Ink.Parsed;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Unity.PlasticSCM.Editor.WebApi;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 interface IInteractable
 {
@@ -17,7 +20,7 @@ public class InteractionManager : MonoBehaviour
         {
             if (EventSystem.current.IsPointerOverGameObject())
             {
-                return;
+                return;                            
             }
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;

@@ -1092,6 +1092,14 @@ public class CharController : MonoBehaviour
         }
     }
 
+    public void ChangeCharColorRed()
+    {
+        foreach (var segment in segments)
+        {
+            segment.gameObject.GetComponent<Image>().color = Color.red;
+        }
+    }
+
     public void ChangeCharColorWhite()
     {
         foreach (var segment in segments)
