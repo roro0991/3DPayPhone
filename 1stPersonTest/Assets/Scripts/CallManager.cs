@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
+using UnityEngine.SearchService;
 
 public class CallManager : MonoBehaviour
 {
@@ -20,7 +21,7 @@ public class CallManager : MonoBehaviour
     [SerializeField] private TMP_InputField inputField;
     private TextMeshProUGUI[] callChoicesText;
     public Animator callPanelAnimator;
-    bool secretMessage = false;
+    private float responseDelay = 2f;
 
     [SerializeField] PhoneDisplayController phoneDisplayController;
     [SerializeField] PhoneManager phoneManager;
@@ -38,7 +39,9 @@ public class CallManager : MonoBehaviour
     private float textSpeed = 0.03f;
     
     //state bools
+    private bool secretMessage = false;
     private bool isInDialogue = false; // check if in dialogue
+    private bool firstLine = false; // check if it's beginning of call
     private bool isInDirectory = false; // check if in directory
     private bool isChoosingBetweenResidentialOrBusinessListing = false;
     private bool isInputingCity = true; // check if inputing city into directory
@@ -46,7 +49,8 @@ public class CallManager : MonoBehaviour
     private bool isInputingName = false; // check if inputing name into directory
     private bool isInAutomatedSystem = false; // check if in automated system
     private bool isInExtentionSystem = false; // check if inputing extention number
-    
+
+    private const string RESPONSE_DELAY_TAG = "delay";
 
     private void Awake()
     {
@@ -66,6 +70,7 @@ public class CallManager : MonoBehaviour
     public void EnterCallMode(TextAsset inkJSON)
     {
         isInDialogue = true;
+        firstLine = true;
         currentStory = new Story(inkJSON.text); // load in relevant dialogue information
         callPanelAnimator.SetBool("inCall", true); // bring up dialogue panel
         dialogueVariables.StartListening(currentStory);  // listen to story variables
@@ -130,14 +135,6 @@ public class CallManager : MonoBehaviour
         {
             StopAllCoroutines(); // so we don't have multiple coroutines running at the same time
             string line = currentStory.Continue();
-           /*if (line.Equals("") && currentStory.canContinue)
-            {
-                line = currentStory.Continue();
-            }
-            else if (line.Equals("") && !currentStory.canContinue)
-            {
-                ExitCallMode();
-            }*/ //I think this is unnecessary, but I'm leaving it as a comment until I'm sure
             StartCoroutine(TypeLine(line));
         }
         else
@@ -146,10 +143,19 @@ public class CallManager : MonoBehaviour
         }
     }
 
+
     IEnumerator TypeLine(string line)
     {
         DisableCallChoices();
         DisableContinueButton();
+        if (!firstLine)
+        {
+            yield return new WaitForSeconds(responseDelay);                        
+        }
+        else
+        {
+            firstLine = false;            
+        }
         /*callText.text = "";
         bool isAddingRichTextTag = false; // so we don't print the richtext code from ink into the dialogue
         bool isPrintingToDisplay = false; // to know when to print secret messages to display
@@ -269,6 +275,7 @@ public class CallManager : MonoBehaviour
             {
                 callChoices[index].gameObject.SetActive(true);
                 callChoicesText[index].text = choice.text;
+                callChoicesText[index].color = Color.white;
                 index++;
             }
 

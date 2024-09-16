@@ -89,7 +89,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  interactable: {fileID: 0}
 --- !u!65 &2019422705820070449
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -162,7 +161,7 @@ PrefabInstance:
     - target: {fileID: -7511558181221131132, guid: 44075df72321fd14ba62062d6abaaf73, type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: d4c46a803c15d784c812052bdc3a1959, type: 2}
+      objectReference: {fileID: 2100000, guid: 17ada15b075dd4640883e58de8ff9051, type: 2}
     - target: {fileID: 919132149155446097, guid: 44075df72321fd14ba62062d6abaaf73, type: 3}
       propertyPath: m_Name
       value: ButtonCorrect
