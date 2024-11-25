@@ -148,7 +148,7 @@ public class CallManager : MonoBehaviour
     {
         DisableCallChoices();
         DisableContinueButton();
-        if (!firstLine)
+        if (!firstLine && !isInDirectory)
         {
             yield return new WaitForSeconds(responseDelay);                        
         }
@@ -371,7 +371,7 @@ public class CallManager : MonoBehaviour
         isInDirectory = true;
         callPanelAnimator.SetBool("inCall", true);
         inputField.gameObject.SetActive(true);
-        string line = "You've reached the automated directory service.\nPlease provide the name of the city you are trying to reach.";
+        string line = "You've reached the automated directory service.\nPlease provide the name of the city you are trying to reach.";        
         StartCoroutine(TypeLine(line));
         inputField.ActivateInputField();
     }
