@@ -17,7 +17,6 @@ public class PhoneManager : MonoBehaviour
     [SerializeField] private Animator[] buttonAnimators = new Animator[12];
 
     public Animator receiverAnimator;
-    public Animator cameraAnimator;
     
     // phone number variables
     private int?[] phoneNumber = new int?[7]; // to store the player input
@@ -110,14 +109,14 @@ public class PhoneManager : MonoBehaviour
         }
         else if (receiverIsPickedUp)
         {
+            if (callManager.GetInDialogueStatus() == true)
+            {
+                return;
+            }
             if (callTrigger.GetIsDailingStatus() == true)
             {
                 callTrigger.SetIsDailingStatus(false);
-                sfxManager.audioSource.Stop();
-            }
-            if (callManager.GetInDialogueStatus() == true)
-            {
-                callManager.ExitCallMode();
+                sfxManager.dialSource.Stop();
             }
             if (callManager.GetInDirectoryStatus() == true)
             {
@@ -143,20 +142,6 @@ public class PhoneManager : MonoBehaviour
             phoneDisplayController.PickUpReceiverMessage();
             sfxManager.ReceiverDown();
         }                   
-    }
-
-    public void ZoomInOnDisplay()
-    {
-        if (!cameraIsZoomedIn)
-        {
-            cameraAnimator.SetBool("isZoomedInOnDisplay", true);
-            cameraIsZoomedIn = true;
-        }
-        else
-        {
-            cameraAnimator.SetBool("isZoomedInOnDisplay", false);
-            cameraIsZoomedIn = false;
-        }
     }
 
     public void ResetExtention()

@@ -14,6 +14,7 @@ interface IInteractable
 }
 public class InteractionManager : MonoBehaviour
 {
+    [SerializeField] Animator cameraAnimator;   
     void Update()
     {
         if (Input.GetMouseButtonDown(0))
@@ -28,6 +29,30 @@ public class InteractionManager : MonoBehaviour
             {
                 interactObj.Interact();
             }
+        }
+    }
+
+    public void CameraTurnRight()
+    {
+        if (cameraAnimator.GetInteger("CameraPosition") < 3)
+        {
+            cameraAnimator.SetInteger("CameraPosition", cameraAnimator.GetInteger("CameraPosition") + 1); 
+        }
+        else
+        {
+            cameraAnimator.SetInteger("CameraPosition", 0);
+        }        
+    }
+
+    public void CameraTurnLeft()
+    {
+        if (cameraAnimator.GetInteger("CameraPosition") > 0)
+        {
+            cameraAnimator.SetInteger("CameraPosition", cameraAnimator.GetInteger("CameraPosition") - 1);
+        }
+        else
+        {
+            cameraAnimator.SetInteger("CameraPosition", 3);
         }
     }
 }

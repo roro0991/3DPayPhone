@@ -70,7 +70,7 @@ public class CallTrigger : MonoBehaviour
                     break;
             }
         }
-        
+
 
         if (phoneManager.GetReceiverStatus() == false)
         {
@@ -127,4 +127,5 @@ public class CallTrigger : MonoBehaviour
     {
         isDailing = status;
     }
+
 }

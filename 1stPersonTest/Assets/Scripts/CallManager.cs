@@ -100,6 +100,7 @@ public class CallManager : MonoBehaviour
         StopAllCoroutines();
         callPanelAnimator.SetBool("inCall", true);
         isInDialogue = true;
+        firstLine = true;
         string line = "The number you have dialed is not in service.";
         StartCoroutine(TypeLine(line));
         EnableContinueCallButton();
@@ -589,11 +590,13 @@ public class CallManager : MonoBehaviour
             if (choice == callChoices[0])
             {
                 choice.SetActive(true);
+                callChoicesText[0].color = Color.white;
                 callChoicesText[0].GetComponent<TextMeshProUGUI>().text = "No";
             }
             if (choice == callChoices[1])
             {
                 choice.SetActive(true);
+                callChoicesText[1].color = Color.white; 
                 callChoicesText[1].GetComponent<TextMeshProUGUI>().text = "Yes";
             }
             if (choice == callChoices[2])
