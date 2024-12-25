@@ -31,7 +31,6 @@ public class PhoneManager : MonoBehaviour
     private int currentExtentionDisplayCharIndex = 46;
     
     private bool receiverIsPickedUp = false;
-    private bool cameraIsZoomedIn = false;
 
     
     private void Update()

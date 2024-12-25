@@ -1,8 +1,10 @@
 using Ink.Parsed;
+using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Unity.PlasticSCM.Editor.WebApi;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -14,7 +16,8 @@ interface IInteractable
 }
 public class InteractionManager : MonoBehaviour
 {
-    [SerializeField] Animator cameraAnimator;   
+    [SerializeField] Animator cameraAnimator;
+    [SerializeField] Animator doorAnimator;
     void Update()
     {
         if (Input.GetMouseButtonDown(0))
@@ -55,4 +58,23 @@ public class InteractionManager : MonoBehaviour
             cameraAnimator.SetInteger("CameraPosition", 3);
         }
     }
+
+    public void OpenCloseDoor()
+    {
+        if (cameraAnimator.GetInteger("CameraPosition") != 2)
+        {
+            return;
+        }
+        else
+        {
+            if (doorAnimator.GetBool("isClosed") == true)
+            {
+                doorAnimator.SetBool("isClosed", false);
+            }
+            else if (doorAnimator.GetBool("isClosed") == false)
+            {
+                doorAnimator.SetBool("isClosed", true);
+            }
+        }
+    }      
 }

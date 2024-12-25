@@ -9,7 +9,7 @@ public class PhoneDisplayController : MonoBehaviour
     [SerializeField] private GameObject[] messageLine = new GameObject[18];
     [SerializeField] private PhoneManager phoneManager;
     private GameObject[] shiftedLine = new GameObject[17];
-    private string pickUpReceiver = "pick up receiver";
+    private string pickUpReceiver = "lift receiver";
     private string insterCoins = "insert money";
 
     private void Start()

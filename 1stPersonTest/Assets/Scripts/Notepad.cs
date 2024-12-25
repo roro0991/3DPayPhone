@@ -12,11 +12,13 @@ public class Notepad : MonoBehaviour
     [SerializeField] private List<GameObject> pages = new List<GameObject>();
     [SerializeField] private GameObject pagePrefab;
     [SerializeField] Transform pagesParent;
-    [SerializeField] TextMeshProUGUI note;
-    TextMeshProUGUI newNote;
-    [SerializeField] TMP_InputField noteInput;
-    int currentPageIndex = 0;
+    [SerializeField] private TextMeshProUGUI pageNumber;
 
+    [SerializeField] TMP_InputField notePrefab;
+    TMP_InputField newNote;
+
+    int currentPageIndex;
+    int pageNumberAsInt;
 
     GraphicRaycaster rayCaster;
     PointerEventData pointerEventData;
@@ -27,6 +29,8 @@ public class Notepad : MonoBehaviour
 
     private void Start()
     {
+        currentPageIndex = 0;
+        pageNumberAsInt = 1;
         rayCaster = GetComponent<GraphicRaycaster>();
         eventSystem = GetComponent<EventSystem>();
     }
@@ -35,7 +39,6 @@ public class Notepad : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            noteInput.text = string.Empty;
             pointerEventData = new PointerEventData(eventSystem);
             pointerEventData.position = Input.mousePosition;
 
@@ -52,32 +55,27 @@ public class Notepad : MonoBehaviour
             {
                 foreach (RaycastResult result in results)
                 {
-                    if (result.gameObject.tag == "buttons")
+                    if (result.gameObject.tag == "pages" && !isWriting)
                     {
-                        isWriting = false;
-                        return;
+                        WriteNote(result);
                     }
-                    if (result.gameObject.tag == "pages")
+                    else if (result.gameObject.tag == "pages" && isWriting)
                     {
-                        isWriting = true;
-                        noteInput.enabled = true;
-                        Debug.Log("You clicked on a page!");
-                        newNote = Instantiate(note, Input.mousePosition, Quaternion.identity);
-                        newNote.transform.SetParent(result.gameObject.transform);
-                        noteInput.ActivateInputField();
+                        newNote.readOnly = true;
+                        WriteNote(result); 
+                           
                     }
                     else
                     {
+                        if (newNote != null)
+                        {
+                            newNote.readOnly = true;
+                        }
                         isWriting = false;
                         return;
                     }
                 }
             }
-        }
-
-        if (newNote != null && isWriting)
-        {
-            newNote.text = noteInput.GetComponentInChildren<TMP_InputField>().text;           
         }
     }
 
@@ -93,24 +91,29 @@ public class Notepad : MonoBehaviour
         environNotepad.gameObject.SetActive(true);
     }
 
-    public void LockInNote(string s)
+    private void WriteNote(RaycastResult result)
     {
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            noteInput.enabled = false;
-        }
+        isWriting = true;
+        Debug.Log("You clicked on a page!");
+        newNote = Instantiate(notePrefab, Input.mousePosition, Quaternion.identity);
+        newNote.transform.SetParent(result.gameObject.transform);
+        newNote.ActivateInputField();
     }
 
     public void FlipPageForward()
     {
         pages[currentPageIndex].SetActive(false);
         currentPageIndex++;
+        pageNumberAsInt++;
+        pageNumber.text = pageNumberAsInt.ToString();
         Debug.Log(currentPageIndex);
+        Debug.Log(pages.Count);      
         if (pages.Count < currentPageIndex+1)
         {
             GameObject newPage = Instantiate(pagePrefab);
             newPage.transform.SetParent(pagesParent, false);
             pages.Add(newPage);
+            pages[currentPageIndex].SetActive(true); 
         }
         else
         {            
@@ -129,6 +132,8 @@ public class Notepad : MonoBehaviour
         {
             pages[currentPageIndex].SetActive(false);
             currentPageIndex--;
+            pageNumberAsInt--;
+            pageNumber.text = pageNumberAsInt.ToString();
             pages[currentPageIndex].SetActive(true);
         }
     }

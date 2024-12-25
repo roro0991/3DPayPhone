@@ -107,20 +107,6 @@ Shader "Unlit/Window"
                 float fade = fwidth(i.uv);
                 col = tex2Dlod(_MainTex, float4(i.uv+drops.xy*_Distortion,0,blur));
 
-                /*float2 projUv = i.opaqueUv.xy / i.opaqueUv.w;
-                projUv += drops.xy * _Distortion;
-                blur *= .01;
-                const float numSamples = 4;
-                float a = N21(i.uv)*6.2831;
-                for(float i=0; i<numSamples; i++)
-                {
-                    float2 offs = float2(sin(a), cos(a))*blur;
-                    col = tex2D(_CameraOpaqueTexture, projUv+offs);
-                    a++;
-                } 
-                
-                col /= numSamples;*/
-
                 return col;
             }
             ENDCG
