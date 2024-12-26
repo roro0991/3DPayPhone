@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -49,9 +50,9 @@ public class Notepad : MonoBehaviour
             if (results.Count == 0)
             {
                 isWriting = false;
-                return;
+                return; 
             }
-            else
+            else 
             {
                 foreach (RaycastResult result in results)
                 {
@@ -61,21 +62,31 @@ public class Notepad : MonoBehaviour
                     }
                     else if (result.gameObject.tag == "pages" && isWriting)
                     {
-                        newNote.readOnly = true;
+                        if (newNote.text == "") // removes empty note instances
+                        {
+                            Destroy(newNote.gameObject);
+                        }
+                        else
+                        {
+                            newNote.readOnly = true;
+                        }                           
                         WriteNote(result); 
-                           
                     }
                     else
                     {
-                        if (newNote != null)
+                        if (newNote != null && newNote.text != "")
                         {
                             newNote.readOnly = true;
+                        }
+                        else if (newNote != null && newNote.text == "")
+                        {
+                            Destroy(newNote.gameObject);
                         }
                         isWriting = false;
                         return;
                     }
                 }
-            }
+            }  
         }
     }
 
@@ -93,9 +104,11 @@ public class Notepad : MonoBehaviour
 
     private void WriteNote(RaycastResult result)
     {
+        Vector3 instantiatePosition = 
+            new Vector3(Input.mousePosition.x, Input.mousePosition.y + 25, Input.mousePosition.z);
         isWriting = true;
         Debug.Log("You clicked on a page!");
-        newNote = Instantiate(notePrefab, Input.mousePosition, Quaternion.identity);
+        newNote = Instantiate(notePrefab, instantiatePosition, Quaternion.identity);
         newNote.transform.SetParent(result.gameObject.transform);
         newNote.ActivateInputField();
     }
