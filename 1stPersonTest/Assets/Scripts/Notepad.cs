@@ -6,6 +6,8 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System.Linq;
+using UnityEngine.Rendering;
 
 public class Notepad : MonoBehaviour
 {
@@ -15,8 +17,13 @@ public class Notepad : MonoBehaviour
     [SerializeField] Transform pagesParent;
     [SerializeField] private TextMeshProUGUI pageNumber;
 
+    [SerializeField] private GameObject linePrefab;
+    GameObject newLine;
+
+    Vector2 lastPosition;
+
     [SerializeField] TMP_InputField notePrefab;
-    TMP_InputField newNote;
+    TMP_InputField newNote;   
 
     int currentPageIndex;
     int pageNumberAsInt;
@@ -88,7 +95,75 @@ public class Notepad : MonoBehaviour
                 }
             }  
         }
+
+        if (Input.GetMouseButtonDown(1))
+        {
+            pointerEventData = new PointerEventData(eventSystem);
+            pointerEventData.position = Input.mousePosition;
+
+            List<RaycastResult> results = new List<RaycastResult>();
+
+            rayCaster.Raycast(pointerEventData, results);
+
+            if (results.Count == 0)
+            {
+                return;
+            }
+            else
+            {
+                foreach (RaycastResult result in results)
+                {
+                    if (result.gameObject.tag == "pages")
+                    {
+                        lastPosition = Input.mousePosition;
+                    }
+                }
+            }
+        }
+
+        if (Input.GetMouseButton(1))
+        {
+            pointerEventData = new PointerEventData(eventSystem);
+            pointerEventData.position = Input.mousePosition;
+
+            List<RaycastResult> results = new List<RaycastResult>();
+
+            rayCaster.Raycast(pointerEventData, results);
+
+            if (results.Count == 0)
+            {
+                return;
+            }
+            else
+            {
+                foreach (RaycastResult result in results)
+                {
+                    if (result.gameObject.tag == "pages")
+                    {
+                        if (Vector2.Distance(lastPosition, Input.mousePosition) > .5f)
+                        {
+                            DrawLine(result, Input.mousePosition);
+                            lastPosition = Input.mousePosition;
+                        }
+                    }
+                }
+            }
+        }
     }
+
+    private void DrawLine(RaycastResult result, Vector3 position)
+    {
+        if (lastPosition != null)
+        {
+            newLine = Instantiate(linePrefab, position, Quaternion.identity);
+            newLine.transform.LookAt(lastPosition);
+            newLine.transform.SetParent(result.gameObject.transform);
+            return;
+        }
+        newLine = Instantiate(linePrefab, position, Quaternion.identity);
+        newLine.transform.SetParent(result.gameObject.transform);
+    }
+
 
     public void OpenNotepad()
     {
