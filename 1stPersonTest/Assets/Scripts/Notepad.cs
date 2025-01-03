@@ -8,6 +8,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Linq;
 using UnityEngine.Rendering;
+using System.Xml;
+using JetBrains.Annotations;
 
 public class Notepad : MonoBehaviour
 {
@@ -17,21 +19,17 @@ public class Notepad : MonoBehaviour
     [SerializeField] Transform pagesParent;
     [SerializeField] private TextMeshProUGUI pageNumber;
 
-    [SerializeField] private GameObject linePrefab;
-    GameObject newLine;
+    [SerializeField] private Camera equiprenderCam;
 
-    Vector2 lastPosition;
+    [SerializeField] GameObject linePrefab;
+    Line activeLine;
 
-    [SerializeField] TMP_InputField notePrefab;
-    TMP_InputField newNote;   
+    [SerializeField] TextMeshPro notePrefab;
+    TextMeshPro newNote;
+    [SerializeField] TMP_InputField inputField;    
 
     int currentPageIndex;
     int pageNumberAsInt;
-
-    GraphicRaycaster rayCaster;
-    PointerEventData pointerEventData;
-    EventSystem eventSystem;
-
 
     bool isWriting = false;
 
@@ -39,132 +37,94 @@ public class Notepad : MonoBehaviour
     {
         currentPageIndex = 0;
         pageNumberAsInt = 1;
-        rayCaster = GetComponent<GraphicRaycaster>();
-        eventSystem = GetComponent<EventSystem>();
     }
 
     private void Update()
     {
+        if (newNote != null)
+        {
+            newNote.text = inputField.text;
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
-            pointerEventData = new PointerEventData(eventSystem);
-            pointerEventData.position = Input.mousePosition;
-
-            List<RaycastResult> results = new List<RaycastResult>();
-
-            rayCaster.Raycast(pointerEventData, results);
-
-            if (results.Count == 0)
+            if (EventSystem.current.IsPointerOverGameObject())
             {
-                isWriting = false;
-                return; 
+                return;
             }
-            else 
+
+            Ray ray = equiprenderCam.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit) && hit.collider.gameObject.tag == "pages")
             {
-                foreach (RaycastResult result in results)
+                if (!isWriting)
                 {
-                    if (result.gameObject.tag == "pages" && !isWriting)
-                    {
-                        WriteNote(result);
-                    }
-                    else if (result.gameObject.tag == "pages" && isWriting)
-                    {
-                        if (newNote.text == "") // removes empty note instances
-                        {
-                            Destroy(newNote.gameObject);
-                        }
-                        else
-                        {
-                            newNote.readOnly = true;
-                        }                           
-                        WriteNote(result); 
-                    }
-                    else
-                    {
-                        if (newNote != null && newNote.text != "")
-                        {
-                            newNote.readOnly = true;
-                        }
-                        else if (newNote != null && newNote.text == "")
-                        {
-                            Destroy(newNote.gameObject);
-                        }
-                        isWriting = false;
-                        return;
-                    }
+                    WriteNote(hit);
+                    return;
                 }
-            }  
+                else if (isWriting && newNote.text == "")
+                {
+                    Destroy(newNote.gameObject);
+                    WriteNote(hit);
+                }
+                else
+                {
+                    inputField.text = null;
+                    WriteNote(hit); 
+                }
+            }              
         }
+
 
         if (Input.GetMouseButtonDown(1))
         {
-            pointerEventData = new PointerEventData(eventSystem);
-            pointerEventData.position = Input.mousePosition;
-
-            List<RaycastResult> results = new List<RaycastResult>();
-
-            rayCaster.Raycast(pointerEventData, results);
-
-            if (results.Count == 0)
+            if (EventSystem.current.IsPointerOverGameObject())
             {
                 return;
             }
-            else
+
+            Ray ray = equiprenderCam.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit) && hit.collider.gameObject.tag == "pages")
             {
-                foreach (RaycastResult result in results)
-                {
-                    if (result.gameObject.tag == "pages")
-                    {
-                        lastPosition = Input.mousePosition;
-                    }
-                }
-            }
+                Vector3 mousePos = hit.point;
+                GameObject newLine = Instantiate(linePrefab);
+                newLine.transform.SetParent(hit.transform);
+                activeLine = newLine.GetComponent<Line>();
+                activeLine.UpdateLine(mousePos);
+            }                
         }
 
-        if (Input.GetMouseButton(1))
+        if (Input.GetMouseButtonUp(1))
+        {            
+            activeLine = null;               
+        }
+
+        if (activeLine != null)
         {
-            pointerEventData = new PointerEventData(eventSystem);
-            pointerEventData.position = Input.mousePosition;
+            Ray ray = equiprenderCam.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
 
-            List<RaycastResult> results = new List<RaycastResult>();
-
-            rayCaster.Raycast(pointerEventData, results);
-
-            if (results.Count == 0)
+            if (Physics.Raycast(ray, out hit) && hit.collider.gameObject.tag == "pages")
             {
-                return;
-            }
-            else
-            {
-                foreach (RaycastResult result in results)
-                {
-                    if (result.gameObject.tag == "pages")
-                    {
-                        if (Vector2.Distance(lastPosition, Input.mousePosition) > .5f)
-                        {
-                            DrawLine(result, Input.mousePosition);
-                            lastPosition = Input.mousePosition;
-                        }
-                    }
-                }
+                Vector3 mousePos = hit.point;
+                activeLine.UpdateLine(mousePos);
             }
         }
+        
     }
 
-    private void DrawLine(RaycastResult result, Vector3 position)
+        private void WriteNote(RaycastHit hit)
     {
-        if (lastPosition != null)
-        {
-            newLine = Instantiate(linePrefab, position, Quaternion.identity);
-            newLine.transform.LookAt(lastPosition);
-            newLine.transform.SetParent(result.gameObject.transform);
-            return;
-        }
-        newLine = Instantiate(linePrefab, position, Quaternion.identity);
-        newLine.transform.SetParent(result.gameObject.transform);
+        isWriting = true;
+        Vector3 mousePos = hit.point;       
+        newNote = Instantiate(notePrefab);
+        newNote.transform.SetParent(hit.transform, false);
+        newNote.transform.position = mousePos;
+        inputField.ActivateInputField();
     }
-
-
     public void OpenNotepad()
     {
         this.gameObject.SetActive(true);
@@ -177,16 +137,6 @@ public class Notepad : MonoBehaviour
         environNotepad.gameObject.SetActive(true);
     }
 
-    private void WriteNote(RaycastResult result)
-    {
-        Vector3 instantiatePosition = 
-            new Vector3(Input.mousePosition.x, Input.mousePosition.y + 25, Input.mousePosition.z);
-        isWriting = true;
-        Debug.Log("You clicked on a page!");
-        newNote = Instantiate(notePrefab, instantiatePosition, Quaternion.identity);
-        newNote.transform.SetParent(result.gameObject.transform);
-        newNote.ActivateInputField();
-    }
 
     public void FlipPageForward()
     {
