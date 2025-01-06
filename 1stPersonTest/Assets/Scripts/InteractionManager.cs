@@ -20,9 +20,13 @@ public class InteractionManager : MonoBehaviour
     [SerializeField] Animator doorAnimator;
     [SerializeField] Camera equiprenderCam;
 
-    public LayerMask defaultlayerMask;
-    public LayerMask equiplayerMask;
+    private int layerNumber = 6;
+    private int layerMask;
 
+    private void Start()
+    {
+        layerMask = 1 << layerNumber;
+    }
     void Update()
     {
         if (Input.GetMouseButtonDown(0))
@@ -31,19 +35,21 @@ public class InteractionManager : MonoBehaviour
             {
                 return;                            
             }
-
+            
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
+            
             Ray ray2 = equiprenderCam.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit2;
             
-            if (Physics.Raycast(ray, out hit, defaultlayerMask) && hit.collider.gameObject.TryGetComponent(out IInteractable interactObj))
+            
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~layerMask)  && hit.collider.gameObject.TryGetComponent(out IInteractable interactObj))
             {
                 interactObj.Interact();
             }
             
-                        
-            if (Physics.Raycast(ray2, out hit2, equiplayerMask) && hit2.collider.gameObject.TryGetComponent(out IInteractable interactObj2))
+                     
+            if (Physics.Raycast(ray2, out hit2, Mathf.Infinity, layerMask) && hit2.collider.gameObject.TryGetComponent(out IInteractable interactObj2))
             {
                 interactObj2.Interact();
             }
