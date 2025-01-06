@@ -10,6 +10,7 @@ using System.Linq;
 using UnityEngine.Rendering;
 using System.Xml;
 using JetBrains.Annotations;
+using UnityEngine.Assertions.Must;
 
 public class Notepad : MonoBehaviour
 {
@@ -26,7 +27,8 @@ public class Notepad : MonoBehaviour
 
     [SerializeField] TextMeshPro notePrefab;
     TextMeshPro newNote;
-    [SerializeField] TMP_InputField inputField;    
+    [SerializeField] TMP_InputField inputField;
+    [SerializeField] GameObject textBarrier;
 
     int currentPageIndex;
     int pageNumberAsInt;
@@ -53,25 +55,33 @@ public class Notepad : MonoBehaviour
                 return;
             }
 
-            Ray ray = equiprenderCam.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
+            Ray ray = equiprenderCam.ScreenPointToRay(Input.mousePosition);            
+
+            RaycastHit hit;           
 
             if (Physics.Raycast(ray, out hit) && hit.collider.gameObject.tag == "pages")
-            {
+            {;
+                Mesh mesh = hit.transform.gameObject.GetComponent<MeshFilter>().mesh;
+                Vector3[] vertices = mesh.vertices;
+
+                float sizeDelta = CalculateTextDelta(hit);
+
+                Debug.Log(sizeDelta);
+
                 if (!isWriting)
                 {
-                    WriteNote(hit);
+                    WriteNote(hit, sizeDelta);
                     return;
                 }
                 else if (isWriting && newNote.text == "")
                 {
                     Destroy(newNote.gameObject);
-                    WriteNote(hit);
+                    WriteNote(hit, sizeDelta);
                 }
                 else
                 {
                     inputField.text = null;
-                    WriteNote(hit); 
+                    WriteNote(hit, sizeDelta); 
                 }
             }              
         }
@@ -116,13 +126,45 @@ public class Notepad : MonoBehaviour
         
     }
 
-        private void WriteNote(RaycastHit hit)
+    private float CalculateTextDelta(RaycastHit hit)
+    {
+        Mesh mesh = hit.transform.gameObject.GetComponent<MeshFilter>().mesh;
+        Vector3[] vertices = mesh.vertices;
+
+        //transform.TransformPoints(vertices);
+
+        Vector3 localHit = transform.InverseTransformPoint(hit.point);
+
+        float sideA = Vector3.Distance(localHit, vertices[2]);
+        float sideB = Vector3.Distance(localHit, vertices[0]);
+        float sideC = Vector3.Distance(vertices[2], vertices[0]);
+
+        float S = (sideA + sideB + sideC) / 2;
+
+        float A = Mathf.Sqrt(S * (S - sideA) * (S - sideB) * (S - sideC));
+
+        float sizeDelta = 2 * (A / sideC);
+        
+        /*
+        Debug.Log(localHit.x);
+        Debug.Log(vertices[1].x);
+        Debug.Log(vertices[3].x);
+
+        Debug.Log(vertices[0].x);
+        Debug.Log(vertices[2].x);
+        */
+
+        return sizeDelta; 
+    }
+
+        private void WriteNote(RaycastHit hit, float sizeDelta)
     {
         isWriting = true;
         Vector3 mousePos = hit.point;       
         newNote = Instantiate(notePrefab);
         newNote.transform.SetParent(hit.transform, false);
         newNote.transform.position = mousePos;
+        newNote.rectTransform.sizeDelta = new Vector2(sizeDelta, 1); 
         inputField.ActivateInputField();
     }
     public void OpenNotepad()
