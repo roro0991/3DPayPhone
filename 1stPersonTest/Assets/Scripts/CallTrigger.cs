@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using System.Collections;
 using UnityEngine;
 
@@ -6,12 +7,9 @@ public class CallTrigger : MonoBehaviour
     [SerializeField] PhoneManager phoneManager;
     [SerializeField] CallManager callManager;
     [SerializeField] SFXManager sfxManager;
-    
+
     [Header("Ink JSON Files")]
-    [SerializeField] private TextAsset handler; //555-3473
-    [SerializeField] private TextAsset informant; //554-8923
-    [SerializeField] private TextAsset falseNumber; //639-9675
-    [SerializeField] private TextAsset johnMccoy; //442-4542
+    [SerializeField] private TextAsset firstNumber; // 225-5446
 
     int numberToCall;
 
@@ -20,6 +18,8 @@ public class CallTrigger : MonoBehaviour
     bool callIsInProgress;
 
     bool isDailing;
+
+    bool isRinging;
 
     private void Start()
     {
@@ -30,6 +30,13 @@ public class CallTrigger : MonoBehaviour
     private void Update()
     {
         string numberToCall = phoneManager.GetPhoneNumber();
+
+        if (!callIsInProgress && isRinging && phoneManager.GetReceiverStatus() == true)
+        {
+            callIsInProgress = true;
+            sfxManager.dialSource.Stop();
+            callManager.EnterCallMode(firstNumber);
+        }
 
         if (!callIsInProgress && numberToCall.Length == 3)
         {
@@ -48,22 +55,6 @@ public class CallTrigger : MonoBehaviour
         {
             switch (numberToCall)
             {
-                case "5553473":
-                    callIsInProgress = true;
-                    StartCoroutine(Call(handler));
-                    break;
-                case "5548923":
-                    callIsInProgress = true;
-                    StartCoroutine(Call(informant));
-                    break;
-                case "6399675":
-                    callIsInProgress = true;
-                    StartCoroutine(Call(falseNumber));                    
-                    return;
-                case "4424542":
-                    callIsInProgress = true;
-                    StartCoroutine(Call(johnMccoy));
-                    break;
                 default:
                     callIsInProgress = true;
                     StartCoroutine(NumberNotInService());
@@ -111,8 +102,12 @@ public class CallTrigger : MonoBehaviour
         sfxManager.dialSource.Stop();
         callManager.EnterDirectoryMode();
     }
-
-    // getter methods
+    
+    public void ReceiveCall()
+    {
+        isRinging = true;
+        sfxManager.CallRing();
+    }    
 
     public bool GetCallStatus()
     {
@@ -121,6 +116,11 @@ public class CallTrigger : MonoBehaviour
     public bool GetIsDailingStatus()
     {
         return isDailing;
+    }
+
+    public bool GetIsRingingStatus()
+    {
+        return isRinging;
     }
 
     public void SetIsDailingStatus(bool status)

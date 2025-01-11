@@ -6,15 +6,10 @@ public class SFXManager : MonoBehaviour
 {
     public AudioSource audioSource;
     public AudioSource dialSource;
-    public AudioClip receiverUp, receiverDown, dialRinging, dialogueBlip;
+    public AudioClip receiverUp, receiverDown, dialRinging, callRinging;
     public List<AudioClip> buttonPresses = new List<AudioClip>();
     public List<AudioClip> coinInserts = new List<AudioClip>();
 
-    public void DialogueBlip()
-    {
-        audioSource.PlayOneShot(dialogueBlip, .1f);
-        
-    }
     public void coinInsert()
     {
         int index = Random.Range(0, coinInserts.Count);
@@ -33,6 +28,15 @@ public class SFXManager : MonoBehaviour
         dialSource.clip = dialRinging;
         dialSource.loop = true;
         dialSource.volume = 0.4f;
+        dialSource.Play();
+    }
+
+    public void CallRing()
+    {
+        Debug.Log("the phone is ringing!");
+        dialSource.clip = callRinging;
+        dialSource.loop = true;
+        dialSource.volume = .2f;
         dialSource.Play();
     }
     public void ReceiverUP()

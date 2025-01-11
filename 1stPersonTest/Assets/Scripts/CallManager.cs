@@ -21,12 +21,13 @@ public class CallManager : MonoBehaviour
     [SerializeField] private TMP_InputField inputField;
     private TextMeshProUGUI[] callChoicesText;
     public Animator callPanelAnimator;
-    private float responseDelay = 2f;
+    private float responseDelay = .75f;
 
     [SerializeField] PhoneDisplayController phoneDisplayController;
     [SerializeField] PhoneManager phoneManager;
     [SerializeField] PuzzleManager puzzleManager;
     [SerializeField] SFXManager sfxManager;
+    [SerializeField] DialogueAudioManager dialogueaudioManager;
 
     //ink story related elements
     private Story currentStory;
@@ -50,7 +51,6 @@ public class CallManager : MonoBehaviour
     private bool isInAutomatedSystem = false; // check if in automated system
     private bool isInExtentionSystem = false; // check if inputing extention number
 
-    private const string RESPONSE_DELAY_TAG = "delay";
 
     private void Awake()
     {
@@ -67,6 +67,7 @@ public class CallManager : MonoBehaviour
             index++;
         }
     }
+
     public void EnterCallMode(TextAsset inkJSON)
     {
         isInDialogue = true;
@@ -90,6 +91,10 @@ public class CallManager : MonoBehaviour
         currentStory.BindExternalFunction("ResetExtention", () =>
         {
             phoneManager.ResetExtention();
+        });
+        currentStory.BindExternalFunction("PlayAudioClip", (int audioLine, bool loop) =>
+        {
+            dialogueaudioManager.PlayDialogueClip(audioLine, loop);
         });
 
         ContinueCall(); // begin dialogue 
@@ -122,6 +127,7 @@ public class CallManager : MonoBehaviour
             currentStory.UnbindExternalFunction("SetAutomatedSystem");
             currentStory.UnbindExternalFunction("SetExtentionSystem");
             currentStory.UnbindExternalFunction("ResetExtention");
+            currentStory.UnbindExternalFunction("PlayAudioClip");
         }
         currentStory = null;
     }
@@ -241,10 +247,6 @@ public class CallManager : MonoBehaviour
             int visibleCount = counter % (totalVisibleCharacters + 1);
             callText.maxVisibleCharacters = visibleCount;
             counter++;
-            if (!isPrintingToDisplay)
-            {
-                sfxManager.DialogueBlip();
-            }
             yield return new WaitForSeconds(textSpeed);
 
         }

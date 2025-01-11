@@ -1,1 +1,0 @@
-﻿{"inkVersion":21,"root":[["\n","ev",4,"/ev",{"VAR=":"handlercallcount","re":true},"^The number you have dialed is not in service.","\n","end",["done",{"#f":5,"#n":"g-0"}],null],"done",{"global decl":["ev",1,{"VAR=":"handlercallcount"},"str","^","/str",{"VAR=":"extention"},"/ev","end",null],"#f":1}],"listDefs":{}}

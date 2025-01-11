@@ -14,6 +14,8 @@ using UnityEngine.Assertions.Must;
 
 public class Notepad : MonoBehaviour
 {
+    [SerializeField] StoryManager storyManager;
+
     [SerializeField] private GameObject environNotepad;
     [SerializeField] private List<GameObject> pages = new List<GameObject>();
     [SerializeField] private GameObject pagePrefab;
@@ -34,6 +36,8 @@ public class Notepad : MonoBehaviour
 
     bool isWriting = false;
 
+    bool firstlineDrawn = false;
+    bool firstnoteWritten = false;
     private void Start()
     {
         currentPageIndex = 0;
@@ -83,6 +87,11 @@ public class Notepad : MonoBehaviour
                     }
                     else
                     {
+                        if (firstnoteWritten == false)
+                        {
+                            firstnoteWritten = true;
+                            storyManager.SetFirstNoteWritten(true);
+                        }
                         inputField.text = null;
                         WriteNote(hit, textDeltas[0], textDeltas[1]); 
                     }
@@ -136,6 +145,11 @@ public class Notepad : MonoBehaviour
                 }
                 else if (hit.collider.gameObject.tag == "pages")
                 {
+                    if (firstlineDrawn == false)
+                    {
+                        firstlineDrawn = true;
+                        storyManager.SetFirstLineDrawn(true);
+                    }
                     Vector3 mousePos = hit.point;
                     activeLine.UpdateLine(mousePos);
                 }

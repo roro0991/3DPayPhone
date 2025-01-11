@@ -19,9 +19,11 @@ public class InteractionManager : MonoBehaviour
     [SerializeField] Animator cameraAnimator;
     [SerializeField] Animator doorAnimator;
     [SerializeField] Camera equiprenderCam;
+    [SerializeField] StoryManager storyManager;
 
     private int layerNumber = 6;
     private int layerMask;
+    private bool firstdoorOpen = false;
 
     private void Start()
     {
@@ -91,6 +93,11 @@ public class InteractionManager : MonoBehaviour
         {
             if (doorAnimator.GetBool("isClosed") == true)
             {
+                if (firstdoorOpen == false)
+                {
+                    firstdoorOpen = true;
+                    storyManager.SetFirstDoorOpen(true); 
+                }
                 doorAnimator.SetBool("isClosed", false);
             }
             else if (doorAnimator.GetBool("isClosed") == false)
