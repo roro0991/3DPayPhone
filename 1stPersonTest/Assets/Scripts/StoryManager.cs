@@ -1,4 +1,5 @@
 
+using System.Collections;
 using UnityEngine;
 
 public class StoryManager : MonoBehaviour
@@ -21,7 +22,7 @@ public class StoryManager : MonoBehaviour
             && firstCall == false)
         {
             firstCall = true;
-            callTrigger.ReceiveCall();
+            StartCoroutine(FirstCall());
         }
     }
 
@@ -43,5 +44,11 @@ public class StoryManager : MonoBehaviour
     {
         Debug.Log("you have written a note for the first time!");
         firstnoteWritten = status;
+    }
+
+    IEnumerator FirstCall()
+    {
+        yield return new WaitForSeconds(5f);
+        callTrigger.ReceiveCall();
     }
 }

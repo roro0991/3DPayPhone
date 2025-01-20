@@ -5,30 +5,29 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.VisualScripting;
-using UnityEngine.SearchService;
 
 public class CallManager : MonoBehaviour
 {
     [Header("Load Globals JSON")]
-
     [SerializeField] private TextAsset loadGlobalsJSON;
 
-    [Header("Call UI")]
 
-    [SerializeField] private TextMeshProUGUI callText;
+    [Header("Call UI")]
     [SerializeField] private Button continueButton;
     [SerializeField] private GameObject[] callChoices;
-    [SerializeField] private TMP_InputField inputField;
     private TextMeshProUGUI[] callChoicesText;
+    [SerializeField] private TMP_InputField inputField;
     public Animator callPanelAnimator;
-    private float responseDelay = .75f;
 
+
+    [Header("Managers")]
     [SerializeField] PhoneDisplayController phoneDisplayController;
     [SerializeField] PhoneManager phoneManager;
     [SerializeField] PuzzleManager puzzleManager;
     [SerializeField] SFXManager sfxManager;
     [SerializeField] DialogueAudioManager dialogueaudioManager;
 
+    
     //ink story related elements
     private Story currentStory;
     private DialogueVariables dialogueVariables;
@@ -40,15 +39,14 @@ public class CallManager : MonoBehaviour
     private float textSpeed = 0.03f;
     
     //state bools
-    private bool secretMessage = false;
-    private bool isInDialogue = false; // check if in dialogue
-    private bool firstLine = false; // check if it's beginning of call
-    private bool isInDirectory = false; // check if in directory
-    private bool isChoosingBetweenResidentialOrBusinessListing = false;
+    private bool isInDialogue = false; // check if in dialogue    
+    private bool isInDirectory = false; // check if in directory    
     private bool isInputingCity = true; // check if inputing city into directory
-    private bool isInputingBusiness = false; // check if inputing business into directory
+    private bool isChoosingBetweenResidentialOrBusinessListing = false;
     private bool isInputingName = false; // check if inputing name into directory
+    private bool isInputingBusiness = false; // check if inputing business into directory
     private bool isInAutomatedSystem = false; // check if in automated system
+    
     private bool isInExtentionSystem = false; // check if inputing extention number
 
 
@@ -71,9 +69,8 @@ public class CallManager : MonoBehaviour
     public void EnterCallMode(TextAsset inkJSON)
     {
         isInDialogue = true;
-        firstLine = true;
         currentStory = new Story(inkJSON.text); // load in relevant dialogue information
-        callPanelAnimator.SetBool("inCall", true); // bring up dialogue panel
+        //callPanelAnimator.SetBool("inCall", true); // bring up dialogue panel
         dialogueVariables.StartListening(currentStory);  // listen to story variables
         // allow access to C# functions/methods from ink
         currentStory.BindExternalFunction("EnterPuzzleMode", (int puzzleType, string answerSequence) =>
@@ -92,11 +89,26 @@ public class CallManager : MonoBehaviour
         {
             phoneManager.ResetExtention();
         });
-        currentStory.BindExternalFunction("PlayAudioClip", (int audioLine, bool loop) =>
+        currentStory.BindExternalFunction("PlayAudioClip", (int contact, int audioLine) =>
         {
-            dialogueaudioManager.PlayDialogueClip(audioLine, loop);
+            dialogueaudioManager.PlayDialogueClip(contact, audioLine);
         });
-
+        currentStory.BindExternalFunction("EnterDirectoryMode", () =>
+        {
+            EnterDirectoryMode();
+        });
+        currentStory.BindExternalFunction("ExitDirectoryMode", () =>
+        {
+            ExitDirectoryMode();
+        });
+        currentStory.BindExternalFunction("ResidentialListing", () =>
+        {
+            ResidentialListing();
+        });
+        currentStory.BindExternalFunction("BusinessListing", () =>
+        {
+            BusinessListing();
+        });
         ContinueCall(); // begin dialogue 
     }
 
@@ -105,7 +117,6 @@ public class CallManager : MonoBehaviour
         StopAllCoroutines();
         callPanelAnimator.SetBool("inCall", true);
         isInDialogue = true;
-        firstLine = true;
         string line = "The number you have dialed is not in service.";
         StartCoroutine(TypeLine(line));
         EnableContinueCallButton();
@@ -116,7 +127,6 @@ public class CallManager : MonoBehaviour
         StopAllCoroutines();
         isInDialogue = false;
         phoneDisplayController.ClearAllChars();
-        callText.text = string.Empty; // clear dialogue panel
         callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
         if (currentStory != null)
         {                 
@@ -128,16 +138,15 @@ public class CallManager : MonoBehaviour
             currentStory.UnbindExternalFunction("SetExtentionSystem");
             currentStory.UnbindExternalFunction("ResetExtention");
             currentStory.UnbindExternalFunction("PlayAudioClip");
+            currentStory.UnbindExternalFunction("EnterDirectoryMode");
+            currentStory.UnbindExternalFunction("ExitDirectoryMode");
+            currentStory.UnbindExternalFunction("ResidentialListing");
+            currentStory.UnbindExternalFunction("BusinessListing");
         }
         currentStory = null;
     }
     public void ContinueCall()
-    {        
-        if (secretMessage == true)
-        {
-            phoneDisplayController.ClearAllChars();
-            secretMessage = false;
-        }
+    { 
         if (currentStory != null && currentStory.canContinue)
         {
             StopAllCoroutines(); // so we don't have multiple coroutines running at the same time
@@ -155,100 +164,22 @@ public class CallManager : MonoBehaviour
     {
         DisableCallChoices();
         DisableContinueButton();
-        if (!firstLine && !isInDirectory)
+        
+        if (line != null)
         {
-            yield return new WaitForSeconds(responseDelay);                        
-        }
-        else
-        {
-            firstLine = false;            
-        }
-        /*callText.text = "";
-        bool isAddingRichTextTag = false; // so we don't print the richtext code from ink into the dialogue
-        bool isPrintingToDisplay = false; // to know when to print secret messages to display
-        int index = 0; // for when we print to phone display instead of call panel
-        foreach (char letter in line.ToCharArray())
-        {    
-            if (letter == '<' || isAddingRichTextTag)
+            phoneDisplayController.ClearAllChars();
+            int index = 0;
+            foreach (char letter in line.ToCharArray())
             {
-                isAddingRichTextTag = true;
-                callText.text += letter;
-                if (letter == '>')
+                if (letter == '.')
                 {
-                    isAddingRichTextTag = false;
+                    break; 
                 }
+                    int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
+                    phoneDisplayController.chars[index].GetComponent<CharController>().DisplayChar(letterAsInt);
+                    index++;
+                    yield return new WaitForSeconds(textSpeed);                            
             }
-            else if (letter == '@')
-            {
-                phoneDisplayController.ClearAllChars();
-                isPrintingToDisplay = true;
-                continue;
-            }
-            else if (isPrintingToDisplay)
-            {
-                if (letter == '^' && isPrintingToDisplay)
-                {
-                    isPrintingToDisplay = false;
-                    continue;
-                }
-                int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
-                phoneDisplayController.chars[index].GetComponent<CharController>().DisplayChar(letterAsInt);
-                index++;
-                yield return new WaitForSeconds(textSpeed);
-            }                
-            else
-            {
-                callText.text += letter;
-                yield return new WaitForSeconds(textSpeed);
-            }
-            sfxManager.DialogueBlip();
-        }*/
-        string lineForCallPanel = "";
-        foreach (char letter in line.ToCharArray())
-        {
-            if (letter != '@')
-            {                
-                lineForCallPanel += letter;
-            }
-            else
-            {
-                secretMessage = true;
-                break;
-            }
-        }
-
-        callText.text = "<font=\"LiberationSans SDF\"><mark=#2F4F4F>"+lineForCallPanel+"</mark>";
-        int totalVisibleCharacters = line.Length;
-        int counter = 1;
-
-        bool isPrintingToDisplay = false; // to know when to print secret messages to display
-        int index = 0;
-        foreach (char letter in line.ToCharArray())
-        {
-            if (letter == '@')
-            {                
-                isPrintingToDisplay = true;
-                phoneDisplayController.ClearAllChars();
-                continue;
-            }
-            else if (isPrintingToDisplay)
-            {
-                if (letter == '^' && isPrintingToDisplay)
-                {
-                    isPrintingToDisplay = false;
-                    break;
-                }
-                int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
-                phoneDisplayController.chars[index].GetComponent<CharController>().DisplayChar(letterAsInt);
-                index++;
-                yield return new WaitForSeconds(textSpeed);
-            }
-
-            int visibleCount = counter % (totalVisibleCharacters + 1);
-            callText.maxVisibleCharacters = visibleCount;
-            counter++;
-            yield return new WaitForSeconds(textSpeed);
-
         }
 
         if (!isInDirectory && currentStory != null)
@@ -372,15 +303,14 @@ public class CallManager : MonoBehaviour
         DisableCallChoices();
         DisableContinueButton();
         isInDirectory = true;
+        dialogueaudioManager.PlayDialogueClip(1, 0);
         callPanelAnimator.SetBool("inCall", true);
         inputField.gameObject.SetActive(true);
-        string line = "You've reached the automated directory service.\nPlease provide the name of the city you are trying to reach.";        
-        StartCoroutine(TypeLine(line));
         inputField.ActivateInputField();
     }
     public void ExitDirectoryMode()
     {
-        if (!isInDirectory | isChoosingBetweenResidentialOrBusinessListing)
+        if (!isInDirectory)
         {
             return;
         }
@@ -411,16 +341,16 @@ public class CallManager : MonoBehaviour
                 playerInputCity = s.ToUpper();
                 Debug.Log(playerInputCity);
                 isInputingCity = false;
-                string line = "Is this a residential or business listing?";
-                StartCoroutine(TypeLine(line));
+                dialogueaudioManager.dialogueaudioSource.Stop();
+                dialogueaudioManager.PlayDialogueClip(1, 1);
                 isChoosingBetweenResidentialOrBusinessListing = true;
-                Invoke("ResidentialOrBusinessListing", 1.5f);
             }
             else if (!isInputingCity)
             {
                 if (isInputingName)
                 {
                     // inputing name into directory
+                    dialogueaudioManager.dialogueaudioSource.Stop();
                     playerInputName = s.ToUpper();
                     Debug.Log(playerInputName);
                     isInputingName = false;
@@ -441,6 +371,7 @@ public class CallManager : MonoBehaviour
                 else if (isInputingBusiness)
                 {
                     //inputing business into directory
+                    dialogueaudioManager.dialogueaudioSource.Stop();
                     playerInputBusiness = s.ToUpper();
                     Debug.Log(playerInputBusiness);
                     isInputingBusiness = false;
@@ -457,30 +388,8 @@ public class CallManager : MonoBehaviour
                         StartCoroutine(DirectoryAnswer(true, 1));
                     }
                 }
-                Invoke("ContinueExitDirectoryOptions", 5.5f);
             }
             inputField.text = string.Empty;
-        }
-    }
-
-    private void ResidentialOrBusinessListing()
-    {
-        foreach (GameObject choice in callChoices)
-        {
-            if (choice == callChoices[0])
-            {
-                choice.SetActive(true);
-                callChoicesText[0].GetComponent<TextMeshProUGUI>().text = "Business";
-            }
-            if (choice == callChoices[1])
-            {
-                choice.SetActive(true);
-                callChoicesText[1].GetComponent<TextMeshProUGUI>().text = "Residential";
-            }
-            if (choice == callChoices[2])
-            {
-                choice.SetActive(false);                
-            }
         }
     }
 
@@ -490,12 +399,12 @@ public class CallManager : MonoBehaviour
         {
             return;
         }
-        isInputingName = true;
         isChoosingBetweenResidentialOrBusinessListing = false;
-        string line = "Please provide the given name and surname of the person you are trying to reach.";
-        StartCoroutine(TypeLine(line));
+        isInputingName = true;
         inputField.GameObject().SetActive(true);
         inputField.ActivateInputField();
+        dialogueaudioManager.dialogueaudioSource.Stop();
+        dialogueaudioManager.PlayDialogueClip(1, 2);
     }
 
     public void BusinessListing()
@@ -504,27 +413,24 @@ public class CallManager : MonoBehaviour
         {
             return;
         }
-        isInputingBusiness = true;
         isChoosingBetweenResidentialOrBusinessListing = false;
-        string line = "Please provide the name of the business you are trying to reach.";
-        StartCoroutine(TypeLine(line));
+        isInputingBusiness = true;
         inputField.GameObject().SetActive(true);
         inputField.ActivateInputField();
+        dialogueaudioManager.dialogueaudioSource.Stop();
+        dialogueaudioManager.PlayDialogueClip(1, 3);
     }
 
     IEnumerator DirectoryAnswer(bool listed, int residentialOrBusiness)
     {
         inputField.gameObject.SetActive(false);
+        dialogueaudioManager.dialogueaudioSource.Stop();
         if (residentialOrBusiness == 0)
         {
             if (!listed)
             {
-                string line = "Please hold...";
-                StartCoroutine(TypeLine(line));
                 yield return new WaitForSeconds(2f);
-                string line2 = "The residential number for...\n" + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is...\nnot listed.\n" +
-                "Do you need further assistance?";
-                StartCoroutine(TypeLine(line2));
+                dialogueaudioManager.PlayDialogueClip(1, 4);
             }
             else
             {
@@ -541,12 +447,9 @@ public class CallManager : MonoBehaviour
         {
             if (!listed)
             {
-                string line = "Please hold...";
-                StartCoroutine(TypeLine(line));
                 yield return new WaitForSeconds(2f);
-                string line2 = "The business number for...\n" + playerInputBusiness.Trim() + " in " + playerInputCity.Trim() + " is...\nnot listed.\n" +
-                "Do you need further assistance?";
-                StartCoroutine(TypeLine(line2));
+                dialogueaudioManager.PlayDialogueClip(1, 5);
+                
             }
             else
             {
@@ -561,9 +464,10 @@ public class CallManager : MonoBehaviour
         }
     }
 
+    
     public void FurtherAssistace()
     {
-        if (!isInDirectory | isChoosingBetweenResidentialOrBusinessListing)
+        if (!isInDirectory | isInputingCity)
         {
             return;
         }
@@ -575,38 +479,17 @@ public class CallManager : MonoBehaviour
         isInputingBusiness = false;
         isChoosingBetweenResidentialOrBusinessListing = false;
         inputField.gameObject.SetActive(true);
-        string line = "Please provide the name of the city you are trying to reach.";
-        StartCoroutine(TypeLine(line));
+        inputField.text = null;
         inputField.ActivateInputField();
+        dialogueaudioManager.PlayDialogueClip(1, 0);
     }
+    
+
     private string ReplaceSpacesInString(string s)
     {
         string result = s.Replace(" ", "");
         return result; 
-    }
-
-    private void ContinueExitDirectoryOptions() // exit directory or search again options
-    {
-        foreach (GameObject choice in callChoices)
-        {
-            if (choice == callChoices[0])
-            {
-                choice.SetActive(true);
-                callChoicesText[0].color = Color.white;
-                callChoicesText[0].GetComponent<TextMeshProUGUI>().text = "No";
-            }
-            if (choice == callChoices[1])
-            {
-                choice.SetActive(true);
-                callChoicesText[1].color = Color.white; 
-                callChoicesText[1].GetComponent<TextMeshProUGUI>().text = "Yes";
-            }
-            if (choice == callChoices[2])
-            {
-                choice.SetActive(false);
-            }
-        }
-    }
+    }    
 
     public void SetAutomatedSystemStatus(bool status)
     {
@@ -617,17 +500,6 @@ public class CallManager : MonoBehaviour
     {
         isInExtentionSystem = status;
     }
-
-    // Setter Methods
-
-    public void SetCallCount(int callcount)
-    {
-        if (currentStory != null)
-        {
-            currentStory.variablesState["handlercallcount"] = callcount; 
-        }
-    }
-
     // Getter Methods
 
     public bool GetExtentionStatus()

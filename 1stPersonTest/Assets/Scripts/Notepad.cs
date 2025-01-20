@@ -48,6 +48,11 @@ public class Notepad : MonoBehaviour
     {
         if (newNote != null)
         {
+            if (firstnoteWritten == false && newNote.text != "")
+            {
+                firstnoteWritten = true; 
+                storyManager.SetFirstNoteWritten(true);
+            }
             newNote.text = inputField.text;
         }
 
@@ -87,11 +92,6 @@ public class Notepad : MonoBehaviour
                     }
                     else
                     {
-                        if (firstnoteWritten == false)
-                        {
-                            firstnoteWritten = true;
-                            storyManager.SetFirstNoteWritten(true);
-                        }
                         inputField.text = null;
                         WriteNote(hit, textDeltas[0], textDeltas[1]); 
                     }

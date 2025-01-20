@@ -10,6 +10,7 @@ public class PhoneManager : MonoBehaviour
     [SerializeField] private CallTrigger callTrigger;
     [SerializeField] private PuzzleManager puzzleManager;
     [SerializeField] private SFXManager sfxManager;
+    [SerializeField] private DialogueAudioManager dialogueaudioManager;
 
     [SerializeField] private GameObject upReceiver;
     [SerializeField] private GameObject downReceiver;
@@ -140,6 +141,7 @@ public class PhoneManager : MonoBehaviour
             currentExtentionNumberIndex = 0;
             phoneDisplayController.PickUpReceiverMessage();
             sfxManager.ReceiverDown();
+            dialogueaudioManager.dialogueaudioSource.Stop();
         }                   
     }
 
