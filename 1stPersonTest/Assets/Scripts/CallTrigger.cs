@@ -8,6 +8,7 @@ public class CallTrigger : MonoBehaviour
     [SerializeField] PhoneManager phoneManager;
     [SerializeField] CallManager callManager;
     [SerializeField] SFXManager sfxManager;
+    [SerializeField] StoryManager storyManager;
 
     [Header("Ink JSON Files")]
     [SerializeField] private TextAsset firstNumber; // 225-5446
@@ -22,23 +23,60 @@ public class CallTrigger : MonoBehaviour
 
     bool isRinging;
 
+    bool iscallcountDown;
+
+    float callcountDown = 5f;
+
     private void Start()
     {
         callIsInProgress = false;
         isDailing = false;
+        isRinging = false;
+        iscallcountDown = false;
     }
 
     private void Update()
     {
         string numberToCall = phoneManager.GetPhoneNumber();
-
-        if (!callIsInProgress && isRinging && phoneManager.GetReceiverStatus() == true)
+        //countdown for receiving a call
+        if (iscallcountDown == true && callcountDown >= 0 && phoneManager.GetReceiverStatus() == false)
         {
-            callIsInProgress = true;
-            sfxManager.dialSource.Stop();
-            callManager.EnterCallMode(firstNumber);
+            callcountDown -= Time.deltaTime;
+            Debug.Log(callcountDown);
+        }
+        else if (iscallcountDown == true && callcountDown >= 0 && phoneManager.GetReceiverStatus() == true)
+        {
+            callcountDown = 5f;
+            Debug.Log(callcountDown);
+        }
+        else if (iscallcountDown == true && callcountDown <= 0 && phoneManager.GetReceiverStatus() == false)
+        {
+            iscallcountDown = false;
+            callcountDown = 5f;
+            isRinging = true;
+            sfxManager.CallRing();
         }
 
+
+        //code for handling receiving calls
+        if (!callIsInProgress && isRinging && phoneManager.GetReceiverStatus() == true)
+        {
+            if (storyManager.GetFirstCallStatus() == false)
+            {
+                storyManager.SetFirstCallStatus(true);
+                callIsInProgress = true;
+                isRinging = false;
+                sfxManager.dialSource.Stop();
+                callManager.EnterCallMode(firstNumber);
+                callManager.SetLoopCallStatus(true);
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        //code for handling making calls
         if (!callIsInProgress && numberToCall.Length == 3)
         {
             switch (numberToCall)
@@ -70,6 +108,15 @@ public class CallTrigger : MonoBehaviour
             callIsInProgress = false;
         }
     }
+
+    //methods
+    public void ReceiveCall()
+    {
+        if (phoneManager.GetReceiverStatus() == false)
+        {
+            iscallcountDown = true;            
+        }
+    }    
 
     IEnumerator Call(TextAsset Number)
     {
@@ -104,12 +151,8 @@ public class CallTrigger : MonoBehaviour
         callManager.EnterDirectoryMode();
     }
     
-    public void ReceiveCall()
-    {
-        isRinging = true;
-        sfxManager.CallRing();
-    }    
 
+    //getter methods
     public bool GetCallStatus()
     {
         return callIsInProgress;
@@ -124,9 +167,15 @@ public class CallTrigger : MonoBehaviour
         return isRinging;
     }
 
+    //setter methods
     public void SetIsDailingStatus(bool status)
     {
         isDailing = status;
+    }
+
+    public void SetIsRingingStatus(bool status)
+    {
+        isRinging = status;
     }
 
 }

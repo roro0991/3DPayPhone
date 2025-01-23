@@ -7,6 +7,7 @@ public class StoryManager : MonoBehaviour
     [SerializeField] CallManager callManager;
     [SerializeField] DialogueAudioManager dialogueAudioManager;
     [SerializeField] CallTrigger callTrigger;
+    [SerializeField] PhoneManager phoneManager;
 
 
     //Bools for triggering first event: getting first number to call.
@@ -15,14 +16,15 @@ public class StoryManager : MonoBehaviour
     bool firstlineDrawn = false;
     bool firstnoteWritten = false;
 
-    bool firstCall = false;
+    bool firstcallPlayed = false;
+    bool firstcallSent = false;
     private void Update()
     {
         if (firstdoorOpen == true && firstlineDrawn == true && firstnoteWritten == true
-            && firstCall == false)
+            && firstcallSent == false)
         {
-            firstCall = true;
-            StartCoroutine(FirstCall());
+            callTrigger.ReceiveCall();
+            firstcallSent = true;
         }
     }
 
@@ -39,16 +41,20 @@ public class StoryManager : MonoBehaviour
         Debug.Log("you have drawn a line for the first time!");
         firstlineDrawn = status; 
     }
-
     public void SetFirstNoteWritten(bool status)
     {
         Debug.Log("you have written a note for the first time!");
         firstnoteWritten = status;
     }
 
-    IEnumerator FirstCall()
+    public void SetFirstCallStatus(bool status)
     {
-        yield return new WaitForSeconds(5f);
-        callTrigger.ReceiveCall();
+        firstcallPlayed = status;
     }
+
+    //Getter Methods
+    public bool GetFirstCallStatus()
+    {
+        return firstcallPlayed;
+    }    
 }

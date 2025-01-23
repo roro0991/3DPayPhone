@@ -103,13 +103,12 @@ public class PhoneManager : MonoBehaviour
             receiverIsPickedUp = true;
             downReceiver.SetActive(false);
             upReceiver.SetActive(true);
-            //receiverAnimator.SetBool("isPickedUp", true);
             phoneDisplayController.ClearAllChars();
             sfxManager.ReceiverUP();
         }
         else if (receiverIsPickedUp)
         {
-            if (callManager.GetInDialogueStatus() == true)
+            if (callManager.GetCanHangUpStatus() == false)
             {
                 return;
             }
@@ -127,7 +126,7 @@ public class PhoneManager : MonoBehaviour
                 puzzleManager.ExitPuzzleMode();
             }
 
-            //receiverAnimator.SetBool("isPickedUp", false);
+            callManager.ExitCallMode();
             callManager.SetAutomatedSystemStatus(false);
             downReceiver.SetActive(true);
             upReceiver.SetActive(false);

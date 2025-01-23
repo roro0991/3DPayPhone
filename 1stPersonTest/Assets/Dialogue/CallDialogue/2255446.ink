@@ -1,5 +1,8 @@
 INCLUDE ../Globals.ink
 
+-> MAIN
+== MAIN ==
 ~ PlayAudioClip(0, 1)
-this is a secret message.
+.
+-> MAIN
 ->END

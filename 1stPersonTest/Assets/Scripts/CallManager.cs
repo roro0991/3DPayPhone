@@ -26,6 +26,7 @@ public class CallManager : MonoBehaviour
     [SerializeField] PuzzleManager puzzleManager;
     [SerializeField] SFXManager sfxManager;
     [SerializeField] DialogueAudioManager dialogueaudioManager;
+    [SerializeField] StoryManager storyManager;
 
     
     //ink story related elements
@@ -36,10 +37,13 @@ public class CallManager : MonoBehaviour
     private string playerInputName; // store person name for directory
     private string directoryFinalInput; // concatenate above values for dictionary key
 
+    private int loopCount = 0;
     private float textSpeed = 0.03f;
     
     //state bools
-    private bool isInDialogue = false; // check if in dialogue    
+    private bool isInDialogue = false; // check if in dialogue
+    private bool canhangUp = true; // check if you can hang up
+    private bool loopCall = false; // check if audio should loop
     private bool isInDirectory = false; // check if in directory    
     private bool isInputingCity = true; // check if inputing city into directory
     private bool isChoosingBetweenResidentialOrBusinessListing = false;
@@ -66,9 +70,43 @@ public class CallManager : MonoBehaviour
         }
     }
 
+    private void Update()
+    {
+        if (loopCall == true)
+        {
+            if (currentStory != null)
+            {
+                if (dialogueaudioManager.dialogueaudioSource.isPlaying && loopCount == 0)
+                {
+                    loopCount++;
+                    Debug.Log(loopCount);
+                    return;
+                }
+                else if (dialogueaudioManager.dialogueaudioSource.isPlaying == false && loopCount > 0)
+                {
+                    canhangUp = true;
+                    loopCount++;
+                    Debug.Log(loopCount);
+                    dialogueaudioManager.dialogueaudioSource.Play();
+                }
+            }
+        }        
+    }
+
+    public void NotInService()
+    {
+        StopAllCoroutines();
+        callPanelAnimator.SetBool("inCall", true);
+        isInDialogue = true;
+        string line = "The number you have dialed is not in service.";
+        StartCoroutine(TypeLine(line));
+        EnableContinueCallButton();
+    }
+
     public void EnterCallMode(TextAsset inkJSON)
     {
         isInDialogue = true;
+        canhangUp = false;
         currentStory = new Story(inkJSON.text); // load in relevant dialogue information
         //callPanelAnimator.SetBool("inCall", true); // bring up dialogue panel
         dialogueVariables.StartListening(currentStory);  // listen to story variables
@@ -112,20 +150,14 @@ public class CallManager : MonoBehaviour
         ContinueCall(); // begin dialogue 
     }
 
-    public void NotInService()
-    {
-        StopAllCoroutines();
-        callPanelAnimator.SetBool("inCall", true);
-        isInDialogue = true;
-        string line = "The number you have dialed is not in service.";
-        StartCoroutine(TypeLine(line));
-        EnableContinueCallButton();
-    }
 
     public void ExitCallMode()
     {
         StopAllCoroutines();
         isInDialogue = false;
+        loopCount = 0;
+        loopCall = false;
+        canhangUp = true;
         phoneDisplayController.ClearAllChars();
         callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
         if (currentStory != null)
@@ -158,7 +190,6 @@ public class CallManager : MonoBehaviour
             ExitCallMode();
         }
     }
-
 
     IEnumerator TypeLine(string line)
     {
@@ -512,8 +543,20 @@ public class CallManager : MonoBehaviour
         return isInDialogue;
     }
 
+    public bool GetCanHangUpStatus()
+    {
+        return canhangUp;
+    }
+
     public bool GetInDirectoryStatus()
     {
         return isInDirectory;
+    }
+
+    // Setter Methods
+
+    public void SetLoopCallStatus(bool status)
+    {
+        loopCall = status;
     }
 }
