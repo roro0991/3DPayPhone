@@ -46,6 +46,7 @@ public class Notepad : MonoBehaviour
 
     private void Update()
     {
+        //updating note text in realtime from offscreen inputfield
         if (newNote != null)
         {
             if (firstnoteWritten == false && newNote.text != "")
@@ -56,6 +57,7 @@ public class Notepad : MonoBehaviour
             newNote.text = inputField.text;
         }
 
+        //code for instantiating notes
         if (Input.GetMouseButtonDown(0))
         {
             if (EventSystem.current.IsPointerOverGameObject())
@@ -99,7 +101,7 @@ public class Notepad : MonoBehaviour
             }              
         }
 
-
+        //code for drawing 
         if (Input.GetMouseButtonDown(1))
         {
             if (EventSystem.current.IsPointerOverGameObject())
@@ -162,6 +164,7 @@ public class Notepad : MonoBehaviour
         
     }
 
+    //calculating textdelta for instantiated notes for wrapping
     private float[] CalculateTextDelta(RaycastHit hit)
     {
         Mesh mesh = hit.transform.gameObject.GetComponent<MeshFilter>().mesh;

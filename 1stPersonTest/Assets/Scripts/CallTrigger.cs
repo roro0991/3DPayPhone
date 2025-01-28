@@ -39,17 +39,20 @@ public class CallTrigger : MonoBehaviour
     {
         string numberToCall = phoneManager.GetPhoneNumber();
         //countdown for receiving a call
-        if (iscallcountDown == true && callcountDown >= 0 && phoneManager.GetReceiverStatus() == false)
+        if (iscallcountDown == true && callcountDown >= 0 
+            && phoneManager.GetReceiverStatus() == false)
         {
             callcountDown -= Time.deltaTime;
             Debug.Log(callcountDown);
         }
-        else if (iscallcountDown == true && callcountDown >= 0 && phoneManager.GetReceiverStatus() == true)
+        else if (iscallcountDown == true && callcountDown >= 0 
+            && phoneManager.GetReceiverStatus() == true)
         {
             callcountDown = 5f;
             Debug.Log(callcountDown);
         }
-        else if (iscallcountDown == true && callcountDown <= 0 && phoneManager.GetReceiverStatus() == false)
+        else if (iscallcountDown == true && callcountDown <= 0 
+            && phoneManager.GetReceiverStatus() == false)
         {
             iscallcountDown = false;
             callcountDown = 5f;

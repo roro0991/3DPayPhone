@@ -82,7 +82,8 @@ public class CallManager : MonoBehaviour
                     Debug.Log(loopCount);
                     return;
                 }
-                else if (dialogueaudioManager.dialogueaudioSource.isPlaying == false && loopCount > 0)
+                else if (dialogueaudioManager.dialogueaudioSource.isPlaying == false 
+                        && loopCount > 0)
                 {
                     canhangUp = true;
                     loopCount++;
@@ -111,7 +112,8 @@ public class CallManager : MonoBehaviour
         //callPanelAnimator.SetBool("inCall", true); // bring up dialogue panel
         dialogueVariables.StartListening(currentStory);  // listen to story variables
         // allow access to C# functions/methods from ink
-        currentStory.BindExternalFunction("EnterPuzzleMode", (int puzzleType, string answerSequence) =>
+        currentStory.BindExternalFunction("EnterPuzzleMode", 
+        (int puzzleType, string answerSequence) =>
         {
             puzzleManager.EnterPuzzleMode(puzzleType, answerSequence.ToCharArray());
         });
@@ -207,7 +209,10 @@ public class CallManager : MonoBehaviour
                     break; 
                 }
                     int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
-                    phoneDisplayController.chars[index].GetComponent<CharController>().DisplayChar(letterAsInt);
+
+                    phoneDisplayController.chars[index].GetComponent<CharController>()
+                    .DisplayChar(letterAsInt);
+
                     index++;
                     yield return new WaitForSeconds(textSpeed);                            
             }
@@ -228,7 +233,8 @@ public class CallManager : MonoBehaviour
             EnableContinueCallButton();
         }
 
-        if (!isInAutomatedSystem) // disable call panel choice buttons when using phone buttons instead
+        // disable call panel choice buttons when using phone buttons instead
+        if (!isInAutomatedSystem) 
         {
             if (currentChoices.Count > callChoices.Length)
             {
@@ -360,7 +366,8 @@ public class CallManager : MonoBehaviour
         isChoosingBetweenResidentialOrBusinessListing = false;
     }
 
-    public void ReadPlayerInput(string s) // reading player input for directory (expand for other functions?)
+    // reading player input for directory (expand for other functions?)
+    public void ReadPlayerInput(string s) 
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
@@ -385,8 +392,12 @@ public class CallManager : MonoBehaviour
                     playerInputName = s.ToUpper();
                     Debug.Log(playerInputName);
                     isInputingName = false;
-                    directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() + playerInputName.ToLower());
-                    if (!Dictionary.GetInstance().directoryResidentialNumbers.ContainsKey(directoryFinalInput))
+
+                    directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() 
+                    + playerInputName.ToLower());
+
+                    if (!Dictionary.GetInstance().directoryResidentialNumbers
+                        .ContainsKey(directoryFinalInput))
                     {
                         // if key is not in dictionary
                         StopAllCoroutines();
@@ -406,8 +417,12 @@ public class CallManager : MonoBehaviour
                     playerInputBusiness = s.ToUpper();
                     Debug.Log(playerInputBusiness);
                     isInputingBusiness = false;
-                    directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() + playerInputBusiness.ToLower());
-                    if (!Dictionary.GetInstance().directoryBusinessNumbers.ContainsKey(directoryFinalInput))
+
+                    directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() 
+                    + playerInputBusiness.ToLower());
+
+                    if (!Dictionary.GetInstance().directoryBusinessNumbers
+                        .ContainsKey(directoryFinalInput))
                     {
                         // if key is not in dictionary
                         StopAllCoroutines();
@@ -468,9 +483,14 @@ public class CallManager : MonoBehaviour
                 string line = "Please hold...";
                 StartCoroutine(TypeLine(line));
                 yield return new WaitForSeconds(2f);
-                string directoryOutput = Dictionary.GetInstance().directoryResidentialNumbers[directoryFinalInput];
-                string line2 = "The residential number for...\n" + playerInputName.Trim() + " in " + playerInputCity.Trim() + " is...\n" + directoryOutput + ".\n" +
+
+                string directoryOutput = Dictionary.GetInstance()
+                .directoryResidentialNumbers[directoryFinalInput];
+
+                string line2 = "The residential number for...\n" + playerInputName.Trim() 
+                + " in " + playerInputCity.Trim() + " is...\n" + directoryOutput + ".\n" +
                 "Do you need further assistance?";
+
                 StartCoroutine(TypeLine(line2));
             }
         }

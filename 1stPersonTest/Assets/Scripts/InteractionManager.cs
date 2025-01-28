@@ -2,6 +2,7 @@ using Ink.Parsed;
 using JetBrains.Annotations;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Unity.PlasticSCM.Editor.WebApi;
 using UnityEditor.Experimental.GraphView;
@@ -43,17 +44,28 @@ public class InteractionManager : MonoBehaviour
             
             Ray ray2 = equiprenderCam.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit2;
-            
-            
-            if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~layerMask)  && hit.collider.gameObject.TryGetComponent(out IInteractable interactObj))
-            {
-                interactObj.Interact();
-            }
-            
                      
-            if (Physics.Raycast(ray2, out hit2, Mathf.Infinity, layerMask) && hit2.collider.gameObject.TryGetComponent(out IInteractable interactObj2))
+            //check if raycast hit equiprenderObj
+            if (Physics.Raycast(ray2, out hit2, Mathf.Infinity, layerMask))
             {
-                interactObj2.Interact();
+                if (hit2.collider.gameObject.TryGetComponent(out IInteractable interactObj2))
+                {                    
+                    interactObj2.Interact();
+                }
+                Debug.Log("you hit a rendercam obj");
+            }            
+            //check if raycast hit from maincam
+            else if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~layerMask)) 
+            {
+                if (hit.collider.gameObject.TryGetComponent(out IInteractable interactObj))
+                {
+                    interactObj.Interact();
+                }
+                Debug.Log("you hit world obj");
+            }
+            else
+            {
+                return;
             }
             
         }
@@ -63,7 +75,8 @@ public class InteractionManager : MonoBehaviour
     {
         if (cameraAnimator.GetInteger("CameraPosition") < 3)
         {
-            cameraAnimator.SetInteger("CameraPosition", cameraAnimator.GetInteger("CameraPosition") + 1); 
+            cameraAnimator.SetInteger("CameraPosition", 
+            cameraAnimator.GetInteger("CameraPosition") + 1); 
         }
         else
         {
@@ -75,7 +88,8 @@ public class InteractionManager : MonoBehaviour
     {
         if (cameraAnimator.GetInteger("CameraPosition") > 0)
         {
-            cameraAnimator.SetInteger("CameraPosition", cameraAnimator.GetInteger("CameraPosition") - 1);
+            cameraAnimator.SetInteger("CameraPosition", 
+            cameraAnimator.GetInteger("CameraPosition") - 1);
         }
         else
         {

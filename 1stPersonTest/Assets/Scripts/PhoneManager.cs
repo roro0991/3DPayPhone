@@ -47,16 +47,19 @@ public class PhoneManager : MonoBehaviour
         {
             if (callTrigger.GetCallStatus() == false)
             {
-                if (currentNumberIndex < phoneNumber.Length && callManager.GetExtentionStatus() == false)
+                if (currentNumberIndex < phoneNumber.Length 
+                    && callManager.GetExtentionStatus() == false)
                 {                
                     phoneNumber[currentNumberIndex] = input;
                     currentNumberIndex++;
                     if (currentDisplayCharIndex == 41)
                     {
-                        phoneDisplayController.chars[currentDisplayCharIndex].GetComponent<CharController>().DisplayDash();
+                        phoneDisplayController.chars[currentDisplayCharIndex]
+                        .GetComponent<CharController>().DisplayDash();
                         currentDisplayCharIndex++;
                     }
-                    phoneDisplayController.chars[currentDisplayCharIndex].GetComponent<CharController>().DisplayChar(input);
+                    phoneDisplayController.chars[currentDisplayCharIndex]
+                    .GetComponent<CharController>().DisplayChar(input);
                     currentDisplayCharIndex++;
                 }
             }
@@ -67,7 +70,8 @@ public class PhoneManager : MonoBehaviour
                 {
                     extentionNumber[currentExtentionNumberIndex] = input;
                     currentExtentionNumberIndex++;
-                    phoneDisplayController.chars[currentExtentionDisplayCharIndex].GetComponent<CharController>().DisplayChar(input);
+                    phoneDisplayController.chars[currentExtentionDisplayCharIndex]
+                    .GetComponent<CharController>().DisplayChar(input);
                     currentExtentionDisplayCharIndex++;
                 }
             }
