@@ -7,5 +7,6 @@ EXTERNAL EnterDirectoryMode()
 EXTERNAL ExitDirectoryMode()
 EXTERNAL ResidentialListing()
 EXTERNAL BusinessListing()
+EXTERNAL ActivateInputField()
 
 VAR extention = ""

@@ -11,7 +11,8 @@ public class CallTrigger : MonoBehaviour
     [SerializeField] StoryManager storyManager;
 
     [Header("Ink JSON Files")]
-    [SerializeField] private TextAsset firstNumber; // 225-5446
+    [SerializeField] private TextAsset firstNumber;
+    [SerializeField] private TextAsset secondNumber; // 225-5446
 
     int numberToCall;
 
@@ -70,8 +71,8 @@ public class CallTrigger : MonoBehaviour
                 callIsInProgress = true;
                 isRinging = false;
                 sfxManager.dialSource.Stop();
-                callManager.EnterCallMode(firstNumber);
-                callManager.SetLoopCallStatus(true);
+                callManager.EnterCallModeV2(0, 0);
+                //callManager.SetLoopCallStatus(true);
             }
             else
             {
@@ -97,6 +98,10 @@ public class CallTrigger : MonoBehaviour
         {
             switch (numberToCall)
             {
+                case "2255446":
+                    callIsInProgress = true;
+                    StartCoroutine(Call(secondNumber));
+                    break;
                 default:
                     callIsInProgress = true;
                     StartCoroutine(NumberNotInService());

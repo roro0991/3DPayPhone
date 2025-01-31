@@ -11,6 +11,9 @@ public class Dictionary : MonoBehaviour
     public Dictionary<string, string> directoryBusinessNumbers = new Dictionary<string, string>();
     public Dictionary<string, string[]> contactInfo = new Dictionary<string, string[]>();
 
+    //dialogue response parsing variables
+    public Dictionary <string, int> dialogueResponses = new Dictionary<string, int>();
+
     private void Awake()
     {
         if (instance != null)
@@ -22,6 +25,8 @@ public class Dictionary : MonoBehaviour
         directoryResidentialNumbers.Add("newyorkjohnmccoy", "442-4542");
 
         directoryBusinessNumbers.Add("newyorkvandalayindustries", "555-345");
+
+        dialogueResponses.Add("whoareyou?", 2);
 
         charSegmentLetters.Add(0, 'a');
         charSegmentLetters.Add(1, 'b');

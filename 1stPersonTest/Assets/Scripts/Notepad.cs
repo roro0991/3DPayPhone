@@ -215,10 +215,10 @@ public class Notepad : MonoBehaviour
         private void WriteNote(RaycastHit hit, float horizontaltextDelta, float verticaltextDelta)
     {
         isWriting = true;
-        Vector3 mousePos = hit.point;       
+        Vector3 mousePos = new Vector3(hit.point.x, hit.point.y + .015f, hit.point.z);       
         newNote = Instantiate(notePrefab);
         newNote.transform.SetParent(hit.transform, false);
-        newNote.transform.position = mousePos;
+        newNote.transform.position = mousePos;        
         newNote.rectTransform.sizeDelta = new Vector2(horizontaltextDelta-.05f, verticaltextDelta); 
         inputField.ActivateInputField();
     }

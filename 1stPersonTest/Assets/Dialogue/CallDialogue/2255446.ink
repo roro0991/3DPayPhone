@@ -1,8 +1,9 @@
 INCLUDE ../Globals.ink
 
--> MAIN
+->MAIN
+
 == MAIN ==
-~ PlayAudioClip(0, 1)
+~EnterPuzzleMode(1, "newyork")
 .
--> MAIN
+
 ->END

@@ -29,13 +29,16 @@ public class CallManager : MonoBehaviour
     [SerializeField] StoryManager storyManager;
 
     
-    //ink story related elements
+    //ink story related variables
     private Story currentStory;
     private DialogueVariables dialogueVariables;
     private string playerInputCity; // store city name for directory
     private string playerInputBusiness; // store business name for directory
     private string playerInputName; // store person name for directory
     private string directoryFinalInput; // concatenate above values for dictionary key
+
+    //dialogue parsing related variables
+    private string playerResponse;
 
     private int loopCount = 0;
     private float textSpeed = 0.03f;
@@ -152,6 +155,43 @@ public class CallManager : MonoBehaviour
         ContinueCall(); // begin dialogue 
     }
 
+    public void EnterCallModeV2(int caller, int line)
+    {
+        isInDialogue = true;
+        DisableCallChoices();
+        DisableContinueButton();
+        dialogueaudioManager.PlayDialogueClip(caller, line);
+        callPanelAnimator.SetBool("inCall", true);
+        inputField.gameObject.SetActive(true);
+        inputField.ActivateInputField();
+    }
+
+    public void ReadPlayerInput(string s)
+    {
+        if (isInDialogue)
+        {
+            if (Input.GetKeyDown(KeyCode.Return))
+            {
+                playerResponse = ReplaceSpacesInString(s.ToLower());
+                Debug.Log(playerResponse);
+
+                if (!Dictionary.GetInstance().dialogueResponses.ContainsKey(playerResponse))
+                {
+                    dialogueaudioManager.PlayDialogueClip(0, 1);
+                    inputField.gameObject.SetActive(true);
+                    inputField.ActivateInputField();
+                }
+                else if (Dictionary.GetInstance().dialogueResponses.ContainsKey(playerResponse))
+                {
+                    int i = Dictionary.GetInstance().dialogueResponses[playerResponse];
+                    dialogueaudioManager.PlayDialogueClip(0, i);
+                    inputField.gameObject.SetActive(true);
+                    inputField.ActivateInputField();
+                }
+            }
+            inputField.text = null;
+        }
+    }
 
     public void ExitCallMode()
     {
@@ -200,7 +240,7 @@ public class CallManager : MonoBehaviour
         
         if (line != null)
         {
-            phoneDisplayController.ClearAllChars();
+            //phoneDisplayController.ClearAllChars();
             int index = 0;
             foreach (char letter in line.ToCharArray())
             {
@@ -337,6 +377,7 @@ public class CallManager : MonoBehaviour
     }
     public void EnterDirectoryMode()
     {
+        Debug.Log(playerInputCity);
         DisableCallChoices();
         DisableContinueButton();
         isInDirectory = true;
@@ -367,75 +408,78 @@ public class CallManager : MonoBehaviour
     }
 
     // reading player input for directory (expand for other functions?)
-    public void ReadPlayerInput(string s) 
+    public void ReadDirectoryInput(string s) 
     {
-        if (Input.GetKeyDown(KeyCode.Return))
+        if (isInDirectory)
         {
-            if (isInputingCity)
+            if (Input.GetKeyDown(KeyCode.Return))
             {
-                // inputting city into directory
-                StopAllCoroutines();
-                inputField.GameObject().SetActive(false);
-                playerInputCity = s.ToUpper();
-                Debug.Log(playerInputCity);
-                isInputingCity = false;
-                dialogueaudioManager.dialogueaudioSource.Stop();
-                dialogueaudioManager.PlayDialogueClip(1, 1);
-                isChoosingBetweenResidentialOrBusinessListing = true;
-            }
-            else if (!isInputingCity)
-            {
-                if (isInputingName)
+                if (isInputingCity)
                 {
-                    // inputing name into directory
+                    // inputting city into directory
+                    StopAllCoroutines();
+                    inputField.GameObject().SetActive(false);
+                    playerInputCity = s.ToUpper();
+                    Debug.Log(playerInputCity);
+                    isInputingCity = false;
                     dialogueaudioManager.dialogueaudioSource.Stop();
-                    playerInputName = s.ToUpper();
-                    Debug.Log(playerInputName);
-                    isInputingName = false;
-
-                    directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() 
-                    + playerInputName.ToLower());
-
-                    if (!Dictionary.GetInstance().directoryResidentialNumbers
-                        .ContainsKey(directoryFinalInput))
+                    dialogueaudioManager.PlayDialogueClip(1, 1);
+                    isChoosingBetweenResidentialOrBusinessListing = true;
+                }
+                else if (!isInputingCity)
+                {
+                    if (isInputingName)
                     {
-                        // if key is not in dictionary
-                        StopAllCoroutines();
-                        StartCoroutine(DirectoryAnswer(false, 0));
+                        // inputing name into directory
+                        dialogueaudioManager.dialogueaudioSource.Stop();
+                        playerInputName = s.ToUpper();
+                        Debug.Log(playerInputName);
+                        isInputingName = false;
+
+                        directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() 
+                        + playerInputName.ToLower());
+
+                        if (!Dictionary.GetInstance().directoryResidentialNumbers
+                            .ContainsKey(directoryFinalInput))
+                        {
+                            // if key is not in dictionary
+                            StopAllCoroutines();
+                            StartCoroutine(DirectoryAnswer(false, 0));
+                        }
+                        else
+                        {
+                            // if key is in dictionary
+                            StopAllCoroutines();
+                            StartCoroutine(DirectoryAnswer(true, 0));
+                        }
                     }
-                    else
+                    else if (isInputingBusiness)
                     {
-                        // if key is in dictionary
-                        StopAllCoroutines();
-                        StartCoroutine(DirectoryAnswer(true, 0));
+                        //inputing business into directory
+                        dialogueaudioManager.dialogueaudioSource.Stop();
+                        playerInputBusiness = s.ToUpper();
+                        Debug.Log(playerInputBusiness);
+                        isInputingBusiness = false;
+
+                        directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() 
+                        + playerInputBusiness.ToLower());
+
+                        if (!Dictionary.GetInstance().directoryBusinessNumbers
+                            .ContainsKey(directoryFinalInput))
+                        {
+                            // if key is not in dictionary
+                            StopAllCoroutines();
+                            StartCoroutine(DirectoryAnswer(false, 1));
+                        }
+                        else
+                        {
+                            StopAllCoroutines();
+                            StartCoroutine(DirectoryAnswer(true, 1));
+                        }
                     }
                 }
-                else if (isInputingBusiness)
-                {
-                    //inputing business into directory
-                    dialogueaudioManager.dialogueaudioSource.Stop();
-                    playerInputBusiness = s.ToUpper();
-                    Debug.Log(playerInputBusiness);
-                    isInputingBusiness = false;
-
-                    directoryFinalInput = ReplaceSpacesInString(playerInputCity.ToLower() 
-                    + playerInputBusiness.ToLower());
-
-                    if (!Dictionary.GetInstance().directoryBusinessNumbers
-                        .ContainsKey(directoryFinalInput))
-                    {
-                        // if key is not in dictionary
-                        StopAllCoroutines();
-                        StartCoroutine(DirectoryAnswer(false, 1));
-                    }
-                    else
-                    {
-                        StopAllCoroutines();
-                        StartCoroutine(DirectoryAnswer(true, 1));
-                    }
-                }
+                inputField.text = string.Empty;            
             }
-            inputField.text = string.Empty;
         }
     }
 

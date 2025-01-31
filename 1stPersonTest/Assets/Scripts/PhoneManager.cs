@@ -112,10 +112,12 @@ public class PhoneManager : MonoBehaviour
         }
         else if (receiverIsPickedUp)
         {
+            /*
             if (callManager.GetCanHangUpStatus() == false)
             {
                 return;
             }
+            */
             if (callTrigger.GetIsDailingStatus() == true)
             {
                 callTrigger.SetIsDailingStatus(false);
