@@ -9,10 +9,6 @@ public class Dictionary : MonoBehaviour
     public Dictionary<int, char> charSegmentLetters = new Dictionary<int, char>();
     public Dictionary<string, string> directoryResidentialNumbers = new Dictionary<string, string>();
     public Dictionary<string, string> directoryBusinessNumbers = new Dictionary<string, string>();
-    public Dictionary<string, string[]> contactInfo = new Dictionary<string, string[]>();
-
-    //dialogue response parsing variables
-    public Dictionary <string, int> dialogueResponses = new Dictionary<string, int>();
 
     private void Awake()
     {
@@ -22,12 +18,7 @@ public class Dictionary : MonoBehaviour
         }
         instance = this;
 
-        directoryResidentialNumbers.Add("newyorkjohnmccoy", "442-4542");
-
-        directoryBusinessNumbers.Add("newyorkvandalayindustries", "555-345");
-
-        dialogueResponses.Add("whoareyou?", 2);
-
+        //Segments of individual display characters represented by letters
         charSegmentLetters.Add(0, 'a');
         charSegmentLetters.Add(1, 'b');
         charSegmentLetters.Add(2, 'c');
@@ -43,7 +34,7 @@ public class Dictionary : MonoBehaviour
         charSegmentLetters.Add(12, 'l');
         charSegmentLetters.Add(13, 'm');
 
-
+        //Player input as integers
         charIntPairs.Add(' ', 99);
         charIntPairs.Add('*', 98);
         charIntPairs.Add('0', 0);
@@ -83,6 +74,7 @@ public class Dictionary : MonoBehaviour
         charIntPairs.Add('y', 34);
         charIntPairs.Add('z', 35);
 
+        //Segment arrays for displaying specific characters
         charSegments.Add(0, new int[] { 0, 1, 2, 3, 4, 5, 10, 11 }); //0
         charSegments.Add(1, new int[] { 1, 2, 10 }); //1
         charSegments.Add(2, new int[] { 0, 1, 3, 4, 6, 7 }); //2
@@ -120,8 +112,6 @@ public class Dictionary : MonoBehaviour
         charSegments.Add(34, new int[] { 8, 10, 12 }); //y
         charSegments.Add(35, new int[] { 0, 3, 10, 11 }); //z
     }
-
-
 
     public static Dictionary GetInstance()
     {
