@@ -1,23 +1,37 @@
 using System;
+using System.Collections;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 public class PhoneManager : MonoBehaviour
 {   
-    //Managers
+    [Header("Managers")]
     [SerializeField] private CallManager callManager;
     [SerializeField] private CallTrigger callTrigger;
     [SerializeField] private DialogueAudioManager dialogueaudioManager;
-    [SerializeField] private PhoneDisplayController phoneDisplayController;
     [SerializeField] private PuzzleManager puzzleManager;
     [SerializeField] private SFXManager sfxManager;
 
-    //Receivers
+    [Header("Display")]
+    [SerializeField] public GameObject[] displayCharArray = new GameObject[85];
+    [SerializeField] private GameObject[] messageLineArray = new GameObject[18]; // 34-51
+    private string _pickUpReceiverString = "lift receiver";
+
+    [Header("Receiver")]
     [SerializeField] private GameObject _upReceiver;
     [SerializeField] private GameObject _downReceiver;
 
-    //Button Animator Array
+    [Header("Button Animators")]
     [SerializeField] private Animator[] _buttonAnimatorsArray = new Animator[12];
     
+    //Phone State
+    public enum State
+    {
+        RECEIVER_DOWN,
+        RECEIVER_UP
+    };
+    public State _currentState;    
+
     //Phone Number Variables
     private int?[] _phoneNumberArray = new int?[7]; //to store player input (number being dialed)
     private int _currentPhoneNumberArrayIndex = 0; //to track where in the _phoneNumberArray we are
@@ -31,10 +45,14 @@ public class PhoneManager : MonoBehaviour
                                             //currenlty handled by Ink JSON External Function.
     private int _currentExtentionDisplayCharIndex = 46; //to set where to display numbers on phone display
     
-    //Receiver Variables
-    private bool _isReceiverPickedUp = false; //keep track of receiver status.
 
-    
+    private void Start()
+    {
+        _currentState = State.RECEIVER_DOWN;
+        ClearDisplay();
+        StartCoroutine(AnimateMessage());
+    }
+
     private void Update()
     {
         //Updating phone number and extention number at runtime
@@ -42,47 +60,97 @@ public class PhoneManager : MonoBehaviour
         _extentionNumberAsString = string.Join(string.Empty, _extentionNumberArray);
     }
 
-    //Methods
+    //Display Methods
+    public void ClearDisplay()
+    {
+        foreach (GameObject character in displayCharArray)
+        {
+            character.GetComponent<CharController>().ClearChar();
+        }
+    }
+
+    private void PickUpReceiverMessage()
+    {
+        ClearDisplay();
+        int index = 0;
+        foreach (char letter in _pickUpReceiverString.ToCharArray())
+        {
+            int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
+            messageLineArray[index].GetComponent<CharController>().DisplayChar(letterAsInt);
+            index++;
+        }
+    }
+
+    IEnumerator AnimateMessage()
+    {
+        while (true)
+        {
+            if (_currentState == State.RECEIVER_DOWN)
+            {
+                for (int i = messageLineArray.Length - 1; i >= 0; i--)
+                {
+                    if (i > 0)
+                    {
+                        messageLineArray[i] = messageLineArray[i - 1];
+                    }
+                    else
+                    {
+                        messageLineArray[i] = messageLineArray[messageLineArray.Length - 1];
+                    }
+                }
+                PickUpReceiverMessage();
+                yield return new WaitForSeconds(.3f);
+            }
+            yield return null;
+        }
+    }
+
+    //Button Methods
     public void NumberButton(int input)
     {
-        if (_isReceiverPickedUp)    
+        switch (_currentState)
         {
-            if (callTrigger.GetCallStatus() == false)//Checks if player is already in a call
-            {
-                if (_currentPhoneNumberArrayIndex < _phoneNumberArray.Length 
+            case State.RECEIVER_DOWN:
+                break;
+            case State.RECEIVER_UP:
+                if (callTrigger.GetCallStatus() == true 
+                    && callManager.GetExtentionStatus() == false)//Checks if player is already in a call
+                {
+                    break;
+                }
+                
+                if (_currentPhoneNumberArrayIndex < _phoneNumberArray.Length
                     && callManager.GetExtentionStatus() == false) //Checks that number dialed fits array ( > 7 digits)
                 {
                     //Add number dialed in phone number array
                     _phoneNumberArray[_currentPhoneNumberArrayIndex] = input;
                     _currentPhoneNumberArrayIndex++;
 
-                    if (_currentPhoneNumberDisplayCharIndex == 41) 
+                    if (_currentPhoneNumberDisplayCharIndex == 41)
                     {
                         //Add "-" after first 3 digits of phone number
-                        phoneDisplayController.displayCharArray[_currentPhoneNumberDisplayCharIndex]
+                        displayCharArray[_currentPhoneNumberDisplayCharIndex]
                         .GetComponent<CharController>().DisplayDash();
                         _currentPhoneNumberDisplayCharIndex++;
                     }
                     //Display number dialed on phone display
-                    phoneDisplayController.displayCharArray[_currentPhoneNumberDisplayCharIndex]
+                    displayCharArray[_currentPhoneNumberDisplayCharIndex]
                     .GetComponent<CharController>().DisplayChar(input);
                     _currentPhoneNumberDisplayCharIndex++;
+                    break;
                 }
-            }
-            else if (callManager.GetExtentionStatus() == true)//Check if player is entering phone extention
-            {
+                
                 if (_currentExtentionNumberArrayIndex < _extentionNumberArray.Length)//Check that extention dialed fits array ( > 3 digits)
                 {
                     //Add extention dialed in extention array
                     _extentionNumberArray[_currentExtentionNumberArrayIndex] = input;
                     _currentExtentionNumberArrayIndex++;
                     //Display extention dialed on phone display
-                    phoneDisplayController.displayCharArray[_currentExtentionDisplayCharIndex]
+                    displayCharArray[_currentExtentionDisplayCharIndex]
                     .GetComponent<CharController>().DisplayChar(input);
                     _currentExtentionDisplayCharIndex++;
-                }
-            }
-            
+                }                
+                break;
         }
 
         //Animating Buttons Pressed
@@ -92,7 +160,7 @@ public class PhoneManager : MonoBehaviour
         }
         else
         {
-            _buttonAnimatorsArray[input - 1].SetTrigger("isPressed");            
+            _buttonAnimatorsArray[input - 1].SetTrigger("isPressed");
         }
         sfxManager.ButtonPress();
     }
@@ -103,84 +171,64 @@ public class PhoneManager : MonoBehaviour
         switch (input)
         {
             case 97: // # symbol
-                {
-                    _buttonAnimatorsArray[11].SetTrigger("isPressed");
-                    break;
-                }
-            case 98: // * symbol
-                {
-                    _buttonAnimatorsArray[9].SetTrigger("isPressed");
-                    break;
-                }
-
+                _buttonAnimatorsArray[11].SetTrigger("isPressed");
+                break;
+            case 98: // * symbol                
+                _buttonAnimatorsArray[9].SetTrigger("isPressed");
+                break;
+            default:
+                break;
         }
         sfxManager.ButtonPress();        
     }
 
+    //Receiver Methods
     public void PickUpReceiver()
     {
-        if (!_isReceiverPickedUp)
+        switch (_currentState)
         {
-            _isReceiverPickedUp = true;
-            _downReceiver.SetActive(false);
-            _upReceiver.SetActive(true);
-            phoneDisplayController.ClearAllDisplayChars();
-            sfxManager.ReceiverUP();
+            case State.RECEIVER_DOWN:
+
+                _currentState = State.RECEIVER_UP;
+                _downReceiver.SetActive(false);
+                _upReceiver.SetActive(true);
+                ClearDisplay();
+                sfxManager.ReceiverUP();
+                break;
+
+            case State.RECEIVER_UP:   
+                
+                //Receiver Status
+                _currentState = State.RECEIVER_DOWN;
+                _downReceiver.SetActive(true);
+                _upReceiver.SetActive(false);
+
+                //Reset Phone Display
+                PickUpReceiverMessage();
+                _currentPhoneNumberDisplayCharIndex = 38;
+                _currentExtentionDisplayCharIndex = 46;
+
+                //Reset Phone Number and Extention
+                Array.Clear(_phoneNumberArray, 0, _phoneNumberArray.Length);
+                _currentPhoneNumberArrayIndex = 0;
+                Array.Clear(_extentionNumberArray, 0, _extentionNumberArray.Length);
+                _currentExtentionNumberArrayIndex = 0;
+
+                //SFX
+                sfxManager.ReceiverDown();
+                dialogueaudioManager.dialogueaudioSource.Stop();
+                break;
+
+            default:
+                break;
         }
-        else if (_isReceiverPickedUp)
-        {
-            /*
-            if (callManager.GetCanHangUpStatus() == false)
-            {
-                return;
-            }
-            */
-            if (callTrigger.GetIsDailingStatus() == true)
-            {
-                callTrigger.SetIsDailingStatus(false);
-                sfxManager.dialSource.Stop();
-            }
-            if (callManager.GetInDirectoryStatus() == true)
-            {
-                callManager.ExitDirectoryMode();
-            }
-            if (puzzleManager.GetPuzzleStatus() == true)
-            {
-                puzzleManager.ExitPuzzleMode();
-            }
-
-            //callManager Methods
-            callManager.ExitCallMode();
-            callManager.SetAutomatedSystemStatus(false);
-
-            //Receiver Status
-            _downReceiver.SetActive(true);
-            _upReceiver.SetActive(false);
-            _isReceiverPickedUp = false;
-
-            //Phone Display
-            phoneDisplayController.ClearAllDisplayChars();
-            _currentPhoneNumberDisplayCharIndex = 38;
-            _currentExtentionDisplayCharIndex = 46;
-            phoneDisplayController.PickUpReceiverMessage();
-
-            //Reset Phone Number and Extention
-            Array.Clear(_phoneNumberArray, 0, _phoneNumberArray.Length);
-            _currentPhoneNumberArrayIndex = 0;
-            Array.Clear(_extentionNumberArray, 0, _extentionNumberArray.Length);
-            _currentExtentionNumberArrayIndex = 0;
-
-            //SFX
-            sfxManager.ReceiverDown();
-            dialogueaudioManager.dialogueaudioSource.Stop();
-        }                   
     }
 
     public void ResetExtention()//External Function for Ink JSON
-    {        
-        phoneDisplayController.displayCharArray[46].GetComponent<CharController>().ClearChar();
-        phoneDisplayController.displayCharArray[47].GetComponent<CharController>().ClearChar();
-        phoneDisplayController.displayCharArray[48].GetComponent<CharController>().ClearChar();
+    {
+        displayCharArray[46].GetComponent<CharController>().ClearChar();
+        displayCharArray[47].GetComponent<CharController>().ClearChar();
+        displayCharArray[48].GetComponent<CharController>().ClearChar();
         _currentExtentionDisplayCharIndex = 46;
         Array.Clear(_extentionNumberArray, 0, _extentionNumberArray.Length);
         _currentExtentionNumberArrayIndex = 0;
@@ -195,9 +243,9 @@ public class PhoneManager : MonoBehaviour
     {
         return _phoneNumberAsString;
     }
-    public bool GetReceiverStatus()
+    public State GetReceiverStatus()
     {
-        return _isReceiverPickedUp;
+        return _currentState;
     }
 }
 

@@ -17,7 +17,7 @@ public class DialogueAudioManager : MonoBehaviour
     public void PlayDialogueClip(int contact, int audioLine)
     {
         dialogueaudioSource.clip = dialogue[contact][audioLine];
-        dialogueaudioSource.volume = 1;
+        dialogueaudioSource.volume = .5f;
         dialogueaudioSource.Play();
     }
 }

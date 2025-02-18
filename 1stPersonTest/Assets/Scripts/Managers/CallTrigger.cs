@@ -36,15 +36,20 @@ public class CallTrigger : MonoBehaviour
 
     private void Update()
     {
+        if (phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_DOWN && _isDailing)
+        {
+                _isDailing = false;
+        }
+
         //updating number being dialed at runtime
         _numberToCall = phoneManager.GetPhoneNumber();
-        
+
         //receiving a call
         if (_isCallCountDown)
         {
             switch (phoneManager.GetReceiverStatus())
             {
-                case false:
+                case PhoneManager.State.RECEIVER_DOWN:
                     switch (INCOMING_CALL_COUNTDOWN)
                     {
                         case >= 0:
@@ -61,7 +66,7 @@ public class CallTrigger : MonoBehaviour
                             break;
                     }
                     break;
-                case true:
+                case PhoneManager.State.RECEIVER_UP:
                     switch (INCOMING_CALL_COUNTDOWN)
                     {
                         case >= 0:
@@ -77,7 +82,7 @@ public class CallTrigger : MonoBehaviour
 
         //answering a call
         if (!_isCallInProgress 
-            && _isRinging && phoneManager.GetReceiverStatus() == true)
+            && _isRinging && phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_UP)
         {
             if (storyManager.GetFirstCallStatus() == false)
             {
@@ -123,7 +128,7 @@ public class CallTrigger : MonoBehaviour
         }
 
         //cancelling any methods if receiver is hung up
-        if (phoneManager.GetReceiverStatus() == false)
+        if (phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_DOWN)
         {
             StopAllCoroutines();
             _isCallInProgress = false;
@@ -133,23 +138,11 @@ public class CallTrigger : MonoBehaviour
     //Methods
     public void ReceiveCall()
     {
-        if (phoneManager.GetReceiverStatus() == false)
+        if (phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_DOWN)
         {
             _isCallCountDown = true;            
         }
-    }    
-
-    //Coroutine Methods
-    IEnumerator Call(TextAsset Number)
-    {
-        _ringTime = Random.Range(5.5f, 10.5f);
-        yield return new WaitForSeconds(1.5f);
-        sfxManager.DialRing();
-        _isDailing = true;
-        yield return new WaitForSeconds(_ringTime);
-        sfxManager.dialSource.Stop();
-        callManager.EnterCallMode(Number);
-    }
+    } 
 
     IEnumerator NumberNotInService()
     {
@@ -177,25 +170,5 @@ public class CallTrigger : MonoBehaviour
     public bool GetCallStatus()
     {
         return _isCallInProgress;
-    }
-    public bool GetIsDailingStatus()
-    {
-        return _isDailing;
-    }
-
-    public bool GetIsRingingStatus()
-    {
-        return _isRinging;
-    }
-
-    //setter methods
-    public void SetIsDailingStatus(bool status)
-    {
-        _isDailing = status;
-    }
-
-    public void SetIsRingingStatus(bool status)
-    {
-        _isRinging = status;
     }
 }

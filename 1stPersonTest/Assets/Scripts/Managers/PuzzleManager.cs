@@ -8,11 +8,11 @@ using System.Collections;
 
 public class PuzzleManager : MonoBehaviour
 {
-    public Puzzle puzzle;
+    //public Puzzle puzzle;
 
     [SerializeField] private CallManager callManager;
     public Animator callPanelAnimator;
-    [SerializeField] private PhoneDisplayController phoneDisplayController;
+    [SerializeField] PhoneManager phoneManager;
 
     [SerializeField] private GameObject[] inputChars = new GameObject[7]; // relevent phone display objects for displaying input
     private char[] answerSequence = new char[7]; // correct solution
@@ -37,7 +37,7 @@ public class PuzzleManager : MonoBehaviour
 
     private void Start()
     {
-        answerSequence = puzzle.answerSequence;
+        //answerSequence = puzzle.answerSequence;
 
         //answerSequence = puzzle.answerSequence;
         int index = 0;
@@ -62,10 +62,18 @@ public class PuzzleManager : MonoBehaviour
         );
     }
 
+    private void Update()
+    {
+        if (phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_DOWN)
+        {
+            ExitPuzzleMode();
+        }
+    }
+
     public void EnterPuzzleMode(int puzzleType, char[] answerSequence)
     {
         callPanelAnimator.SetBool("inCall", false);
-        phoneDisplayController.ClearAllDisplayChars();
+        phoneManager.ClearDisplay();
         if (!isInPuzzleMode)
         {
             isInPuzzleMode = true;
@@ -83,8 +91,12 @@ public class PuzzleManager : MonoBehaviour
 
     public void ExitPuzzleMode()
     {
+        if (!isInPuzzleMode)
+        {
+            return;
+        }
         isInPuzzleMode = false;
-        phoneDisplayController.ClearAllDisplayChars();
+        phoneManager.ClearDisplay();
     }
     
     private void PuzzleTypeOne(char[] answerSequence)
@@ -157,12 +169,12 @@ public class PuzzleManager : MonoBehaviour
             answerSequenceIndex++;
             for (int i = 0; i < Dictionary.GetInstance().charSegments[characterAsInt].Length; i++)
             {
-                phoneDisplayController.displayCharArray[index].GetComponent<CharController>().
+                phoneManager.displayCharArray[index].GetComponent<CharController>().
                 DisplayChar(Dictionary.GetInstance().charSegmentLetters
                 [Dictionary.GetInstance().charSegments[characterAsInt][i]]);
                 index++; 
             }
-            phoneDisplayController.displayCharArray[index].GetComponent<CharController>().DisplayDash();
+            phoneManager.displayCharArray[index].GetComponent<CharController>().DisplayDash();
 
             index++;
         }

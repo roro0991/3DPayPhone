@@ -22,7 +22,6 @@ public class CallManager : MonoBehaviour
 
 
     [Header("Managers")]
-    [SerializeField] PhoneDisplayController phoneDisplayController;
     [SerializeField] PhoneManager phoneManager;
     [SerializeField] PuzzleManager puzzleManager;
     [SerializeField] SFXManager sfxManager;
@@ -51,7 +50,7 @@ public class CallManager : MonoBehaviour
     private string[] whoQuestionPatternArray = new[]
     {
         @"^(?<firstKey>who)\s(((\w+)?\s)+)?is\s(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$",
-        @"^do\syou\s([\w+\s]+)?know\s(?<firstKey>who)\s(((\w+)?\s)+)??(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\?$",
+        @"^do\syou\s([\w+\s]+)?know\s(?<firstKey>who)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\?$",
         @"^([\w+\s]+)?tell\sme\s(?<firstKey>who)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\.$",
         @"^([\w+\s]+)?tell\sme\s(?<firstKey>who)\s(((\w+)?\s)+)?is\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,}).$",
         @"^(?<firstKey>who)\s(?<secondKey>killed)\s(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$"
@@ -79,9 +78,14 @@ public class CallManager : MonoBehaviour
         dialogueVariables = new DialogueVariables(loadGlobalsJSON);
     }
 
-
     private void Update()
     {
+        if (phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_DOWN)
+        {
+            ExitDirectoryMode();
+            ExitCallMode();
+        }
+
         if (loopCall == true)
         {
             if (currentStory != null)
@@ -151,6 +155,34 @@ public class CallManager : MonoBehaviour
         callPanelAnimator.SetBool("inCall", true);
         inputField.gameObject.SetActive(true);
         inputField.ActivateInputField();
+    }
+
+    public void ExitCallMode()
+    {
+        if (!isInDialogue)
+        {
+            return;
+        }
+        StopAllCoroutines();
+        isInDialogue = false;
+        loopCount = 0;
+        loopCall = false;
+        canhangUp = true;
+        phoneManager.ClearDisplay();
+        SetAutomatedSystemStatus(false);
+        callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
+        if (currentStory != null)
+        {
+            currentStory.variablesState["extention"] = "";
+            SetExtentionStatus(false);
+            dialogueVariables.StopListening(currentStory); // stop listening to story variables
+            currentStory.UnbindExternalFunction("EnterPuzzleMode");
+            currentStory.UnbindExternalFunction("SetAutomatedSystem");
+            currentStory.UnbindExternalFunction("SetExtentionSystem");
+            currentStory.UnbindExternalFunction("ResetExtention");
+            currentStory.UnbindExternalFunction("PlayAudioClip");
+        }
+        currentStory = null;
     }
 
     public void ReadPlayerInput(string s)
@@ -237,6 +269,8 @@ public class CallManager : MonoBehaviour
                                 Debug.Log("I don't know.");
                                 break;
                         }
+                        inputField.text = "";
+                        inputField.ActivateInputField();
                         return;
                     }
 
@@ -257,33 +291,12 @@ public class CallManager : MonoBehaviour
                     break;
 
             }
-        }   
-        
-
-    }
-
-    public void ExitCallMode()
-    {
-        StopAllCoroutines();
-        isInDialogue = false;
-        loopCount = 0;
-        loopCall = false;
-        canhangUp = true;
-        phoneDisplayController.ClearAllDisplayChars();
-        callPanelAnimator.SetBool("inCall", false); // put away dialogue panel
-        if (currentStory != null)
-        {                 
-            currentStory.variablesState["extention"] = "";
-            SetExtentionStatus(false);
-            dialogueVariables.StopListening(currentStory); // stop listening to story variables
-            currentStory.UnbindExternalFunction("EnterPuzzleMode");
-            currentStory.UnbindExternalFunction("SetAutomatedSystem");
-            currentStory.UnbindExternalFunction("SetExtentionSystem");
-            currentStory.UnbindExternalFunction("ResetExtention");
-            currentStory.UnbindExternalFunction("PlayAudioClip");
         }
-        currentStory = null;
+        inputField.text = "";
+        inputField.ActivateInputField();
+        
     }
+    
     public void ContinueCall()
     { 
         if (currentStory != null && currentStory.canContinue)
@@ -314,7 +327,7 @@ public class CallManager : MonoBehaviour
                 }
                     int letterAsInt = Dictionary.GetInstance().charIntPairs[letter];
 
-                    phoneDisplayController.displayCharArray[index].GetComponent<CharController>()
+                    phoneManager.displayCharArray[index].GetComponent<CharController>()
                     .DisplayChar(letterAsInt);
 
                     index++;
@@ -376,7 +389,11 @@ public class CallManager : MonoBehaviour
         return variableValue;
     }
     public void EnterDirectoryMode()
-    {
+    {        
+        if (isInDirectory)
+        {
+            return;
+        }
         Debug.Log(playerInputCity);
         DisableContinueButton();
         isInDirectory = true;
@@ -549,8 +566,7 @@ public class CallManager : MonoBehaviour
         }
     }
 
-    
-    public void FurtherAssistace()
+    public void ReturnToDirectoryMainMenu()
     {
         if (!isInDirectory | isInputingCity)
         {
@@ -568,7 +584,7 @@ public class CallManager : MonoBehaviour
         inputField.ActivateInputField();
         dialogueaudioManager.PlayDialogueClip(0, 0);
     }
-    
+
 
     private string ReplaceSpacesInString(string s)
     {
@@ -593,13 +609,7 @@ public class CallManager : MonoBehaviour
         return canhangUp;
     }
 
-    public bool GetInDirectoryStatus()
-    {
-        return isInDirectory;
-    }
-
     // Setter Methods
-
     public void SetLoopCallStatus(bool status)
     {
         loopCall = status;
