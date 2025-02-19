@@ -90,7 +90,7 @@ public class CallTrigger : MonoBehaviour
                 _isCallInProgress = true;
                 _isRinging = false;
                 sfxManager.dialSource.Stop();
-                callManager.EnterCallModeV2(1, 0);
+                callManager.EnterCallMode(1, 0);
                 //callManager.SetLoopCallStatus(true);
             }
             else
