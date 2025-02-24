@@ -36,6 +36,10 @@ public class CallManager : MonoBehaviour
         @"^([\w+\s]+)?tell\sme\s(?<firstKey>who)\s(((\w+)?\s)+)?is\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,}).$",
         @"^(?<firstKey>who)\s(?<secondKey>killed)\s(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$"
     };
+
+    [SerializeField] Contact[] Contacts = new Contact[0];
+
+    private Contact currentContact;
     
     public enum Call_State
     {
@@ -88,14 +92,14 @@ public class CallManager : MonoBehaviour
         DialogueAudioManager.PlayDialogueClip(0, 7);
     }
 
-    public void EnterCallMode(int caller, int line)
+    public void EnterCallMode(int contact)
     {
         if (CurrentState == Call_State.IN_CALL)
         {
             return;
         }
         CurrentState = Call_State.IN_CALL;
-        DialogueAudioManager.PlayDialogueClip(caller, line);
+        currentContact = Contacts[contact];
         CallPanelAnimator.SetBool("inCall", true);
         _playerInputField.gameObject.SetActive(true);
         _playerInputField.ActivateInputField();
@@ -120,110 +124,10 @@ public class CallManager : MonoBehaviour
         if (CurrentState == Call_State.IN_CALL 
             && Input.GetKeyDown(KeyCode.Return))
         {
-            _playerInput = s;
-            ParsePlayerInput(_playerInput);
+            currentContact.playerInput = s;
+            currentContact.GenerateResponse();
         }
-    }
-
-    private void ParsePlayerInput(string playerInput)
-    {
-        string playerResponseSingleSpaceLowerCase =
-            Regex.Replace(playerInput, @"\s+", " ").ToLower();        
-        string firstKey = null;
-        string secondKey = null;
-        string questionTarget = null;
-
-        if (Regex.IsMatch(playerResponseSingleSpaceLowerCase, QUESTION_PATTERN))
-        {
-            _isPlayerInputQuestion = true;
-            Debug.Log("You asked a question!");
-        }
-        else
-        {
-            _isPlayerInputStatement = true;
-            Debug.Log("You made a statement!");
-        }
-
-        //code for parsing questions
-        foreach (string pattern in QUESTION_FIRST_KEY_PATTERN_ARRAY)
-        {
-            if (Regex.IsMatch(playerResponseSingleSpaceLowerCase, pattern))
-            {
-                var inputMatch = Regex.Match(playerResponseSingleSpaceLowerCase, pattern);
-                firstKey = inputMatch.Groups["firstKey"].ToString();
-                Debug.Log("the first question key is: " + firstKey);
-            }
-            else
-            {
-                Debug.Log("no key words were found.");
-            }
-            break;
-        }
-
-        if (firstKey != null)
-        {
-            switch (firstKey)
-            {
-                case "who":    
-                    foreach (string whoQuestionPattern in WHO_QUESTION_PATTERN_ARRAY)
-                    {
-                        if (Regex.IsMatch(playerResponseSingleSpaceLowerCase, whoQuestionPattern))
-                        {
-                            var inputMatch = Regex.Match(playerResponseSingleSpaceLowerCase, whoQuestionPattern);
-                            secondKey = inputMatch.Groups["secondKey"].ToString();
-                            questionTarget = inputMatch.Groups["fullName"].ToString();
-                            Debug.Log("the second question key is: " + secondKey);
-                            Debug.Log("the question target is: " + questionTarget);
-                            break;
-                        }
-                    }
-                        
-                    if (secondKey != string.Empty)
-                    {
-                        switch (secondKey)
-                        {
-                            case "killed":
-                                switch (questionTarget)
-                                {
-                                    case "sam brown":
-                                        Debug.Log("Sally Smith killed Sam Brown");
-                                        break;
-                                    case "billy bob":
-                                        Debug.Log("Billy Bob is dead!?");
-                                        break;
-                                }
-                                break;
-                            default:
-                                Debug.Log("I don't know.");
-                                break;
-                        }
-                        _playerInputField.text = string.Empty;
-                        _playerInputField.ActivateInputField();
-                        return;
-                    }
-
-                    switch (questionTarget)
-                    {
-                        case "sam brown":
-                            Debug.Log("Sam Brown is my friend.");
-                            break;
-                        case "sally smith":
-                            Debug.Log("Sall Smith is my enemy.");
-                            break;
-                        default:
-                            Debug.Log("I don't know who that is.");
-                            break;
-                    }
-                    break;
-                default:                    
-                    break;
-
-            }
-        }
-        _playerInputField.text = string.Empty;
-        _playerInputField.ActivateInputField();
-        
-    }    
+    }     
 
     IEnumerator TypeLine(string line)
     {

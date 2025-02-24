@@ -90,7 +90,7 @@ public class CallTrigger : MonoBehaviour
                 _isCallInProgress = true;
                 _isRinging = false;
                 sfxManager.dialSource.Stop();
-                callManager.EnterCallMode(1, 0);
+                //callManager.EnterCallMode(1, 0);
                 //callManager.SetLoopCallStatus(true);
             }
             else
@@ -116,6 +116,9 @@ public class CallTrigger : MonoBehaviour
                 case 7:
                     switch (_numberToCall)
                     {
+                        case "5555555":
+                            callManager.EnterCallMode(0);
+                            break;
                         default:
                             _isCallInProgress = true;
                             StartCoroutine(NumberNotInService());
