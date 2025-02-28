@@ -119,6 +119,9 @@ public class CallTrigger : MonoBehaviour
                         case "5555555":
                             callManager.EnterCallMode(0);
                             break;
+                        case "6666666":
+                            callManager.EnterCallMode(1);
+                            break;
                         default:
                             _isCallInProgress = true;
                             StartCoroutine(NumberNotInService());

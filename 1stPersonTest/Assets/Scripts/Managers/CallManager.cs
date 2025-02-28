@@ -21,21 +21,7 @@ public class CallManager : MonoBehaviour
     //dialogue parsing related variables
     private string _playerInput;
     private bool _isPlayerInputQuestion = false;
-    private bool _isPlayerInputStatement = false;
-    //regex patterns for parsing _playerResponse;
-    private string QUESTION_PATTERN = @"\?$";
-    private string[] QUESTION_FIRST_KEY_PATTERN_ARRAY = new[]
-    {
-        @"(?<firstKey>wh(o|at|ere|en|y))"
-    };
-    private string[] WHO_QUESTION_PATTERN_ARRAY = new[]
-    {
-        @"^(?<firstKey>who)\s(((\w+)?\s)+)?is\s(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$",
-        @"^do\syou\s([\w+\s]+)?know\s(?<firstKey>who)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\?$",
-        @"^([\w+\s]+)?tell\sme\s(?<firstKey>who)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\.$",
-        @"^([\w+\s]+)?tell\sme\s(?<firstKey>who)\s(((\w+)?\s)+)?is\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,}).$",
-        @"^(?<firstKey>who)\s(?<secondKey>killed)\s(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$"
-    };
+    private bool _isPlayerInputStatement = false; 
 
     [SerializeField] Contact[] Contacts = new Contact[0];
 
@@ -125,7 +111,10 @@ public class CallManager : MonoBehaviour
             && Input.GetKeyDown(KeyCode.Return))
         {
             currentContact.playerInput = s;
+            currentContact.TestValues();
             currentContact.GenerateResponse();
+            _playerInputField.text = string.Empty;
+            _playerInputField.ActivateInputField();
         }
     }     
 
