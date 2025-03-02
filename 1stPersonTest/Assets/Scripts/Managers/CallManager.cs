@@ -111,7 +111,7 @@ public class CallManager : MonoBehaviour
             && Input.GetKeyDown(KeyCode.Return))
         {
             currentContact.playerInput = s;
-            currentContact.TestValues();
+            //currentContact.TestValues();
             currentContact.GenerateResponse();
             _playerInputField.text = string.Empty;
             _playerInputField.ActivateInputField();

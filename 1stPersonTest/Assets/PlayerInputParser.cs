@@ -45,8 +45,7 @@ public class PlayerInputParser : MonoBehaviour
         {
             case Dialogue_State.ASKING_QUESTION:
                 var inputMatch = Regex.Match(playerInputSingleSpaceLowerCase, QUESTION_FIRST_KEY_PATTERN);
-                firstKey = inputMatch.Groups["firstKey"].ToString();
-                //Debug.Log("The first question key is: " + firstKey);                                
+                firstKey = inputMatch.Groups["firstKey"].ToString();                               
                 if (firstKey != string.Empty)
                 {
                     switch (firstKey)
@@ -59,9 +58,7 @@ public class PlayerInputParser : MonoBehaviour
                                     inputMatch = Regex.Match(playerInputSingleSpaceLowerCase, whoQuestionPattern);
                                     secondKey = inputMatch.Groups["secondKey"].ToString();
                                     questionTarget = inputMatch.Groups["fullName"].ToString();
-                                    //Debug.Log("The second question key is: " + secondKey);
-                                    //Debug.Log("The question target is: " + questionTarget);
-
+                                    break;
                                 }
                             }
                             break;
