@@ -32,11 +32,8 @@ public class PlayerInputParser : MonoBehaviour
     };
 
     public void ParsePlayerinput(string playerInput)
-    {        
-        string playerInputSingleSpaceLowerCase =
-            Regex.Replace(playerInput, @"\s+", " ").ToLower();                
-        
-        if (Regex.IsMatch(playerInputSingleSpaceLowerCase, @"\?$"))
+    {                       
+        if (Regex.IsMatch(playerInput, @"\?$"))
         {
             CurrentDialogueState = Dialogue_State.ASKING_QUESTION;
         }
@@ -44,7 +41,7 @@ public class PlayerInputParser : MonoBehaviour
         switch (CurrentDialogueState)
         {
             case Dialogue_State.ASKING_QUESTION:
-                var inputMatch = Regex.Match(playerInputSingleSpaceLowerCase, QUESTION_FIRST_KEY_PATTERN);
+                var inputMatch = Regex.Match(playerInput, QUESTION_FIRST_KEY_PATTERN);
                 firstKey = inputMatch.Groups["firstKey"].ToString();                               
                 if (firstKey != string.Empty)
                 {
@@ -53,9 +50,9 @@ public class PlayerInputParser : MonoBehaviour
                         case "who":
                             foreach (string whoQuestionPattern in WHO_QUESTION_PATTERN_ARRAY)
                             {
-                                if (Regex.IsMatch(playerInputSingleSpaceLowerCase, whoQuestionPattern))
+                                if (Regex.IsMatch(playerInput, whoQuestionPattern))
                                 {
-                                    inputMatch = Regex.Match(playerInputSingleSpaceLowerCase, whoQuestionPattern);
+                                    inputMatch = Regex.Match(playerInput, whoQuestionPattern);
                                     secondKey = inputMatch.Groups["secondKey"].ToString();
                                     questionTarget = inputMatch.Groups["fullName"].ToString();
                                     break;

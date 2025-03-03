@@ -140,7 +140,8 @@ public class PhoneManager : MonoBehaviour
                     break;
                 }
                 
-                if (_currentExtentionNumberArrayIndex < _extentionNumberArray.Length)//Check that extention dialed fits array ( > 3 digits)
+                if (_currentExtentionNumberArrayIndex < _extentionNumberArray.Length &&
+                    callManager.GetExtentionStatus() == true)//Check that extention dialed fits array ( > 3 digits)
                 {
                     //Add extention dialed in extention array
                     _extentionNumberArray[_currentExtentionNumberArrayIndex] = input;
