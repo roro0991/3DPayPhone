@@ -24,7 +24,7 @@ public class PlayerInputParser : MonoBehaviour
 
     private string[] WHO_QUESTION_PATTERN_ARRAY = new[]
     {
-        @"^(?<firstKey>who)\s(((\w+)?\s)+)?is\s(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$",
+        @"^(?<firstKey>who)\s(((\w+)?\s)+)?is\s(?<fullName>[a-z]{1,}(\s[a-z]{1,})?)\?$",
         @"^do\syou\s([\w+\s]+)?know\s(?<firstKey>who)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\?$",
         @"^([\w+\s]+)?tell\sme\s(?<firstKey>who)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\.$",
         @"^([\w+\s]+)?tell\sme\s(?<firstKey>who)\s(((\w+)?\s)+)?is\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,}).$",
@@ -32,7 +32,10 @@ public class PlayerInputParser : MonoBehaviour
     };
 
     public void ParsePlayerinput(string playerInput)
-    {                       
+    {
+        firstKey = string.Empty;
+        secondKey = string.Empty;
+        questionTarget = string.Empty;
         if (Regex.IsMatch(playerInput, @"\?$"))
         {
             CurrentDialogueState = Dialogue_State.ASKING_QUESTION;

@@ -28,14 +28,16 @@ public class TestContact2 : Contact
         questionIndex = 0;
     }
     public override void GenerateResponse()
-    {        
+    {
         if (playerInput == string.Empty)
         {
             return;
         }
-
+        
         playerInputSingleSpaceLowerCase =
             Regex.Replace(playerInput, @"\s+", " ").ToLower();
+        playerInputSingleSpaceLowerCase =
+            Regex.Replace(playerInputSingleSpaceLowerCase, @"^\s+", "");
 
         inputParser.ParsePlayerinput(playerInputSingleSpaceLowerCase);
         firstKey = inputParser.firstKey;
@@ -44,24 +46,25 @@ public class TestContact2 : Contact
         switch (CurrentDialogueState)
         {
             case Dialogue_State.ASKING_QUESTION:
+                //CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
                 contactResponse = GenerateRootResponse(firstKey, secondKey, questionTarget);
-                CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
                 break;
             case Dialogue_State.ASKING_FOLLOW_UP_QUESTION:
+                //CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
                 contactResponse = GenerateFollowUpResponse(questionIndex);
-                CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
                 break;
             case Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION:
                 contactResponse = GenerateFollowUpFollowUp(followUpQuestionIndex);
                 break;                
         }
         Debug.Log(contactResponse);
+        //Debug.Log("first key is: "+firstKey);
+        //Debug.Log("question target is: "+questionTarget);
         Debug.Log(CurrentDialogueState);
     }
 
     private string GenerateRootResponse(string firstKey, string secondKey, string questionTarget)
     {
-        questionIndex = 0;
         switch (firstKey)
         {
             case "who":
@@ -70,15 +73,19 @@ public class TestContact2 : Contact
                     case "sally jones":
                         questionIndex = 1;
                         contactResponse = "Sally Jones is my friend";
+                        CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
                         break;
                     default:
-                        
+                        questionIndex = 0;
                         contactResponse = "I don't know who that is.";
+                        CurrentDialogueState = Dialogue_State.ASKING_QUESTION;
                         break;
                 }
                 break;
-            default:                
+            default:
+                questionIndex = 0;
                 contactResponse = "I don't understand the question.";
+                CurrentDialogueState = Dialogue_State.ASKING_QUESTION;
                 break;
         }
         return contactResponse;
@@ -86,7 +93,6 @@ public class TestContact2 : Contact
 
     private string GenerateFollowUpResponse(int questionIndex)
     {
-        followUpQuestionIndex = 0;
         switch (questionIndex)
         {
             case 1:
@@ -96,11 +102,16 @@ public class TestContact2 : Contact
                     {
                         followUpQuestionIndex = 1;
                         contactResponse = "Because we grew up together.";
+                        CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
                         break;
                     }
                     else
                     {
-                        contactResponse = GenerateRootResponse(firstKey, secondKey, questionTarget);                        
+                        contactResponse = GenerateRootResponse(firstKey, secondKey, questionTarget); 
+                        if (contactResponse == "I don't understand the question.")
+                        {
+                            CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
+                        }
                         break;
                     }
                 }
@@ -127,6 +138,10 @@ public class TestContact2 : Contact
                     else
                     {
                         contactResponse = GenerateFollowUpResponse(questionIndex);
+                        if (contactResponse == "I don't understand the question.")
+                        {
+                            CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
+                        }
                         break;
                     }
                 }
