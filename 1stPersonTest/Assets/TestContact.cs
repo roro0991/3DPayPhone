@@ -10,7 +10,6 @@ public class TestContact : Contact
     {                
         inputParser = GetComponent<PlayerInputParser>();
         contactNumber = "5555555";
-        contactID = 0;
     }
     public override void GenerateResponse()
     {

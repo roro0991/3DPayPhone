@@ -6,17 +6,15 @@ using UnityEngine;
 public abstract class Contact : MonoBehaviour
 {
     public PlayerInputParser inputParser;
-    public string contactNumber;
-    public int contactID;    
+    public string contactNumber; 
     public string playerInput = string.Empty;
     public string contactResponse = string.Empty;
-    public bool isAskingFollowUp;
-    public int questionIndex;
+    public int? questionIndex;
     public int followUpQuestionIndex;
     public string firstKey;
     public string secondKey;
     public string questionTarget;
-    public string playerInputSingleSpaceLowerCase;
+    public string playerInputFormated;
 
     public enum Dialogue_State
     {
@@ -31,6 +29,5 @@ public abstract class Contact : MonoBehaviour
     public void TestValues()
     {
         Debug.Log(contactNumber);
-        Debug.Log(contactID);
     }
 }
