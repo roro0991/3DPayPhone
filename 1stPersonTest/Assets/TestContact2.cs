@@ -11,13 +11,9 @@ using UnityEditor;
 
 public class TestContact2 : Contact
 {
-
-    int? followUpIndex;
-
     private string[] QUESTION_INDEX_ONE_FOLLOWUPS = new[]
     {
-        @"^why\?$",
-        @"^why\sis\sshe\syour\sfriend\?$",
+        @"(^why\?$)|(^why\sis\sshe\syour\sfriend\?$)",
         @"^how\sdid\syou\sfirst\smeet\?$",
         @"^how\slong\shave\syou\sbeen\sfriends\?$"
     };
@@ -26,17 +22,6 @@ public class TestContact2 : Contact
     {
         @"^why\?$",
         @"^why\is\she\syour\senemy\?$"
-    };
-
-    private string[] FOLLOW_UP_ONE_FOLLOWUPS = new[]
-    {
-        @"^where\sdid\syou\sgrow\sup\?$"
-    };
-
-    private string[] FOLLOW_UP_TWO_FOLLOWUPS = new[]
-    {
-        @"^how\?$",
-        @"^how\sdid\she\sdo\sthat\?$"
     };
 
     private void Start()
@@ -48,7 +33,7 @@ public class TestContact2 : Contact
     }
     public override void GenerateResponse()
     {
-        followUpIndex = null;
+        //followUpIndex = null;
         if (playerInput == string.Empty)
         {
             return;
@@ -72,14 +57,12 @@ public class TestContact2 : Contact
                 contactResponse = GenerateRootResponse(firstKey, secondKey, questionTarget);
                 break;
             case Dialogue_State.ASKING_FOLLOW_UP_QUESTION:
-                contactResponse = GenerateFollowUpResponse(questionIndex);
+                contactResponse = GenerateFollowUpResponse();
                 break;
-            case Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION:
-                contactResponse = GenerateFollowUpFollowUp(followUpQuestionIndex);
-                break;                
+            default:
+                break;
         }
         ClearLog();
-        Debug.Log("Followup Index: " + followUpIndex);
         Debug.Log(contactResponse);
         //Debug.Log("first key is: "+firstKey);
         //Debug.Log("question target is: "+questionTarget);
@@ -127,54 +110,72 @@ public class TestContact2 : Contact
         return contactResponse;
     }
 
-    private string GenerateFollowUpResponse(int? questionIndex)
+    private string GenerateFollowUpResponse()
     {
+        string targetQuestion = "";
         switch (questionIndex)
         {
             case 1:
-                for (int i = 0; i < QUESTION_INDEX_ONE_FOLLOWUPS.Length; i++)
+                foreach (string questionPattern in QUESTION_INDEX_ONE_FOLLOWUPS)
                 {
-                    if (Regex.IsMatch(playerInputFormated, QUESTION_INDEX_ONE_FOLLOWUPS[i]))
+                    if (Regex.IsMatch(playerInputFormated, questionPattern))
                     {
-                        followUpIndex = Array.IndexOf(QUESTION_INDEX_ONE_FOLLOWUPS, QUESTION_INDEX_ONE_FOLLOWUPS[i]);
-                        switch (followUpIndex)
-                        {
-                            case 0:
-                                followUpQuestionIndex = 1;
-                                contactResponse = "Because we grew up together.";
-                                CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
-                                break;
-                            case 1:
-                                followUpQuestionIndex = 1;
-                                contactResponse = "Because we grew up together.";
-                                CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
-                                break;
-                            case 2:
-                                followUpQuestionIndex = 2;
-                                contactResponse = "We met in middle school.";
-                                CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
-                                break;
-                            case 3:
-                                followUpQuestionIndex = 3;
-                                contactResponse = "We've been friends since middle school.";
-                                CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
-                                break;
-                            default:
-                                break;
-                        }
-                        break;
+                        targetQuestion = questionPattern;
+                    }                    
+                }
+
+                if (targetQuestion != "")
+                {
+                    switch (targetQuestion)
+                    {
+                        case @"(^why\?$)|(^why\sis\sshe\syour\sfriend\?$)":
+                            contactResponse = "Because we grew up together.";
+                            break;
                     }
-                    else
+                    return contactResponse;
+                }
+                else
+                {
+                    contactResponse = GenerateRootResponse(firstKey, secondKey, questionTarget);
+                    if (contactResponse == "I don't understand the question.")
                     {
-                        contactResponse = GenerateRootResponse(firstKey, secondKey, questionTarget);
-                        if (contactResponse == "I don't understand the question.")
-                        {
-                            CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
-                        }
-                        //break;
+                        CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
                     }
                 }
                 break;
+            //for (int i = 0; i < QUESTION_INDEX_ONE_FOLLOWUPS.Length; i++)
+            //{
+            //    if (Regex.IsMatch(playerInputFormated, QUESTION_INDEX_ONE_FOLLOWUPS[i]))
+            //    {
+            //        followUpIndex = Array.IndexOf(QUESTION_INDEX_ONE_FOLLOWUPS, QUESTION_INDEX_ONE_FOLLOWUPS[i]);
+            //        switch (followUpIndex)
+            //        {
+            //            case 0:
+            //                contactResponse = "Because we grew up together.";
+            //                break;
+            //            case 1:
+            //                contactResponse = "Because we grew up together.";
+            //                break;
+            //            case 2:
+            //                contactResponse = "We met in middle school.";
+            //                break;
+            //            case 3:
+            //                contactResponse = "We've been friends since middle school.";
+            //                break;
+            //            default:
+            //                break;
+            //        }
+            //        break;
+            //    }
+            //    else
+            //    {
+            //        contactResponse = GenerateRootResponse(firstKey, secondKey, questionTarget);
+            //        if (contactResponse == "I don't understand the question.")
+            //        {
+            //            CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
+            //        }
+            //    }
+            //}
             case 2:
                 foreach (string questionPattern in QUESTION_INDEX_TWO_FOLLOWUPS)
                 {
@@ -198,55 +199,6 @@ public class TestContact2 : Contact
                 break;
             default:
                 contactResponse = GenerateRootResponse(firstKey, secondKey, questionTarget);
-                break;
-        }
-        return contactResponse;
-    }
-
-    private string GenerateFollowUpFollowUp(int followUpQuestionindex)
-    {
-        switch (followUpQuestionIndex)
-        {
-            case 1:
-                foreach (string questionPattern in FOLLOW_UP_ONE_FOLLOWUPS)
-                {
-                    if (Regex.IsMatch(playerInputFormated, questionPattern))
-                    {
-                        contactResponse = "We grew up in Dallas.";
-                        break;
-                    }
-                    else
-                    {
-                        contactResponse = GenerateFollowUpResponse(questionIndex);
-                        if (contactResponse == "I don't understand the question.")
-                        {
-                            CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
-                        }
-                        break;
-                    }
-                }
-                break;
-            case 2:
-                foreach (string questionPattern in FOLLOW_UP_TWO_FOLLOWUPS)
-                {
-                    if (Regex.IsMatch(playerInputFormated, questionPattern))
-                    {
-                        contactResponse = "None of your business. That's how.";
-                        break;
-                    }
-                    else
-                    {
-                        contactResponse = GenerateFollowUpResponse(questionIndex);
-                        if (contactResponse == "I don't understand the question.")
-                        {
-                            CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION;
-                        }
-                        break;
-                    }
-                }
-                break;
-            default:
-                contactResponse = GenerateFollowUpResponse(questionIndex);
                 break;
         }
         return contactResponse;
