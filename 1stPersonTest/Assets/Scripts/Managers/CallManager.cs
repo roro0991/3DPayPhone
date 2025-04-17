@@ -19,9 +19,9 @@ public class CallManager : MonoBehaviour
     [SerializeField] StoryManager StoryManager;
 
     //dialogue parsing related variables
-    private string _playerInput;
-    private bool _isPlayerInputQuestion = false;
-    private bool _isPlayerInputStatement = false; 
+    //private string _playerInput;
+    //private bool _isPlayerInputQuestion = false;
+    //private bool _isPlayerInputStatement = false; 
 
     [SerializeField] Contact[] Contacts = new Contact[0];
 
@@ -110,7 +110,7 @@ public class CallManager : MonoBehaviour
         if (CurrentState == Call_State.IN_CALL 
             && Input.GetKeyDown(KeyCode.Return))
         {
-            currentContact.playerInput = s;
+            currentContact.PlayerInput = s;
             //currentContact.TestValues();
             currentContact.GenerateResponse();
             _playerInputField.text = string.Empty;

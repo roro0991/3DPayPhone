@@ -9,18 +9,18 @@ public class TestContact : Contact
     private void Start()
     {                
         inputParser = GetComponent<PlayerInputParser>();
-        contactNumber = "5555555";
+        ContactNumber = "5555555";
     }
     public override void GenerateResponse()
     {
-        if (playerInput == string.Empty)
+        if (PlayerInput == string.Empty)
         {
             return;
         }
-        inputParser.ParsePlayerinput(playerInput);
-        string firstKey = inputParser.firstKey;
-        string secondKey = inputParser.secondKey;
-        string questionTarget = inputParser.questionTarget;
+        inputParser.ParsePlayerinput(PlayerInput);
+        string firstKey = inputParser.FirstKey;
+        string secondKey = inputParser.SecondKey;
+        string questionTarget = inputParser.QuestionTarget;
 
         Debug.Log("The first question key is: " + firstKey);
         Debug.Log("The second question key is: " + secondKey);
@@ -34,18 +34,18 @@ public class TestContact : Contact
                     switch (questionTarget)
                     {
                         case "john brown":
-                            contactResponse = "John Brown is a my friend.";
+                            ContactResponse = "John Brown is a my friend.";
                             break;
                         default:
-                            contactResponse = "I don't know who that is.";
+                            ContactResponse = "I don't know who that is.";
                                 break;
                     }
                     break;
                 default:
-                    contactResponse = "I don't understand the question.";
+                    ContactResponse = "I don't understand the question.";
                     break;
             }
         }
-        Debug.Log(contactResponse);
+        Debug.Log(ContactResponse);
     }
 }

@@ -6,21 +6,21 @@ using UnityEngine;
 public abstract class Contact : MonoBehaviour
 {
     public PlayerInputParser inputParser;
-    public string contactNumber; 
-    public string playerInput = string.Empty;
-    public string contactResponse = string.Empty;
-    public int? questionIndex;
-    public int followUpQuestionIndex;
-    public string firstKey;
-    public string secondKey;
-    public string questionTarget;
-    public string playerInputFormated;
+    public string ContactNumber; 
+    public string PlayerInput = string.Empty;
+    public string ContactResponse = string.Empty;
+    public float? QuestionIndex;
+    public int FollowUpQuestionIndex;
+    public string FirstKey;
+    public string SecondKey;
+    public string QuestionTarget;
+    public string PlayerInputFormated;
 
     public enum Dialogue_State
     {
+        GREETING,
         ASKING_QUESTION,
-        ASKING_FOLLOW_UP_QUESTION,
-        ASKING_FOLLOW_UP_FOLLOW_UP_QUESTION
+        ASKING_FOLLOW_UP_QUESTION
     }
     public Dialogue_State CurrentDialogueState;
 
@@ -28,6 +28,6 @@ public abstract class Contact : MonoBehaviour
     
     public void TestValues()
     {
-        Debug.Log(contactNumber);
+        Debug.Log(ContactNumber);
     }
 }

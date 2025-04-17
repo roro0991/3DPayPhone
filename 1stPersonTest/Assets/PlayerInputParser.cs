@@ -7,23 +7,21 @@ using static CallManager;
 
 public class PlayerInputParser : MonoBehaviour
 {
-    public enum Dialogue_State
-    {
-        ASKING_QUESTION,
-        ASKING_FOLLOW_UP_QUESTION
-    }
-    public Dialogue_State CurrentDialogueState;
+    public int? CurrentDialogueStateAsInt;
 
     private string _playerInput;
 
-    public string firstKey = string.Empty;
-    public string secondKey = string.Empty;
-    public string questionTarget = string.Empty;
-    
+    public string FirstKey = string.Empty;
+    public string SecondKey = string.Empty;
+    public string QuestionTarget = string.Empty;
+
+    private string OBSCENITY_PATTERN = @"(fuck|shit|cock)";
+    private string GREETINGS_PATTERN = @"(^hello|^hi|^greetings)";
     private string QUESTION_FIRST_KEY_PATTERN = @"(?<firstKey>wh(o|at|ere|en|y))";
 
     private string[] WHO_QUESTION_PATTERN_ARRAY = new[]
     {
+        @"^(?<firstKey>who)\s(((\w+)?\s)+)?are\s(?<fullName>you)\?$",
         @"^(?<firstKey>who)\s(((\w+)?\s)+)?is\s(?<fullName>[a-z]{1,}(\s[a-z]{1,})?)\?$",
         @"^do\syou\s([\w+\s]+)?know\s(?<firstKey>who)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\?$",
         @"^([\w+\s]+)?tell\sme\s(?<firstKey>who)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\sis\.$",
@@ -31,24 +29,43 @@ public class PlayerInputParser : MonoBehaviour
         @"^(?<firstKey>who)\s(?<secondKey>killed)\s(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$"
     };
 
+    private string[] WHAT_QUESTION_PATTERN_ARRAY = new[]
+    {
+        @"^(?<firstKey>what)\s(((\w+)?\s)+)?is\syour\s(((\w+)?\s)+)?(?<fullName>name)\?$"
+    };
+
     public void ParsePlayerinput(string playerInput)
     {
-        firstKey = string.Empty;
-        secondKey = string.Empty;
-        questionTarget = string.Empty;
-        if (Regex.IsMatch(playerInput, @"\?$"))
+        FirstKey = string.Empty;
+        SecondKey = string.Empty;
+        QuestionTarget = string.Empty;
+
+        if (Regex.IsMatch(playerInput, OBSCENITY_PATTERN))
         {
-            CurrentDialogueState = Dialogue_State.ASKING_QUESTION;
+            FirstKey = "obscene";
+            return;
         }
 
-        switch (CurrentDialogueState)
+        if (Regex.IsMatch(playerInput, GREETINGS_PATTERN))
         {
-            case Dialogue_State.ASKING_QUESTION:
+            CurrentDialogueStateAsInt = 1; //greeting
+        }
+        else if (Regex.IsMatch(playerInput, @"\?$"))
+        {
+            CurrentDialogueStateAsInt = 2; //asking question
+        }
+
+        switch (CurrentDialogueStateAsInt)
+        {
+            case 1:
+                FirstKey = playerInput;
+                break;
+            case 2:
                 var inputMatch = Regex.Match(playerInput, QUESTION_FIRST_KEY_PATTERN);
-                firstKey = inputMatch.Groups["firstKey"].ToString();                               
-                if (firstKey != string.Empty)
+                FirstKey = inputMatch.Groups["firstKey"].ToString();                               
+                if (FirstKey != string.Empty)
                 {
-                    switch (firstKey)
+                    switch (FirstKey)
                     {
                         case "who":
                             foreach (string whoQuestionPattern in WHO_QUESTION_PATTERN_ARRAY)
@@ -56,8 +73,20 @@ public class PlayerInputParser : MonoBehaviour
                                 if (Regex.IsMatch(playerInput, whoQuestionPattern))
                                 {
                                     inputMatch = Regex.Match(playerInput, whoQuestionPattern);
-                                    secondKey = inputMatch.Groups["secondKey"].ToString();
-                                    questionTarget = inputMatch.Groups["fullName"].ToString();
+                                    SecondKey = inputMatch.Groups["secondKey"].ToString();
+                                    QuestionTarget = inputMatch.Groups["fullName"].ToString();
+                                    break;
+                                }
+                            }
+                            break;
+                        case "what":
+                            foreach (string whatQuestionPattern in WHAT_QUESTION_PATTERN_ARRAY)
+                            {
+                                if (Regex.IsMatch(playerInput, whatQuestionPattern))
+                                {
+                                    inputMatch = Regex.Match(playerInput, whatQuestionPattern);
+                                    SecondKey = inputMatch.Groups["secondKey"].ToString();
+                                    QuestionTarget = inputMatch.Groups["fullName"].ToString();
                                     break;
                                 }
                             }
