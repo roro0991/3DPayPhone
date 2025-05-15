@@ -12,6 +12,7 @@ using Unity.VisualScripting;
 
 public class TestContact2 : Contact
 {
+    private string WHAT_ABOUT_PATTERN = @"what\sabout\s(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$";
     private string[] QUESTION_INDEX_ONE_FOLLOWUPS = new[]
     {
         @"(^why\?([?!]+)?$)|(^why\s([\w+\s]+)?are\syou\s([\w+\s]+)?friends\?([?!]+)?$)|(^why\s([\w+\s]+)?is\sshe\syour\s([\w+\s]+)?friend\?([?!]+)?$)",
@@ -42,6 +43,7 @@ public class TestContact2 : Contact
 
         inputParser.ParsePlayerinput(PlayerInputFormated);        
         FirstKey = inputParser.FirstKey;
+        SecondKey = inputParser.SecondKey;
         QuestionTarget = inputParser.QuestionTarget;
 
         if (FirstKey == "obscene")
@@ -82,7 +84,8 @@ public class TestContact2 : Contact
         ClearLog();
         Debug.Log(ContactResponse);
         Debug.Log("FirstKey is: "+FirstKey);
-        Debug.Log("QuestionTarget is: " + QuestionTarget);
+        Debug.Log("SecondKey is: " + SecondKey);
+        Debug.Log("QuestionTarget is: "+QuestionTarget);
         Debug.Log(CurrentDialogueState);
     }
 
@@ -98,6 +101,28 @@ public class TestContact2 : Contact
     {
         switch (firstKey)
         {
+            case "do":
+                switch (SecondKey)
+                {
+                    case "know":
+                        switch (questionTarget)
+                        {
+                            case "sally jones":
+                                QuestionIndex = 1;
+                                ContactResponse = "Sally Jones is my friend.";
+                                CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
+                                break;
+                            default:
+                                QuestionIndex = 0;
+                                ContactResponse = "I don't know who that is.";
+                                CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
+                                break;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                break;
             case "who":
                 switch (questionTarget)
                 {
@@ -107,13 +132,13 @@ public class TestContact2 : Contact
                         break;
                     case "sally jones":
                         QuestionIndex = 1;
-                        ContactResponse = "Sally Jones is my friend";
+                        ContactResponse = "Sally Jones is my friend.";
                         CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
                         break;
                     default:
                         QuestionIndex = 0;
                         ContactResponse = "I don't know who you're talking about.";
-                        CurrentDialogueState = Dialogue_State.ASKING_QUESTION;
+                        CurrentDialogueState = Dialogue_State.ASKING_FOLLOW_UP_QUESTION;
                         break;
                 }
                 break;
@@ -146,6 +171,21 @@ public class TestContact2 : Contact
         string targetQuestion = string.Empty;
         switch (QuestionIndex)
         {
+            case 0:                
+                if (Regex.IsMatch(PlayerInputFormated, WHAT_ABOUT_PATTERN))
+                {
+                    var inputMatch = Regex.Match(PlayerInputFormated, WHAT_ABOUT_PATTERN);
+                    QuestionTarget = inputMatch.Groups["fullName"].ToString();
+                    FirstKey = "who";
+                    SecondKey = "";
+                    GenerateRootResponse(FirstKey, SecondKey, QuestionTarget);
+                    break;
+                }
+                else
+                {
+                    GenerateRootResponse(FirstKey, SecondKey, QuestionTarget);
+                    break;
+                }
             case 1:
                 if (inputParser.CurrentDialogueStateAsInt == 1)
                 {

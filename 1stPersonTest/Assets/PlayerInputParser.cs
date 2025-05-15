@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
@@ -19,6 +20,11 @@ public class PlayerInputParser : MonoBehaviour
     private string GREETINGS_PATTERN = @"(^hello|^hi|^greetings)";
     private string QUESTION_FIRST_KEY_PATTERN = @"(?<firstKey>wh(o|at|ere|en|y))";
 
+    private string[] DO_QUESTION_PATTERN_ARRAY = new[]
+    {
+        @"^(?<firstKey>do)\syou\s([\w+\s]+)?(?<secondKey>know)\s(((\w+)?\s)+)?(?<fullName>[a-z]{1,}\s[a-z]{1,})\?$"
+    };
+
     private string[] WHO_QUESTION_PATTERN_ARRAY = new[]
     {
         @"^(?<firstKey>who)\s(((\w+)?\s)+)?are\s(?<fullName>you)\?$",
@@ -35,7 +41,7 @@ public class PlayerInputParser : MonoBehaviour
     };
 
     public void ParsePlayerinput(string playerInput)
-    {
+    {         
         FirstKey = string.Empty;
         SecondKey = string.Empty;
         QuestionTarget = string.Empty;
@@ -60,19 +66,38 @@ public class PlayerInputParser : MonoBehaviour
             case 1:
                 FirstKey = playerInput;
                 break;
-            case 2:
-                var inputMatch = Regex.Match(playerInput, QUESTION_FIRST_KEY_PATTERN);
-                FirstKey = inputMatch.Groups["firstKey"].ToString();                               
+            case 2:    
+                if (Regex.IsMatch(playerInput, @"^do"))
+                {
+                    FirstKey = "do";
+                }
+                else
+                {
+                    var inputMatch = Regex.Match(playerInput, QUESTION_FIRST_KEY_PATTERN);
+                    FirstKey = inputMatch.Groups["firstKey"].ToString();
+                }
                 if (FirstKey != string.Empty)
                 {
                     switch (FirstKey)
                     {
+                        case "do":
+                            foreach (string doQuestionPattern in DO_QUESTION_PATTERN_ARRAY)
+                            {
+                                if (Regex.IsMatch(playerInput, doQuestionPattern))
+                                {
+                                    var inputMatch = Regex.Match(playerInput, doQuestionPattern);
+                                    SecondKey = inputMatch.Groups["secondKey"].ToString();
+                                    QuestionTarget = inputMatch.Groups["fullName"].ToString();
+                                    break;
+                                }
+                            }
+                            break;
                         case "who":
                             foreach (string whoQuestionPattern in WHO_QUESTION_PATTERN_ARRAY)
                             {
                                 if (Regex.IsMatch(playerInput, whoQuestionPattern))
                                 {
-                                    inputMatch = Regex.Match(playerInput, whoQuestionPattern);
+                                    var inputMatch = Regex.Match(playerInput, whoQuestionPattern);
                                     SecondKey = inputMatch.Groups["secondKey"].ToString();
                                     QuestionTarget = inputMatch.Groups["fullName"].ToString();
                                     break;
@@ -84,7 +109,7 @@ public class PlayerInputParser : MonoBehaviour
                             {
                                 if (Regex.IsMatch(playerInput, whatQuestionPattern))
                                 {
-                                    inputMatch = Regex.Match(playerInput, whatQuestionPattern);
+                                    var inputMatch = Regex.Match(playerInput, whatQuestionPattern);
                                     SecondKey = inputMatch.Groups["secondKey"].ToString();
                                     QuestionTarget = inputMatch.Groups["fullName"].ToString();
                                     break;
