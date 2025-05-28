@@ -27,9 +27,9 @@ public class InteractionManager : MonoBehaviour
         {
             if (EventSystem.current.IsPointerOverGameObject())//Check if player clicked on canvas UI element
             {
-                return;                            
+                return;
             }
-            
+
             //Raycast originating from main camera.
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
@@ -60,6 +60,30 @@ public class InteractionManager : MonoBehaviour
             {
                 return;
             }            
+        }
+    }
+
+    public void CameraLeanLeft()
+    {
+        if (cameraAnimator.GetBool("isLeaningLeft") == false)
+        {
+            cameraAnimator.SetBool("isLeaningLeft", true);
+        }
+        else
+        {
+            cameraAnimator.SetBool("isLeaningLeft", false);
+        }
+    }
+
+    public void CameraLeanRight()
+    {
+        if (cameraAnimator.GetBool("isLeaningRight") == false)
+        {
+            cameraAnimator.SetBool("isLeaningRight", true);
+        }
+        else
+        {
+            cameraAnimator.SetBool("isLeaningRight", false);
         }
     }
 
