@@ -75,7 +75,14 @@ public class CallManager : MonoBehaviour
     {
         StopAllCoroutines();
         CurrentState = Call_State.IN_CALL;
-        DialogueAudioManager.PlayDialogueClip(0, 7);
+        DialogueAudioManager.PlayDialogueClip(1, 0);
+    }
+
+    public void Call911()
+    {
+        StopAllCoroutines();
+        CurrentState = Call_State.IN_CALL;
+        DialogueAudioManager.PlayDialogueClip(2, 0);
     }
 
     public void EnterCallMode(int contact)
