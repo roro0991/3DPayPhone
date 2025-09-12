@@ -7,6 +7,9 @@ TagManager:
   - pages
   - buttons
   - door
+  - notepad
+  - WordBankPanel
+  - SentencePanel
   layers:
   - Default
   - TransparentFX

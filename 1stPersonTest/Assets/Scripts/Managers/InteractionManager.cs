@@ -54,7 +54,7 @@ public class InteractionManager : MonoBehaviour
                 {
                     interactObj.Interact();
                 }
-                Debug.Log("you hit world obj");
+                Debug.Log("you hit world obj"); 
             }
             else
             {
