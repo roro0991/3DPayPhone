@@ -5,16 +5,10 @@ using UnityEngine;
 
 public abstract class Contact : MonoBehaviour
 {
-    public PlayerInputParser inputParser;
+    public List<string> SentenceWords = new List<string>();
     public string ContactNumber; 
     public string PlayerInput = string.Empty;
-    public string ContactResponse = string.Empty;
-    public float? QuestionIndex;
-    public int FollowUpQuestionIndex;
-    public string FirstKey;
-    public string SecondKey;
-    public string QuestionTarget;
-    public string PlayerInputFormated;
+    public string ContactResponse = string.Empty;    
 
     public enum Dialogue_State
     {

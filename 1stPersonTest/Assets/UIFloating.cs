@@ -5,11 +5,11 @@ public class FloatingText : MonoBehaviour
 {
     DraggableWord dragScript;
 
-    public RectTransform boundsRectTransform; // Assign in inspector (the panel)
     public Vector2 baseSpeed = new Vector2(100f, 100f);
     public float wanderStrength = 0.5f; // How strong the wandering effect is
     public float wanderSpeed = 0.5f;    // How quickly it changes
 
+    private RectTransform boundsRectTransform; // Assign in inspector (the panel)
     private RectTransform rectTransform;
     private Vector2 direction;
 
@@ -18,6 +18,8 @@ public class FloatingText : MonoBehaviour
 
     void Start()
     {
+        boundsRectTransform = GameObject.FindWithTag("WordBankPanel").
+            GetComponent<RectTransform>();
         dragScript = GetComponent<DraggableWord>();
 
         rectTransform = GetComponent<RectTransform>();

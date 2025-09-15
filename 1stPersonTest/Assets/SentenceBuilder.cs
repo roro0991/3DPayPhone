@@ -1,5 +1,8 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
+using TMPro;
+using System.Text.RegularExpressions;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -8,7 +11,32 @@ public class SentenceBuilder : MonoBehaviour
 
     [HideInInspector]
     public List<RectTransform> wordList = new List<RectTransform>();
+    public string currentSentenceAsString;
 
+    private void Update()
+    {
+        currentSentenceAsString = GetSentenceAsString();
+        if (currentSentenceAsString != null)
+        {
+            Debug.Log(currentSentenceAsString);
+        }
+    }
+
+    public string GetSentenceAsString()
+    {
+        StringBuilder result = new StringBuilder();
+
+        foreach (RectTransform rect in wordList)
+        {
+            TMP_Text tmpText = rect.GetComponentInChildren<TMP_Text>();
+            if (tmpText != null)
+            {
+                result.AppendLine(tmpText.text);
+            }
+        }
+        string playerInputFormatted = Regex.Replace(result.ToString(), @"\s+$", "");
+        return Regex.Replace(playerInputFormatted.ToString(), @"\s+", " ");
+    }
     public void AddWord(RectTransform word)
     {
         if (!wordList.Contains(word))
@@ -25,6 +53,16 @@ public class SentenceBuilder : MonoBehaviour
             wordList.Remove(word);
             UpdateWordPositions();
         }
+    }
+
+    public void ClearSentence()
+    {
+        wordList.Clear();
+        for (int i = this.transform.childCount - 1; i >= 0; i--)
+        {
+            Destroy(this.transform.GetChild(i).gameObject);
+        }
+
     }
 
     public void InsertWordAt(RectTransform word, int index)

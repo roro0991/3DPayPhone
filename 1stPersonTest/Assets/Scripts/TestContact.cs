@@ -1,51 +1,33 @@
-using Ink;
-using Ink.Parsed;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class TestContact : Contact
 {
-    private void Start()
-    {                
-        inputParser = GetComponent<PlayerInputParser>();
-        ContactNumber = "5555555";
+    private Dictionary <string, string> inputResponses = new Dictionary<string, string>();
+    private Dictionary <string, string[]> wordsForBank = new Dictionary<string, string[]>();
+
+    private void Awake()
+    {
+        inputResponses.Add("Hello.", "Hi there.");
+        inputResponses.Add("How are you?", "I'm fine, thanks.");
+        inputResponses.Add("Is Sarah there?", "I'm afraid not.");
+
+        wordsForBank.Add("Hi there.", new string[] { "How", "are", "you?" });
+        wordsForBank.Add("I'm fine, thanks.", new string[] { "Is", "Sarah", "there?" });
     }
+    
     public override void GenerateResponse()
     {
-        if (PlayerInput == string.Empty)
+        ContactResponse = inputResponses[PlayerInput];
+        Debug.Log(ContactResponse);
+        SentenceWords.Clear();
+        if (wordsForBank.ContainsKey(ContactResponse))
         {
-            return;
-        }
-        inputParser.ParsePlayerinput(PlayerInput);
-        string firstKey = inputParser.FirstKey;
-        string secondKey = inputParser.SecondKey;
-        string questionTarget = inputParser.QuestionTarget;
-
-        Debug.Log("The first question key is: " + firstKey);
-        Debug.Log("The second question key is: " + secondKey);
-        Debug.Log("The question target is: " + questionTarget);
-
-        if (firstKey != null)
-        {
-            switch (firstKey)
+            foreach (string word in wordsForBank[ContactResponse])
             {
-                case "who":
-                    switch (questionTarget)
-                    {
-                        case "john brown":
-                            ContactResponse = "John Brown is a my friend.";
-                            break;
-                        default:
-                            ContactResponse = "I don't know who that is.";
-                                break;
-                    }
-                    break;
-                default:
-                    ContactResponse = "I don't understand the question.";
-                    break;
+                SentenceWords.Add(word);
             }
         }
-        Debug.Log(ContactResponse);
-    }
+    }   
 }

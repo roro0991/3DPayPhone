@@ -7,16 +7,18 @@ using System.Text.RegularExpressions;
 public class CallManager : MonoBehaviour
 {
     [Header("Call UI")]
-    [SerializeField] private TMP_InputField _playerInputField;
+    [SerializeField] TMP_InputField _playerInputField;
+    [SerializeField] GameObject wordBank;
     public Animator CallPanelAnimator;
 
 
     [Header("Managers")]
+    [SerializeField] SentenceBuilder sentenceBuilder;
     [SerializeField] PhoneManager PhoneManager;
     [SerializeField] PuzzleManager PuzzleManager;
     [SerializeField] SFXManager SfxManager;
     [SerializeField] DialogueAudioManager DialogueAudioManager;
-    [SerializeField] StoryManager StoryManager;
+    [SerializeField] StoryManager StoryManager;   
 
     //dialogue parsing related variables
     //private string _playerInput;
@@ -85,21 +87,22 @@ public class CallManager : MonoBehaviour
         DialogueAudioManager.PlayDialogueClip(2, 0);
     }
 
+    // COMMENTED OUT METHODS TO BE REPLACED WITH NEW WORD BANK SYSTEM
     public void EnterCallMode(int contact)
     {
+        
         if (CurrentState == Call_State.IN_CALL)
         {
             return;
         }
         CurrentState = Call_State.IN_CALL;
         currentContact = Contacts[contact];
-        CallPanelAnimator.SetBool("inCall", true);
-        _playerInputField.gameObject.SetActive(true);
-        _playerInputField.ActivateInputField();
+        wordBank.gameObject.SetActive(true);
+        
     }
 
     public void ExitCallMode()
-    {
+    {           
         if (CurrentState != Call_State.IN_CALL)
         {
             return;
@@ -107,22 +110,20 @@ public class CallManager : MonoBehaviour
         CurrentState = Call_State.ON_STANDBY;
         StopAllCoroutines();
         PhoneManager.ClearDisplay();
-        _playerInputField.DeactivateInputField();
-        _playerInputField.gameObject.SetActive(false);
-        CallPanelAnimator.SetBool("inCall", false);
+        wordBank.gameObject.SetActive(false);     
     }
 
     public void ReadPlayerInput(string s)
     {
-        if (CurrentState == Call_State.IN_CALL 
-            && Input.GetKeyDown(KeyCode.Return))
+        if (CurrentState == Call_State.IN_CALL)
         {
-            currentContact.PlayerInput = s;
-            //currentContact.TestValues();
+            currentContact.PlayerInput = sentenceBuilder.GetSentenceAsString();
+            //currentContact.TestValues();            
+            sentenceBuilder.ClearSentence();
+            wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
             currentContact.GenerateResponse();
-            _playerInputField.text = string.Empty;
-            _playerInputField.ActivateInputField();
-        }
+            wordBank.GetComponentInChildren<WordBank>().UpdateWordBank(currentContact.SentenceWords);
+        }   
     }     
 
     IEnumerator TypeLine(string line)

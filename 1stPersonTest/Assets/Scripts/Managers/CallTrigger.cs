@@ -9,11 +9,6 @@ public class CallTrigger : MonoBehaviour
     [SerializeField] SFXManager sfxManager;
     [SerializeField] StoryManager storyManager;
 
-    //JSON for story/display dialogue (other dialogue handled via audio)
-    [Header("Ink JSON Files")]
-    [SerializeField] private TextAsset firstNumber;
-    [SerializeField] private TextAsset secondNumber; // 225-5446
-
     //making&receiving call variables
     private string _numberToCall;
     private float _ringTime;    
@@ -122,9 +117,6 @@ public class CallTrigger : MonoBehaviour
                     {
                         case "5555555":
                             callManager.EnterCallMode(0);
-                            break;
-                        case "6666666":
-                            callManager.EnterCallMode(1);
                             break;
                         default:
                             _isCallInProgress = true;

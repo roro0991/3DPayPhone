@@ -15,10 +15,11 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public bool isInSentencePanel = false;
 
     // Assign this in inspector: drag your SentencePanel GameObject here (with SentenceBuilder script)
-    public SentenceBuilder sentenceBuilder;
+    private SentenceBuilder sentenceBuilder;
 
     private void Awake()
     {
+        sentenceBuilder = FindObjectOfType<SentenceBuilder>();
         rectTransform = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
         canvasGroup = GetComponentInChildren<CanvasGroup>();
