@@ -19,7 +19,16 @@ public class TestContact : Contact
     
     public override void GenerateResponse()
     {
-        ContactResponse = inputResponses[PlayerInput];
+        ContactResponse = string.Empty; 
+        if (inputResponses.ContainsKey(PlayerInput))
+        {
+            ContactResponse = inputResponses[PlayerInput];
+        }
+        else
+        {
+            Debug.Log("I don't understand.");            
+            return;
+        }
         Debug.Log(ContactResponse);
         SentenceWords.Clear();
         if (wordsForBank.ContainsKey(ContactResponse))

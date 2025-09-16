@@ -15,11 +15,7 @@ public class SentenceBuilder : MonoBehaviour
 
     private void Update()
     {
-        currentSentenceAsString = GetSentenceAsString();
-        if (currentSentenceAsString != null)
-        {
-            Debug.Log(currentSentenceAsString);
-        }
+        currentSentenceAsString = GetSentenceAsString();        
     }
 
     public string GetSentenceAsString()

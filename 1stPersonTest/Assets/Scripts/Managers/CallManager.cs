@@ -3,12 +3,14 @@ using TMPro;
 using UnityEngine;
 using Unity.VisualScripting;
 using System.Text.RegularExpressions;
+using UnityEngine.InputSystem;
 
 public class CallManager : MonoBehaviour
 {
     [Header("Call UI")]
     [SerializeField] TMP_InputField _playerInputField;
     [SerializeField] GameObject wordBank;
+    [SerializeField] MessagePanel messagePanel;
     public Animator CallPanelAnimator;
 
 
@@ -117,12 +119,21 @@ public class CallManager : MonoBehaviour
     {
         if (CurrentState == Call_State.IN_CALL)
         {
-            currentContact.PlayerInput = sentenceBuilder.GetSentenceAsString();
-            //currentContact.TestValues();            
-            sentenceBuilder.ClearSentence();
-            wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
+            currentContact.PlayerInput = sentenceBuilder.GetSentenceAsString();          
             currentContact.GenerateResponse();
-            wordBank.GetComponentInChildren<WordBank>().UpdateWordBank(currentContact.SentenceWords);
+            
+            if (currentContact.ContactResponse != string.Empty)
+            {
+                messagePanel.AddMessage(currentContact.PlayerInput);
+                messagePanel.AddMessage(currentContact.ContactResponse);
+                sentenceBuilder.ClearSentence();
+                wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
+                wordBank.GetComponentInChildren<WordBank>().UpdateWordBank(currentContact.SentenceWords);
+            }
+            else
+            {
+                messagePanel.AddMessage("I don't understand.");
+            }
         }   
     }     
 
