@@ -100,6 +100,10 @@ public class CallManager : MonoBehaviour
         CurrentState = Call_State.IN_CALL;
         currentContact = Contacts[contact];
         wordBank.gameObject.SetActive(true);
+        currentContact.SpeakFirstLine();
+        messagePanel.AddMessage(currentContact.ContactName + ": " + currentContact.ContactResponse);
+        wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
+        wordBank.GetComponentInChildren<WordBank>().UpdateWordBank(currentContact.SentenceWords);
         
     }
 
@@ -111,31 +115,47 @@ public class CallManager : MonoBehaviour
         }        
         CurrentState = Call_State.ON_STANDBY;
         StopAllCoroutines();
-        PhoneManager.ClearDisplay();
         wordBank.gameObject.SetActive(false);     
+        PhoneManager.ClearDisplay();
+        messagePanel.ClearMessagePanel();
+        sentenceBuilder.ClearSentence();
+        wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
     }
 
     public void ReadPlayerInput(string s)
     {
         if (CurrentState == Call_State.IN_CALL)
         {
-            currentContact.PlayerInput = sentenceBuilder.GetSentenceAsString();          
+            currentContact.PlayerInput = sentenceBuilder.GetSentenceAsString();
+            if (currentContact.PlayerInput == string.Empty)
+            {
+                return;
+            }
             currentContact.GenerateResponse();
-            
-            if (currentContact.ContactResponse != string.Empty)
-            {
-                messagePanel.AddMessage(currentContact.PlayerInput);
-                messagePanel.AddMessage(currentContact.ContactResponse);
-                sentenceBuilder.ClearSentence();
-                wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
-                wordBank.GetComponentInChildren<WordBank>().UpdateWordBank(currentContact.SentenceWords);
-            }
-            else
-            {
-                messagePanel.AddMessage("I don't understand.");
-            }
+            StartCoroutine(ReadPlayerInputSequence());
         }   
     }     
+
+    IEnumerator ReadPlayerInputSequence()
+    {
+        float delay = 0f;
+        foreach (char c in currentContact.PlayerInput)
+        {
+            delay += .15f;
+        }
+        if (currentContact.PlayerInput != string.Empty)
+        {
+            sentenceBuilder.ClearSentence();
+            messagePanel.AddMessage("You: " + currentContact.PlayerInput);
+        }
+        yield return new WaitForSeconds(delay);
+        if (currentContact.ContactResponse != string.Empty)
+        {
+            messagePanel.AddMessage(currentContact.ContactName + ": " + currentContact.ContactResponse);
+            wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
+            wordBank.GetComponentInChildren<WordBank>().UpdateWordBank(currentContact.SentenceWords);
+        }
+    }
 
     IEnumerator TypeLine(string line)
     {
