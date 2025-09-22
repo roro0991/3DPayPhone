@@ -31,6 +31,8 @@ public class WordBank : MonoBehaviour
                 {
                     newRect.anchoredPosition = GetRandomPositionWithinParent();
                 }
+
+                StartCoroutine(FadeInWord(newWord));
             }
         }
         else
@@ -41,6 +43,59 @@ public class WordBank : MonoBehaviour
             }
         }
     }
+
+    public void AddWordsToWordBank(List<string> newWords)
+    {
+        foreach (string word in newWords)
+        {
+            wordsInQueue.Add(word);
+
+            GameObject newWord = Instantiate(draggableWordPrefab, transform);
+
+            TMP_Text textComponent = newWord.GetComponentInChildren<TMP_Text>();
+            if (textComponent != null)
+            {
+                textComponent.text = word;
+            }
+
+            RectTransform newRect = newWord.GetComponent<RectTransform>();
+            if (newRect != null)
+            {
+                newRect.anchoredPosition = GetRandomPositionWithinParent();
+            }
+
+            // Start fade-in
+            StartCoroutine(FadeInWord(newWord));
+        }
+    }
+
+
+    private IEnumerator FadeInWord(GameObject wordObject)
+    {
+        CanvasGroup canvasGroup = wordObject.GetComponent<CanvasGroup>();
+
+        // If prefab doesn't have CanvasGroup, add it dynamically
+        if (canvasGroup == null)
+        {
+            canvasGroup = wordObject.AddComponent<CanvasGroup>();
+        }
+
+        canvasGroup.alpha = 0f;
+
+        float duration = 0.4f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            canvasGroup.alpha = Mathf.Clamp01(elapsed / duration);
+            yield return null;
+        }
+
+        canvasGroup.alpha = 1f;
+    }
+
+
 
     Vector2 GetRandomPositionWithinParent()
     {

@@ -23,11 +23,11 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     public string GetSentenceAsString()
-    {
+    {       
         StringBuilder result = new StringBuilder();
 
         foreach (RectTransform rect in wordList)
-        {
+        {            
             TMP_Text tmpText = rect.GetComponentInChildren<TMP_Text>();
             if (tmpText != null)
             {
@@ -59,7 +59,7 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     public void ClearSentence()
-    {
+    {        
         wordList.Clear();
         for (int i = this.transform.childCount - 1; i >= 0; i--)
         {

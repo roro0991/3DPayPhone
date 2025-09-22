@@ -4,6 +4,7 @@ using UnityEngine;
 using Unity.VisualScripting;
 using System.Text.RegularExpressions;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
 
 public class CallManager : MonoBehaviour
 {
@@ -134,26 +135,49 @@ public class CallManager : MonoBehaviour
             currentContact.GenerateResponse();
             StartCoroutine(ReadPlayerInputSequence());
         }   
-    }     
+    }
 
     IEnumerator ReadPlayerInputSequence()
     {
         float delay = 0f;
         foreach (char c in currentContact.PlayerInput)
         {
-            delay += .15f;
+            delay += 0.15f;
         }
-        if (currentContact.PlayerInput != string.Empty)
+
+        if (!string.IsNullOrWhiteSpace(currentContact.PlayerInput))
         {
             sentenceBuilder.ClearSentence();
             messagePanel.AddMessage("You: " + currentContact.PlayerInput);
         }
+
         yield return new WaitForSeconds(delay);
-        if (currentContact.ContactResponse != string.Empty)
+
+        if (!string.IsNullOrWhiteSpace(currentContact.ContactResponse))
         {
             messagePanel.AddMessage(currentContact.ContactName + ": " + currentContact.ContactResponse);
-            wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
-            wordBank.GetComponentInChildren<WordBank>().UpdateWordBank(currentContact.SentenceWords);
+
+            yield return new WaitForSeconds(2f);
+
+            WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();
+
+            // Check for "I don't understand." response (case-insensitive)
+            if (currentContact.ContactResponse == "I don't understand.")
+            {
+                // Get previous sentence words
+                List<string> previousSentenceWords = new List<string>(
+                    currentContact.PlayerInput.Split(' ')
+                );
+
+                // Add them to the existing word bank without removing or repositioning existing words
+                wordBankComponent.AddWordsToWordBank(previousSentenceWords);
+            }
+            else
+            {
+                // Normal flow: clear and reset word bank with new words
+                wordBankComponent.ClearWordBank();
+                wordBankComponent.UpdateWordBank(currentContact.SentenceWords);
+            }
         }
     }
 
