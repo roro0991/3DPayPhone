@@ -1,8 +1,8 @@
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using TMPro;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Text;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -23,19 +23,21 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     public string GetSentenceAsString()
-    {       
+    
+    {
         StringBuilder result = new StringBuilder();
 
         foreach (RectTransform rect in wordList)
-        {            
-            TMP_Text tmpText = rect.GetComponentInChildren<TMP_Text>();
-            if (tmpText != null)
+            
             {
-                result.Append(tmpText.text + " ");
+                TMP_Text tmpText = rect.GetComponentInChildren<TMP_Text>();
+                if (tmpText != null)
+                {
+                    result.Append(tmpText.text + " ");
+                }
             }
-        }
 
-        return result.ToString().Trim();
+            return result.ToString().Trim();
     }
 
     public void AddWord(RectTransform word)
@@ -58,8 +60,8 @@ public class SentenceBuilder : MonoBehaviour
         }
     }
 
-    public void ClearSentence()
-    {        
+    public void ClearSentence()            
+    {
         wordList.Clear();
         for (int i = this.transform.childCount - 1; i >= 0; i--)
         {
@@ -148,6 +150,7 @@ public class SentenceBuilder : MonoBehaviour
         return wordList.Count;
     }
 }
+
 
 
 

@@ -119,9 +119,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     {
         isBeingDragged = false;
         canvasGroup.blocksRaycasts = true;
-
         GameObject dropTarget = eventData.pointerEnter;
-
         // Always clean up placeholder
         if (sentenceBuilder != null && placeholder != null)
         {
@@ -129,7 +127,6 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             Destroy(placeholder.gameObject);
             placeholder = null;
         }
-
         if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
         {
             transform.SetParent(sentenceBuilder.transform, false);
@@ -162,10 +159,6 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             }
         }
     }
-
-
-
-
     private RectTransform CreatePlaceholder()
     {
         GameObject placeholderGO = Instantiate(gameObject, sentenceBuilder.transform);
@@ -252,6 +245,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             sentenceBuilder.RemoveWord(rectTransform);
         }
     }
+
 
 
     private void RevertPosition()

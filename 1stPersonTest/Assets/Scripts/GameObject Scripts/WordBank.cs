@@ -4,7 +4,7 @@ using UnityEngine;
 using TMPro;
 
 public class WordBank : MonoBehaviour
-{    
+{
     public List<string> wordsInQueue = new List<string>();
     public GameObject draggableWordPrefab;
 
@@ -16,7 +16,7 @@ public class WordBank : MonoBehaviour
             {
                 GameObject newWord = Instantiate(draggableWordPrefab, transform);
                 TMP_Text textComponent = newWord.GetComponent<TMP_Text>();
-            
+
                 if (textComponent != null)
                 {
                     textComponent.text = word;
@@ -124,3 +124,4 @@ public class WordBank : MonoBehaviour
         GenerateWords();
     }
 }
+

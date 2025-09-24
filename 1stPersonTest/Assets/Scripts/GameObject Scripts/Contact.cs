@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using UnityEngine;
 
 public abstract class Contact : MonoBehaviour
@@ -12,8 +11,8 @@ public abstract class Contact : MonoBehaviour
     public string PlayerInput = string.Empty;
     public string ContactResponse = string.Empty;
 
-
+    // Abstract methods to be implemented by subclasses
     public abstract void SpeakFirstLine();
     public abstract void GenerateResponse();
-    
 }
+
