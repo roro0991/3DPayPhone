@@ -98,138 +98,6 @@ public class Word
         (VerbFormsList.Count > index) ? VerbFormsList[index] : null;
 }
 
-public static class WordDatabase
-{
-    public static Dictionary<string, Word> Words = new Dictionary<string, Word>();
-
-    static WordDatabase()
-    {
-        // ----------------- Articles -----------------
-        AddWord(new Word("the", PartsOfSpeech.Article));
-        AddWord(new Word("a", PartsOfSpeech.Article));
-        AddWord(new Word("an", PartsOfSpeech.Article));
-
-        // ----------------- Nouns -----------------
-        var dogForms = new NounForms { Singular = "dog", Plural = "dogs" };
-        var dogWord = new Word("dog", PartsOfSpeech.Noun);
-        dogWord.AddNounForm(dogForms);
-        AddWord(dogWord);
-
-        // ----------------- Pronouns -----------------
-        AddWord(new Word("i", PartsOfSpeech.SubjectPronoun));
-        AddWord(new Word("you", PartsOfSpeech.SubjectPronoun | PartsOfSpeech.ObjectPronoun));
-        AddWord(new Word("he", PartsOfSpeech.SubjectPronoun));
-        AddWord(new Word("she", PartsOfSpeech.SubjectPronoun));
-        AddWord(new Word("it", PartsOfSpeech.SubjectPronoun | PartsOfSpeech.ObjectPronoun));
-        AddWord(new Word("we", PartsOfSpeech.SubjectPronoun));
-        AddWord(new Word("they", PartsOfSpeech.SubjectPronoun));
-
-        AddWord(new Word("me", PartsOfSpeech.ObjectPronoun));
-        AddWord(new Word("him", PartsOfSpeech.ObjectPronoun));
-        AddWord(new Word("her", PartsOfSpeech.ObjectPronoun));
-        AddWord(new Word("us", PartsOfSpeech.ObjectPronoun));
-        AddWord(new Word("them", PartsOfSpeech.ObjectPronoun));
-
-        AddWord(new Word("mine", PartsOfSpeech.PossessivePronoun));
-        AddWord(new Word("his", PartsOfSpeech.PossessivePronoun));
-        AddWord(new Word("hers", PartsOfSpeech.PossessivePronoun));
-        AddWord(new Word("ours", PartsOfSpeech.PossessivePronoun));
-        AddWord(new Word("theirs", PartsOfSpeech.PossessivePronoun));
-
-        // ----------------- Verbs -----------------
-        var meetForms = new VerbForms
-        {
-            Base = "meet",
-            Past = "met",
-            PastParticiple = "met",
-            PresentParticiple = "meeting",
-            ThirdPerson = "meets"
-        };
-        var meetWord = new Word("meet", PartsOfSpeech.Verb);
-        meetWord.AddVerbForm(meetForms);
-        AddWord(meetWord);
-
-        var beForms = new VerbForms
-        {
-            Base = "be",
-            FirstPersonSingular = "am",
-            SecondPersonSingular = "are",
-            ThirdPersonSingular = "is",
-            FirstPersonPlural = "are",
-            SecondPersonPlural = "are",
-            ThirdPersonPlural = "are",
-            Past = "was",
-            PluralPast = "were",
-            PastParticiple = "been",
-            PresentParticiple = "being"
-        };
-        var beWord = new Word("be", PartsOfSpeech.Verb);
-        beWord.AddVerbForm(beForms);
-        AddWord(beWord);
-
-        // ----------------- Adjectives -----------------
-        AddWord(new Word("nice", PartsOfSpeech.Adjective));
-
-        // ----------------- Prepositions -----------------
-        AddWord(new Word("to", PartsOfSpeech.Preposition));
-
-        // ----------------- Multi-role word example: run -----------------
-        var runNoun = new NounForms { Singular = "run", Plural = "runs" };
-        var runVerb = new VerbForms
-        {
-            Base = "run",
-            Past = "ran",
-            PastParticiple = "run",
-            PresentParticiple = "running",
-            ThirdPerson = "runs"
-        };
-        var runWord = new Word("run", PartsOfSpeech.Noun | PartsOfSpeech.Verb);
-        runWord.AddNounForm(runNoun);
-        runWord.AddVerbForm(runVerb);
-        AddWord(runWord);
-    }
-
-    private static void AddWord(Word word)
-    {
-        void AddKey(string key)
-        {
-            key = key.ToLower();
-            if (!Words.ContainsKey(key))
-            {
-                Words[key] = word;
-            }
-            else
-            {
-                // Merge forms if already exists
-                var existing = Words[key];
-                existing.PartOfSpeech |= word.PartOfSpeech;
-                existing.NounFormsList.AddRange(word.NounFormsList);
-                existing.VerbFormsList.AddRange(word.VerbFormsList);
-            }
-        }
-
-        // Add base form
-        AddKey(word.Text);
-
-        // Index all verb forms safely
-        foreach (var vf in new List<VerbForms>(word.VerbFormsList))
-        {
-            if (!string.IsNullOrEmpty(vf.Past)) AddKey(vf.Past);
-            if (!string.IsNullOrEmpty(vf.PastParticiple)) AddKey(vf.PastParticiple);
-            if (!string.IsNullOrEmpty(vf.PresentParticiple)) AddKey(vf.PresentParticiple);
-            if (!string.IsNullOrEmpty(vf.ThirdPerson)) AddKey(vf.ThirdPerson);
-            if (!string.IsNullOrEmpty(vf.FirstPersonSingular)) AddKey(vf.FirstPersonSingular);
-            if (!string.IsNullOrEmpty(vf.SecondPersonSingular)) AddKey(vf.SecondPersonSingular);
-            if (!string.IsNullOrEmpty(vf.ThirdPersonSingular)) AddKey(vf.ThirdPersonSingular);
-            if (!string.IsNullOrEmpty(vf.FirstPersonPlural)) AddKey(vf.FirstPersonPlural);
-            if (!string.IsNullOrEmpty(vf.SecondPersonPlural)) AddKey(vf.SecondPersonPlural);
-            if (!string.IsNullOrEmpty(vf.ThirdPersonPlural)) AddKey(vf.ThirdPersonPlural);
-        }
-
-    }
-}
-
-
 public static class SmartSentenceParser
 {
     /// <summary>
@@ -261,6 +129,7 @@ public static class SmartSentenceParser
     /// </summary>
     public static List<ParsedWord> ParseSentence(string sentence)
     {
+        var wdb = WordDataBase.Instance;
         var results = new List<ParsedWord>();
         if (string.IsNullOrEmpty(sentence)) return results;
 
@@ -273,7 +142,7 @@ public static class SmartSentenceParser
         foreach (var rawWord in words)
         {
             string key = rawWord.ToLower();
-            if (!WordDatabase.Words.TryGetValue(key, out Word word))
+            if (!wdb.Words.TryGetValue(key, out Word word))
             {
                 results.Add(new ParsedWord(rawWord, PartsOfSpeech.None));
                 continue;

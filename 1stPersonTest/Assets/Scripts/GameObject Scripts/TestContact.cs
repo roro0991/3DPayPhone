@@ -1,33 +1,31 @@
-using Palmmedia.ReportGenerator.Core.Reporting.Builders.Rendering;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class TestContact : Contact
 {
     private Dictionary<string, string> inputResponses = new Dictionary<string, string>();
-    private Dictionary<string, List<string>> wordsForBank = new Dictionary<string, List<string>>();
+    private Dictionary<string, List<Word>> wordsForBank = new Dictionary<string, List<Word>>();
 
     private void Awake()
     {
         ContactName = "Them";
         OpeningLine = "Hello?";
-        SentenceWords.AddRange(new string[] { "Hi", "there." });
 
-        string testsentence = "I have met this dog before";
-        SmartSentenceParser.PrintParsedSentence(testsentence);
-
-        
+        // Add words using singleton
+        AddWordToSentence("hi");
+        AddWordToSentence("there");
     }
 
     public override void SpeakFirstLine()
     {
         ContactResponse = OpeningLine;
+        UpdateWordBankFromSentence(); // load initial SentenceWords into bank
     }
 
     public override void GenerateResponse()
     {
         ContactResponse = string.Empty;
+
         if (inputResponses.ContainsKey(PlayerInput))
         {
             ContactResponse = inputResponses[PlayerInput];
@@ -35,22 +33,27 @@ public class TestContact : Contact
         else
         {
             ContactResponse = "I don't understand.";
+            SentenceWords.Clear();
+            UpdateWordBankFromSentence();
             return;
         }
+
         if (wordsForBank.ContainsKey(ContactResponse))
         {
             SentenceWords.Clear();
-            foreach (string word in wordsForBank[ContactResponse])
-            {
-                SentenceWords.Add(word);
-            }
+            SentenceWords.AddRange(wordsForBank[ContactResponse]);
         }
         else
         {
             SentenceWords.Clear();
         }
+
+        UpdateWordBankFromSentence();
     }
 }
+
+
+
 
 
 

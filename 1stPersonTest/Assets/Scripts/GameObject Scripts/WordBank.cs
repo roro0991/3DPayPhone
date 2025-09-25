@@ -5,104 +5,117 @@ using TMPro;
 
 public class WordBank : MonoBehaviour
 {
-    public List<string> wordsInQueue = new List<string>();
+    private Queue<Word> wordsInQueue = new Queue<Word>();    // store Word objects now
     public GameObject draggableWordPrefab;
+
+    private List<Coroutine> runningFades = new List<Coroutine>();
 
     private void GenerateWords()
     {
-        if (wordsInQueue.Count > 0)
+        // Stop all running fade coroutines
+        foreach (var fade in runningFades)
         {
-            foreach (string word in wordsInQueue)
-            {
-                GameObject newWord = Instantiate(draggableWordPrefab, transform);
-                TMP_Text textComponent = newWord.GetComponent<TMP_Text>();
+            if (fade != null)
+                StopCoroutine(fade);
+        }
+        runningFades.Clear();
 
-                if (textComponent != null)
-                {
-                    textComponent.text = word;
-                }
-                else
-                {
-                    Debug.LogWarning("The insantiated prefab does not have a text component");
-                }
+        // Clear existing children
+        foreach (Transform child in transform)
+        {
+            Destroy(child.gameObject);
+        }
 
-                RectTransform newRect = newWord.GetComponent<RectTransform>();
-                if (newRect != null)
-                {
-                    newRect.anchoredPosition = GetRandomPositionWithinParent();
-                }
+        // Generate new words
+        foreach (Word word in wordsInQueue)
+        {
+            CreateWordUI(word);
+        }
 
-                StartCoroutine(FadeInWord(newWord));
-            }
+        Debug.Log("GenerateWords called. Words in queue: " + wordsInQueue.Count);
+    }
+
+    public void AddWordsToWordBank(List<Word> words)
+    {
+        // Queue up the words
+        wordsInQueue = new Queue<Word>(words);
+
+        // If panel is active, generate immediately
+        if (gameObject.activeInHierarchy)
+        {
+            GenerateWords();
         }
         else
         {
-            foreach (Transform child in this.transform)
-            {
-                Destroy(child.gameObject);
-            }
+            // Wait until the panel is active
+            StartCoroutine(WaitForActivationAndGenerate());
         }
     }
 
-    public void AddWordsToWordBank(List<string> newWords)
+    private IEnumerator WaitForActivationAndGenerate()
     {
-        foreach (string word in newWords)
-        {
-            wordsInQueue.Add(word);
-
-            GameObject newWord = Instantiate(draggableWordPrefab, transform);
-
-            TMP_Text textComponent = newWord.GetComponentInChildren<TMP_Text>();
-            if (textComponent != null)
-            {
-                textComponent.text = word;
-            }
-
-            RectTransform newRect = newWord.GetComponent<RectTransform>();
-            if (newRect != null)
-            {
-                newRect.anchoredPosition = GetRandomPositionWithinParent();
-            }
-
-            // Start fade-in
-            StartCoroutine(FadeInWord(newWord));
-        }
+        yield return new WaitUntil(() => gameObject.activeInHierarchy);
+        GenerateWords();
     }
 
+    private void CreateWordUI(Word word)
+    {
+        GameObject newWord = Instantiate(draggableWordPrefab, transform);
+
+        TMP_Text textComponent = newWord.GetComponentInChildren<TMP_Text>();
+        if (textComponent != null)
+        {
+            textComponent.text = word.Text; // Use Word.Text instead of string
+        }
+        else
+        {
+            Debug.LogWarning("The instantiated prefab does not have a TMP_Text component");
+        }
+
+        RectTransform newRect = newWord.GetComponent<RectTransform>();
+        if (newRect != null)
+        {
+            newRect.anchoredPosition = GetRandomPositionWithinParent();
+        }
+
+        // Start fade-in and track coroutine
+        Coroutine fadeCoroutine = StartCoroutine(FadeInWord(newWord));
+        runningFades.Add(fadeCoroutine);
+    }
 
     private IEnumerator FadeInWord(GameObject wordObject)
     {
-        CanvasGroup canvasGroup = wordObject.GetComponent<CanvasGroup>();
+        if (wordObject == null) yield break;
 
-        // If prefab doesn't have CanvasGroup, add it dynamically
+        CanvasGroup canvasGroup = wordObject.GetComponent<CanvasGroup>();
         if (canvasGroup == null)
         {
             canvasGroup = wordObject.AddComponent<CanvasGroup>();
         }
 
         canvasGroup.alpha = 0f;
-
         float duration = 0.4f;
         float elapsed = 0f;
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            canvasGroup.alpha = Mathf.Clamp01(elapsed / duration);
+
+            if (canvasGroup != null) // null-safe check
+                canvasGroup.alpha = Mathf.Clamp01(elapsed / duration);
+
             yield return null;
+
+            if (wordObject == null) yield break; // stop if object destroyed
         }
 
-        canvasGroup.alpha = 1f;
+        if (canvasGroup != null)
+            canvasGroup.alpha = 1f;
     }
 
-
-
-    Vector2 GetRandomPositionWithinParent()
+    private Vector2 GetRandomPositionWithinParent()
     {
-        // Get the size of the parent container
         Vector2 size = this.GetComponent<RectTransform>().rect.size;
-
-        // Generate random coordinates within that area
         float x = Random.Range(-size.x / 2f, size.x / 2f);
         float y = Random.Range(-size.y / 2f, size.y / 2f);
 
@@ -115,13 +128,14 @@ public class WordBank : MonoBehaviour
         GenerateWords();
     }
 
-    public void UpdateWordBank(List<string> words)
+    public void UpdateWordBank(List<Word> words)
     {
-        foreach (string word in words)
+        foreach (Word word in words)
         {
-            wordsInQueue.Add(word);
+            wordsInQueue.Enqueue(word);
         }
         GenerateWords();
     }
 }
+
 

@@ -37,13 +37,7 @@ public class PhoneManager : MonoBehaviour
     private int _currentPhoneNumberArrayIndex = 0; //to track where in the _phoneNumberArray we are
     private string _phoneNumberAsString; //converted phone number as a string to send to callTrigger
     private int _currentPhoneNumberDisplayCharIndex = 38; //to set where to display numbers on phone display   
-
-    //Extention Variables
-    private int?[] _extentionNumberArray = new int?[3]; //to store player input (extention being dialed)
-    private int _currentExtentionNumberArrayIndex = 0; //to track where in the _extentionNumberArray we are
-    private string _extentionNumberAsString; //converted extention number as a string to send to callManager
-                                            //currenlty handled by Ink JSON External Function.
-    private int _currentExtentionDisplayCharIndex = 46; //to set where to display numbers on phone display
+    
     
 
     private void Start()
@@ -57,7 +51,6 @@ public class PhoneManager : MonoBehaviour
     {
         //Updating phone number and extention number at runtime
         _phoneNumberAsString = string.Join(string.Empty, _phoneNumberArray);
-        _extentionNumberAsString = string.Join(string.Empty, _extentionNumberArray);
     }
 
     //Display Methods
@@ -113,14 +106,12 @@ public class PhoneManager : MonoBehaviour
             case State.RECEIVER_DOWN:
                 break;
             case State.RECEIVER_UP:
-                if (callTrigger.GetCallStatus() == true 
-                    && callManager.GetExtentionStatus() == false)//Checks if player is already in a call
+                if (callTrigger.GetCallStatus() == true)//Checks if player is already in a call
                 {
                     break;
                 }
                 
-                if (_currentPhoneNumberArrayIndex < _phoneNumberArray.Length
-                    && callManager.GetExtentionStatus() == false) //Checks that number dialed fits array ( > 7 digits)
+                if (_currentPhoneNumberArrayIndex < _phoneNumberArray.Length) //Checks that number dialed fits array ( > 7 digits)
                 {
                     //Add number dialed in phone number array
                     _phoneNumberArray[_currentPhoneNumberArrayIndex] = input;
@@ -139,18 +130,7 @@ public class PhoneManager : MonoBehaviour
                     _currentPhoneNumberDisplayCharIndex++;
                     break;
                 }
-                
-                if (_currentExtentionNumberArrayIndex < _extentionNumberArray.Length &&
-                    callManager.GetExtentionStatus() == true)//Check that extention dialed fits array ( > 3 digits)
-                {
-                    //Add extention dialed in extention array
-                    _extentionNumberArray[_currentExtentionNumberArrayIndex] = input;
-                    _currentExtentionNumberArrayIndex++;
-                    //Display extention dialed on phone display
-                    displayCharArray[_currentExtentionDisplayCharIndex]
-                    .GetComponent<CharController>().DisplayChar(input);
-                    _currentExtentionDisplayCharIndex++;
-                }                
+                              
                 break;
         }
 
@@ -207,13 +187,10 @@ public class PhoneManager : MonoBehaviour
                 //Reset Phone Display
                 PickUpReceiverMessage();
                 _currentPhoneNumberDisplayCharIndex = 38;
-                _currentExtentionDisplayCharIndex = 46;
 
                 //Reset Phone Number and Extention
                 Array.Clear(_phoneNumberArray, 0, _phoneNumberArray.Length);
                 _currentPhoneNumberArrayIndex = 0;
-                Array.Clear(_extentionNumberArray, 0, _extentionNumberArray.Length);
-                _currentExtentionNumberArrayIndex = 0;
 
                 //SFX
                 sfxManager.ReceiverDown();
@@ -225,21 +202,6 @@ public class PhoneManager : MonoBehaviour
         }
     }
 
-    public void ResetExtention()//External Function for Ink JSON
-    {
-        displayCharArray[46].GetComponent<CharController>().ClearChar();
-        displayCharArray[47].GetComponent<CharController>().ClearChar();
-        displayCharArray[48].GetComponent<CharController>().ClearChar();
-        _currentExtentionDisplayCharIndex = 46;
-        Array.Clear(_extentionNumberArray, 0, _extentionNumberArray.Length);
-        _currentExtentionNumberArrayIndex = 0;
-    }
-
-    // Getter methods
-    public string GetExtentionNumber()
-    {
-        return _extentionNumberAsString;
-    }
     public string GetPhoneNumber()
     {
         return _phoneNumberAsString;

@@ -1,128 +1,84 @@
 using UnityEngine;
-using TMPro;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
-using System.Text;
 
 public class SentenceBuilder : MonoBehaviour
 {
-    public Vector2 startPosition = Vector2.zero; // Adjust in Inspector for sentence start offset
-    public float spacing = 10f; // Space between words
+    public Vector2 startPosition = Vector2.zero;
+    public float spacing = 10f;
 
-    [HideInInspector]
     public List<RectTransform> wordList = new List<RectTransform>();
+    public List<Word> wordDataList = new List<Word>(); // Track semantic words
     public string currentSentenceAsString;
 
     private RectTransform placeholderWord;
 
-    // Update currentSentenceAsString only when sentence changes, so no Update() needed
-
-    private void UpdateCurrentSentenceString()
+    // ---------------- Sentence management ----------------
+    public void InsertWordAt(RectTransform rect, Word wordData, int index)
     {
-        currentSentenceAsString = GetSentenceAsString();
-    }
-
-    public string GetSentenceAsString()
-    
-    {
-        StringBuilder result = new StringBuilder();
-
-        foreach (RectTransform rect in wordList)
-            
-            {
-                TMP_Text tmpText = rect.GetComponentInChildren<TMP_Text>();
-                if (tmpText != null)
-                {
-                    result.Append(tmpText.text + " ");
-                }
-            }
-
-            return result.ToString().Trim();
-    }
-
-    public void AddWord(RectTransform word)
-    {
-        if (!wordList.Contains(word))
+        if (wordList.Contains(rect))
         {
-            wordList.Add(word);
-            UpdateWordPositions();
-            UpdateCurrentSentenceString();
-        }
-    }
-
-    public void RemoveWord(RectTransform word)
-    {
-        if (wordList.Contains(word))
-        {
-            wordList.Remove(word);
-            UpdateWordPositions();
-            UpdateCurrentSentenceString();
-        }
-    }
-
-    public void ClearSentence()            
-    {
-        wordList.Clear();
-        for (int i = this.transform.childCount - 1; i >= 0; i--)
-        {
-            Destroy(this.transform.GetChild(i).gameObject);
-        }
-        UpdateCurrentSentenceString();
-    }
-
-    public void InsertWordAt(RectTransform word, int index)
-    {
-        if (wordList.Contains(word))
-        {
-            wordList.Remove(word);
+            wordList.Remove(rect);
+            wordDataList.Remove(wordData);
         }
 
         index = Mathf.Clamp(index, 0, wordList.Count);
-        wordList.Insert(index, word);
+        wordList.Insert(index, rect);
+        wordDataList.Insert(index, wordData);
+
         UpdateWordPositions();
-        UpdateCurrentSentenceString();
+        UpdateSentenceString();
+    }
+
+    public void RemoveWord(RectTransform rect)
+    {
+        int idx = wordList.IndexOf(rect);
+        if (idx >= 0)
+        {
+            wordList.RemoveAt(idx);
+            wordDataList.RemoveAt(idx);
+        }
+        UpdateWordPositions();
+        UpdateSentenceString();
     }
 
     public void UpdateWordPositions()
     {
         float currentX = startPosition.x;
-
-        foreach (RectTransform word in wordList)
+        foreach (var rect in wordList)
         {
-            // Ensure pivot is left-middle for consistent positioning
-            word.pivot = new Vector2(0, 0.5f);
-
-            word.anchoredPosition = new Vector2(currentX, startPosition.y);
-
-            float width = word.rect.width * word.localScale.x;
-            currentX += width + spacing;
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.anchoredPosition = new Vector2(currentX, startPosition.y);
+            currentX += rect.rect.width * rect.localScale.x + spacing;
         }
     }
 
-    // -------- Placeholder logic ---------
+    public void UpdateSentenceString()
+    {
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        foreach (var w in wordDataList) sb.Append(w.Text + " ");
+        currentSentenceAsString = sb.ToString().Trim();
+    }
 
-    /// <summary>
-    /// Shows the placeholder word at the specified index in the sentence, shifting other words accordingly.
-    /// </summary>
-    /// <param name="index">The index where to show the placeholder.</param>
-    /// <param name="placeholder">The RectTransform representing the placeholder word.</param>
+    public string GetSentenceAsString() => currentSentenceAsString;
+
+    public void ClearSentence()
+    {
+        wordList.Clear();
+        wordDataList.Clear();
+        for (int i = transform.childCount - 1; i >= 0; i--) Destroy(transform.GetChild(i).gameObject);
+        currentSentenceAsString = string.Empty;
+    }
+
+    // ---------------- Placeholder logic ----------------
     public void ShowPlaceholderAt(int index, RectTransform placeholder)
     {
-        if (placeholderWord != null)
-        {
-            RemovePlaceholder();
-        }
-
+        if (placeholderWord != null) RemovePlaceholder();
         placeholderWord = placeholder;
-
         index = Mathf.Clamp(index, 0, wordList.Count);
         wordList.Insert(index, placeholderWord);
         UpdateWordPositions();
     }
 
-    /// <summary>
-    /// Removes the placeholder word from the sentence.
-    /// </summary>
     public void RemovePlaceholder()
     {
         if (placeholderWord != null && wordList.Contains(placeholderWord))
@@ -133,24 +89,14 @@ public class SentenceBuilder : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Calculates the insertion index based on the local X position of the pointer.
-    /// Assumes horizontal layout from left to right.
-    /// </summary>
-    /// <param name="localX">The local X position relative to the container.</param>
-    /// <returns>The index where a word should be inserted.</returns>
     public int GetInsertionIndex(float localX)
     {
         for (int i = 0; i < wordList.Count; i++)
         {
             float wordCenterX = wordList[i].anchoredPosition.x + wordList[i].rect.width * 0.5f;
-            if (localX < wordCenterX)
-                return i;
+            if (localX < wordCenterX) return i;
         }
         return wordList.Count;
     }
 }
-
-
-
 

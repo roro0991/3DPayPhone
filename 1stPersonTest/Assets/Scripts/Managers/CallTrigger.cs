@@ -102,10 +102,6 @@ public class CallTrigger : MonoBehaviour
                 case 3:
                     switch (_numberToCall)
                     {
-                        case "411":
-                            _isCallInProgress = true;
-                            StartCoroutine(EnterDirectoryMode());
-                            break;
                         case "911":
                             _isCallInProgress = true;
                             StartCoroutine(Call911());
@@ -166,17 +162,6 @@ public class CallTrigger : MonoBehaviour
         _isDailing = false;
         sfxManager.dialSource.Stop();
         callManager.NotInService();
-    }
-
-    IEnumerator EnterDirectoryMode()
-    {
-        yield return new WaitForSeconds(1.5f);
-        sfxManager.DialRing();
-        _isDailing = true;
-        yield return new WaitForSeconds(2.5f);
-        _isDailing = false;
-        sfxManager.dialSource.Stop();
-        callManager.EnterDirectoryMode();
     }
     
     //getter methods
