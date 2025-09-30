@@ -17,9 +17,8 @@ public class CallManager : MonoBehaviour
     [SerializeField] PuzzleManager PuzzleManager;
     [SerializeField] SFXManager SfxManager;
     [SerializeField] DialogueAudioManager DialogueAudioManager;
-    [SerializeField] StoryManager StoryManager;
 
-    [SerializeField] Contact[] Contacts = new Contact[0];
+    [SerializeField] public Contact[] Contacts = new Contact[0];
 
     private Contact currentContact;
 
@@ -57,12 +56,18 @@ public class CallManager : MonoBehaviour
     }
 
     // --- ENTER CALL ---
-    public void EnterCallMode(int contact)
+    public void EnterCallMode(int contactIndex)
     {
         if (CurrentState == Call_State.IN_CALL) return;
 
+        if (contactIndex < 0 || contactIndex >= Contacts.Length)
+        {
+            Debug.LogWarning("Invalid contact index passed to EnterCallMode.");
+            return;
+        }
+
         CurrentState = Call_State.IN_CALL;
-        currentContact = Contacts[contact];
+        currentContact = Contacts[contactIndex];
 
         wordBank.gameObject.SetActive(true);
 
@@ -74,6 +79,7 @@ public class CallManager : MonoBehaviour
         wordBankComponent.ClearWordBank();
         wordBankComponent.AddWordsToWordBank(currentContact.SentenceWords);
     }
+
 
     // --- EXIT CALL ---
     public void ExitCallMode()

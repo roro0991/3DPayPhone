@@ -6,6 +6,8 @@ public abstract class Contact : MonoBehaviour
     public List<Word> SentenceWords = new List<Word>();
     public string ContactNumber;
     public string ContactName;
+    public bool Discovered;
+    [HideInInspector] public string ContactID = System.Guid.NewGuid().ToString();
     public string OpeningLine = string.Empty;
     public string PlayerInput = string.Empty;
     public string ContactResponse = string.Empty;

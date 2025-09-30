@@ -3,170 +3,108 @@ using UnityEngine;
 
 public class CallTrigger : MonoBehaviour
 {
-    //Caching other managers to access functions
-    [SerializeField] CallManager callManager;
-    [SerializeField] PhoneManager phoneManager;
-    [SerializeField] SFXManager sfxManager;
-    [SerializeField] StoryManager storyManager;
+    [Header("Managers")]
+    [SerializeField] private CallManager callManager;
+    [SerializeField] private PhoneManager phoneManager;
+    [SerializeField] private SFXManager sfxManager;
+    [SerializeField] private PhoneNumberManager phoneNumberManager;
 
-    //making&receiving call variables
-    private string _numberToCall;
-    private float _ringTime;    
-    private float INCOMING_CALL_COUNTDOWN = 5f;
+    // Optional test contact for debugging
+    [SerializeField] private Contact testContact;
 
-    //state bools
-    private bool _isCallCountDown;
-    private bool _isRinging;
-    private bool _isDailing;
-    private bool _isCallInProgress;
+    // Call state
+    private string numberToCall;
+    public bool isCallInProgress;
 
     private void Start()
     {
-        // initializing bools in start
-        _isCallCountDown = false;
-        _isRinging = false;
-        _isDailing = false;
-        _isCallInProgress = false;
+        // Optional: assign number for a test contact
+        if (testContact != null)
+        {
+            string assignedNumber = phoneNumberManager.AssignNumber(testContact);
+            Debug.Log($"TestContact '{testContact.ContactName}' assigned number: {assignedNumber}");
+        }
     }
 
     private void Update()
     {
-        if (phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_DOWN && _isDailing)
+        // Always update current dialed number
+        numberToCall = phoneManager.GetPhoneNumber();
+
+        // Emergency numbers are exceptions
+        if (!isCallInProgress && numberToCall == "911")
         {
-                _isDailing = false;
+            isCallInProgress = true;
+            StartCoroutine(Call911());
+            return;
+        }
+        if (!isCallInProgress && numberToCall == "411")
+        {
+            // Optional: directory assistance
+            return;
         }
 
-        //updating number being dialed at runtime
-        _numberToCall = phoneManager.GetPhoneNumber();
-
-        //receiving a call
-        if (_isCallCountDown)
+        // Only try to call when the full number length is dialed
+        if (!isCallInProgress && phoneManager.GetDigitCount() == phoneNumberManager.NumberLength)
         {
-            switch (phoneManager.GetReceiverStatus())
-            {
-                case PhoneManager.State.RECEIVER_DOWN:
-                    switch (INCOMING_CALL_COUNTDOWN)
-                    {
-                        case >= 0:
-                            INCOMING_CALL_COUNTDOWN -= Time.deltaTime;
-                            Debug.Log(INCOMING_CALL_COUNTDOWN);
-                            break;
-                        case <= 0:
-                            _isCallCountDown = false;
-                            INCOMING_CALL_COUNTDOWN = 5f;
-                            _isRinging = true;
-                            sfxManager.CallRing();
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-                case PhoneManager.State.RECEIVER_UP:
-                    switch (INCOMING_CALL_COUNTDOWN)
-                    {
-                        case >= 0:
-                            INCOMING_CALL_COUNTDOWN = 5f;
-                            Debug.Log(INCOMING_CALL_COUNTDOWN);
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-            }
+            TryCall(numberToCall);
         }
 
-        //answering a call
-        if (!_isCallInProgress 
-            && _isRinging && phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_UP)
-        {
-            if (storyManager.GetFirstCallStatus() == false)
-            {
-                storyManager.SetFirstCallStatus(true);
-                _isCallInProgress = true;
-                _isRinging = false;
-                sfxManager.dialSource.Stop();
-                //callManager.EnterCallMode(1, 0);
-                //callManager.SetLoopCallStatus(true);
-            }
-            else
-            {
-                return;
-            }
-        }
-
-        //making a call
-        if (!_isCallInProgress && _numberToCall.Length > 0)
-        {
-            switch (_numberToCall.Length)
-            {
-                case 3:
-                    switch (_numberToCall)
-                    {
-                        case "911":
-                            _isCallInProgress = true;
-                            StartCoroutine(Call911());
-                            break;
-                    }
-                    break;                
-                case 7:
-                    switch (_numberToCall)
-                    {
-                        case "5555555":
-                            callManager.EnterCallMode(0);
-                            break;
-                        default:
-                            _isCallInProgress = true;
-                            StartCoroutine(NumberNotInService());
-                            break;
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        //cancelling any methods if receiver is hung up
+        // Cancel any call if receiver is hung up
         if (phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_DOWN)
         {
             StopAllCoroutines();
-            _isCallInProgress = false;
+            isCallInProgress = false;
         }
     }
 
-    //Methods
-    public void ReceiveCall()
+    private void TryCall(string number)
     {
-        if (phoneManager.GetReceiverStatus() == PhoneManager.State.RECEIVER_DOWN)
-        {
-            _isCallCountDown = true;            
-        }
-    } 
+        // Emergency numbers handled above
+        var contact = phoneNumberManager.GetContactByNumber(number);
 
-    IEnumerator Call911()
+        // If the number hasn't been discovered yet, no contact exists
+        if (contact != null)
+        {
+            int index = System.Array.IndexOf(callManager.Contacts, contact);
+            if (index >= 0)
+            {
+                callManager.EnterCallMode(index);
+                isCallInProgress = true;
+            }
+        }
+        else
+        {
+            // Number doesn't exist yet, or isn't in service
+            isCallInProgress = true;
+            StartCoroutine(NumberNotInService());
+        }
+    }
+
+    private IEnumerator Call911()
     {
         yield return new WaitForSeconds(1.5f);
         sfxManager.DialRing();
-        _isDailing = true;
         yield return new WaitForSeconds(2.5f);
-        _isDailing = false;
         sfxManager.dialSource.Stop();
         callManager.Call911();
     }
 
-    IEnumerator NumberNotInService()
+    private IEnumerator NumberNotInService()
     {
         yield return new WaitForSeconds(1.5f);
         sfxManager.DialRing();
-        _isDailing = true;
         yield return new WaitForSeconds(2.5f);
-        _isDailing = false;
         sfxManager.dialSource.Stop();
         callManager.NotInService();
     }
-    
-    //getter methods
-    public bool GetCallStatus()
+
+    // This is called when a contact is discovered in the story
+    public void DiscoverContact(Contact contact)
     {
-        return _isCallInProgress;
+        string assignedNumber = phoneNumberManager.GetOrGenerateNumber(contact);
+        Debug.Log($"Contact '{contact.ContactName}' discovered! Number assigned: {assignedNumber}");
     }
 }
+
+

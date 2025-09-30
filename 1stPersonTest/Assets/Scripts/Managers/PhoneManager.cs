@@ -106,7 +106,7 @@ public class PhoneManager : MonoBehaviour
             case State.RECEIVER_DOWN:
                 break;
             case State.RECEIVER_UP:
-                if (callTrigger.GetCallStatus() == true)//Checks if player is already in a call
+                if (callTrigger.isCallInProgress == true)//Checks if player is already in a call
                 {
                     break;
                 }
@@ -209,6 +209,11 @@ public class PhoneManager : MonoBehaviour
     public State GetReceiverStatus()
     {
         return _currentState;
+    }
+
+    public int GetDigitCount()
+    {
+        return _currentPhoneNumberArrayIndex;
     }
 }
 

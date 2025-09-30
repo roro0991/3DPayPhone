@@ -6,7 +6,7 @@ public class TestContact : Contact
     private Dictionary<string, string> inputResponses = new Dictionary<string, string>();
     private Dictionary<string, List<Word>> wordsForBank = new Dictionary<string, List<Word>>();
 
-    private void Awake()
+    private void Start()
     {
         ContactName = "Them";
         OpeningLine = "Hello?";

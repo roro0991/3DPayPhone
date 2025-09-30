@@ -1,239 +1,145 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
-using System.Linq;
-using UnityEngine.Rendering;
-using System.Xml;
-using JetBrains.Annotations;
-using UnityEngine.Assertions.Must;
 
 public class Notepad : MonoBehaviour
 {
-    [SerializeField] StoryManager storyManager;
-
+    [Header("Notepad Setup")]
     [SerializeField] private GameObject environNotepad;
     [SerializeField] private List<GameObject> pages = new List<GameObject>();
     [SerializeField] private GameObject pagePrefab;
-    [SerializeField] Transform pagesParent;
+    [SerializeField] private Transform pagesParent;
     [SerializeField] private TextMeshPro pageNumber;
 
+    [Header("Camera & Input")]
     [SerializeField] private Camera equiprenderCam;
+    [SerializeField] private TMP_InputField inputField;
 
-    [SerializeField] GameObject linePrefab;
-    Line activeLine;
+    [Header("Object Pools")]
+    [SerializeField] private NotePool notePool;
+    [SerializeField] private LinePool linePool;
 
-    [SerializeField] TextMeshPro notePrefab;
-    TextMeshPro newNote;
-    [SerializeField] TMP_InputField inputField;
+    private int currentPageIndex = 0;
+    private int pageNumberAsInt = 1;
 
-    int currentPageIndex;
-    int pageNumberAsInt;
+    private Line currentLine;
+    private TextMeshPro currentNote;
 
-    bool isWriting = false;
-
-    bool firstlineDrawn = false;
-    bool firstnoteWritten = false;
-    private void Start()
-    {
-        currentPageIndex = 0;
-        pageNumberAsInt = 1;
-    }
+    private Dictionary<int, List<TextMeshPro>> notesPerPage = new Dictionary<int, List<TextMeshPro>>();
+    private Dictionary<int, List<Line>> linesPerPage = new Dictionary<int, List<Line>>();
 
     private void Update()
     {
-        //updating note text in realtime from offscreen inputfield
-        if (newNote != null)
-        {
-            if (firstnoteWritten == false && newNote.text != "")
-            {
-                firstnoteWritten = true; 
-                storyManager.SetFirstNoteWritten(true);
-            }
-            newNote.text = inputField.text;
-        }
-
-        //code for instantiating notes
-        if (Input.GetMouseButtonDown(0))
-        {
-            if (EventSystem.current.IsPointerOverGameObject())
-            {
-                return;
-            }
-
-            Ray ray = equiprenderCam.ScreenPointToRay(Input.mousePosition);            
-            RaycastHit hit;                   
-
-            if (Physics.Raycast(ray, out hit)) 
-            {
-                if (hit.collider.gameObject.tag == "buttons")
-                {
-                    return;
-                }
-                else if (hit.collider.gameObject.tag == "pages")
-                {
-                    Mesh mesh = hit.transform.gameObject.GetComponent<MeshFilter>().mesh;
-                    Vector3[] vertices = mesh.vertices;
-
-                    float[] textDeltas = CalculateTextDelta(hit);
-                
-
-                    if (!isWriting)
-                    {
-                        WriteNote(hit, textDeltas[0], textDeltas[1]);
-                        return;
-                    }
-                    else if (isWriting && newNote.text == "")
-                    {
-                        Destroy(newNote.gameObject);
-                        WriteNote(hit, textDeltas[0], textDeltas[1]);
-                    }
-                    else
-                    {
-                        inputField.text = null;
-                        WriteNote(hit, textDeltas[0], textDeltas[1]); 
-                    }
-                }
-            }              
-        }
-
-        //code for drawing 
-        if (Input.GetMouseButtonDown(1))
-        {
-            if (EventSystem.current.IsPointerOverGameObject())
-            {
-                return;
-            }
-
-            Ray ray = equiprenderCam.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit))
-            {
-                if (hit.collider.gameObject.tag == "buttons")
-                {
-                    return;
-                }
-                else if (hit.collider.gameObject.tag == "pages")
-                {
-                    Vector3 mousePos = hit.point;
-                    GameObject newLine = Instantiate(linePrefab);
-                    newLine.transform.SetParent(hit.transform);
-                    activeLine = newLine.GetComponent<Line>();
-                    activeLine.UpdateLine(mousePos);
-                }
-            }                
-        }
-
-        if (Input.GetMouseButtonUp(1) && activeLine !=null)
-        {            
-            activeLine = null;               
-        }
-
-        if (activeLine != null)
-        {
-            Ray ray = equiprenderCam.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit))
-            {
-                if (hit.collider.gameObject.tag == "buttons")
-                {
-                    activeLine = null;
-                }
-                else if (hit.collider.gameObject.tag == "pages")
-                {
-                    if (firstlineDrawn == false)
-                    {
-                        firstlineDrawn = true;
-                        storyManager.SetFirstLineDrawn(true);
-                    }
-                    Vector3 mousePos = hit.point;
-                    activeLine.UpdateLine(mousePos);
-                }
-                else
-                {
-                    activeLine = null;
-                }
-            }
-        }
-        
+        HandleRealtimeNoteUpdate();
+        HandleMouseInput();
     }
 
-    //calculating textdelta for instantiated notes for wrapping
-    private float[] CalculateTextDelta(RaycastHit hit)
+    private void HandleRealtimeNoteUpdate()
     {
-        Mesh mesh = hit.transform.gameObject.GetComponent<MeshFilter>().mesh;
-        Vector3[] vertices = mesh.vertices;
-
-        float[] textDeltas = new float[2];
-
-        //for transforming quad vertice vectors into worldspace
-        //transform.TransformPoints(vertices);
-
-        Vector3 localHit = transform.InverseTransformPoint(hit.point);
-
-        //measuring horizontal text delta
-        float sideA = Vector3.Distance(localHit, vertices[2]);
-        float sideB = Vector3.Distance(localHit, vertices[0]);
-        float sideC = Vector3.Distance(vertices[2], vertices[0]);
-
-        float S_h = (sideA + sideB + sideC) / 2;
-
-        float A_h = Mathf.Sqrt(S_h * (S_h - sideA) * (S_h - sideB) * (S_h - sideC));
-
-        float horizontaltextDelta = 2 * (A_h / sideC);
-        textDeltas[0] = horizontaltextDelta;
-
-        //measuring vertical text delta
-        float sideD = Vector3.Distance(localHit, vertices[1]);
-        float sideE = Vector3.Distance(vertices[0], vertices[1]);
-
-        float S_v = (sideB + sideD + sideE) / 2;
-
-        float A_v = Mathf.Sqrt(S_v * (S_v - sideB) * (S_v - sideD) * (S_v - sideE));
-
-        float verticaltextDelta = 2 * (A_v / sideE);
-        textDeltas[1] = verticaltextDelta;
-
-        /* for debugging and checking vectors in localspace & worldspace
-        Debug.Log(localHit.x);
-        Debug.Log(vertices[1].x);
-        Debug.Log(vertices[3].x);
-
-        Debug.Log(vertices[0].x);
-        Debug.Log(vertices[2].x);
-        */
-
-        return textDeltas;
+        if (currentNote != null)
+        {
+            currentNote.text = inputField.text;
+        }
     }
 
-        private void WriteNote(RaycastHit hit, float horizontaltextDelta, float verticaltextDelta)
+    private void HandleMouseInput()
     {
-        isWriting = true;
-        Vector3 mousePos = new Vector3(hit.point.x, hit.point.y + .015f, hit.point.z);       
-        newNote = Instantiate(notePrefab);
-        newNote.transform.SetParent(hit.transform, false);
-        newNote.transform.position = mousePos;        
-        newNote.rectTransform.sizeDelta = new Vector2(horizontaltextDelta-.05f, verticaltextDelta); 
+        if (Input.GetMouseButtonDown(0)) HandleLeftClick();
+        if (Input.GetMouseButtonDown(1)) HandleRightClickStart();
+        if (Input.GetMouseButtonUp(1)) FinishCurrentLine();
+        if (currentLine != null) UpdateCurrentLine();
+    }
+
+    #region Notes
+
+    private void HandleLeftClick()
+    {
+        if (EventSystem.current.IsPointerOverGameObject()) return;
+
+        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Input.mousePosition), out RaycastHit hit))
+        {
+            if (hit.collider.CompareTag("buttons")) return;
+            if (hit.collider.CompareTag("pages"))
+            {
+                float[] deltas = CalculateTextDelta(hit);
+                CreateNewNote(hit, deltas[0], deltas[1]);
+            }
+        }
+    }
+
+    private void CreateNewNote(RaycastHit hit, float horizontalDelta, float verticalDelta)
+    {
+        // Clear previous note from editing
+        if (currentNote != null)
+        {
+            StoreNoteOnPage(currentPageIndex, currentNote);
+            currentNote = null;
+        }
+
+        // Reset input field so new note is blank
+        inputField.text = "";
+
+        currentNote = notePool.Get();
+        currentNote.transform.SetParent(hit.transform, false);
+
+        // Position in local space to avoid world offsets
+        Vector3 localPos = hit.transform.InverseTransformPoint(hit.point);
+        currentNote.transform.localPosition = new Vector3(localPos.x, localPos.y + 0.015f, localPos.z);
+
+        currentNote.rectTransform.sizeDelta = new Vector2(horizontalDelta - 0.05f, verticalDelta);
+        currentNote.text = ""; // ensure blank
         inputField.ActivateInputField();
     }
-    public void OpenNotepad()
+
+    #endregion
+
+    #region Lines
+
+    private void HandleRightClickStart()
     {
-        this.gameObject.SetActive(true);
-        environNotepad.gameObject.SetActive(false);
+        if (EventSystem.current.IsPointerOverGameObject()) return;
+
+        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Input.mousePosition), out RaycastHit hit))
+        {
+            if (hit.collider.CompareTag("buttons")) return;
+            if (hit.collider.CompareTag("pages"))
+            {
+                Vector3 localStart = hit.transform.InverseTransformPoint(hit.point);
+                currentLine = linePool.Get();
+                currentLine.transform.SetParent(hit.transform, false);
+                currentLine.Initialize(localStart); // local space
+            }
+        }
     }
 
-    public void CloseNotepad()
+    private void UpdateCurrentLine()
     {
-        this.gameObject.SetActive(false);
-        environNotepad.gameObject.SetActive(true);
+        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Input.mousePosition), out RaycastHit hit))
+        {
+            if (hit.collider.CompareTag("buttons") || !hit.collider.CompareTag("pages"))
+            {
+                currentLine = null;
+                return;
+            }
+
+            Vector3 localPos = hit.transform.InverseTransformPoint(hit.point);
+            currentLine.UpdateLine(localPos);
+        }
     }
 
+    private void FinishCurrentLine()
+    {
+        if (currentLine != null)
+        {
+            StoreLineOnPage(currentPageIndex, currentLine);
+            currentLine = null;
+        }
+    }
+
+    #endregion
+
+    #region Page Flipping
 
     public void FlipPageForward()
     {
@@ -241,35 +147,107 @@ public class Notepad : MonoBehaviour
         currentPageIndex++;
         pageNumberAsInt++;
         pageNumber.text = pageNumberAsInt.ToString();
-        Debug.Log(currentPageIndex);
-        Debug.Log(pages.Count);      
-        if (pages.Count < currentPageIndex+1)
+
+        if (currentPageIndex >= pages.Count)
         {
-            GameObject newPage = Instantiate(pagePrefab);
-            newPage.transform.SetParent(pagesParent, false);
+            GameObject newPage = Instantiate(pagePrefab, pagesParent, false);
             pages.Add(newPage);
-            pages[currentPageIndex].SetActive(true); 
         }
-        else
-        {            
-            pages[currentPageIndex].SetActive(true);
-        }
+
+        pages[currentPageIndex].SetActive(true);
+        RestorePageContent(currentPageIndex);
     }
 
     public void FlipPageBackward()
     {
-        if (currentPageIndex == 0)
-        {
-            return;
-        }
+        if (currentPageIndex == 0) return;
 
-        if (currentPageIndex > 0)
-        {
-            pages[currentPageIndex].SetActive(false);
-            currentPageIndex--;
-            pageNumberAsInt--;
-            pageNumber.text = pageNumberAsInt.ToString();
-            pages[currentPageIndex].SetActive(true);
-        }
+        pages[currentPageIndex].SetActive(false);
+        currentPageIndex--;
+        pageNumberAsInt--;
+        pageNumber.text = pageNumberAsInt.ToString();
+        pages[currentPageIndex].SetActive(true);
+        RestorePageContent(currentPageIndex);
     }
+
+    #endregion
+
+    #region Notepad Visibility
+
+    public void OpenNotepad()
+    {
+        gameObject.SetActive(true);
+        environNotepad.SetActive(false);
+    }
+
+    public void CloseNotepad()
+    {
+        gameObject.SetActive(false);
+        environNotepad.SetActive(true);
+    }
+
+    #endregion
+
+    #region Page Content Management
+
+    private void StoreNoteOnPage(int pageIndex, TextMeshPro note)
+    {
+        if (!notesPerPage.ContainsKey(pageIndex))
+            notesPerPage[pageIndex] = new List<TextMeshPro>();
+        notesPerPage[pageIndex].Add(note);
+    }
+
+    private void StoreLineOnPage(int pageIndex, Line line)
+    {
+        if (!linesPerPage.ContainsKey(pageIndex))
+            linesPerPage[pageIndex] = new List<Line>();
+        linesPerPage[pageIndex].Add(line);
+    }
+
+    private void RestorePageContent(int pageIndex)
+    {
+        if (notesPerPage.TryGetValue(pageIndex, out var notes))
+            foreach (var n in notes) n.gameObject.SetActive(true);
+
+        if (linesPerPage.TryGetValue(pageIndex, out var lines))
+            foreach (var l in lines) l.gameObject.SetActive(true);
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private float[] CalculateTextDelta(RaycastHit hit)
+    {
+        Mesh mesh = hit.transform.GetComponent<MeshFilter>().mesh;
+        Vector3 localHit = transform.InverseTransformPoint(hit.point);
+        Vector3[] v = mesh.vertices;
+
+        float horizontal = CalculateTriangleDelta(localHit, v[0], v[2], v[1], true);
+        float vertical = CalculateTriangleDelta(localHit, v[0], v[1], v[2], false);
+
+        return new float[] { horizontal, vertical };
+    }
+
+    private float CalculateTriangleDelta(Vector3 p, Vector3 a, Vector3 b, Vector3 c, bool horizontal)
+    {
+        float sideA = Vector3.Distance(p, a);
+        float sideB = Vector3.Distance(p, b);
+        float sideC = Vector3.Distance(a, b);
+        float S = (sideA + sideB + sideC) / 2f;
+        float A = Mathf.Sqrt(S * (S - sideA) * (S - sideB) * (S - sideC));
+        return 2f * (A / sideC);
+    }
+
+    #endregion
 }
+
+
+
+
+
+
+
+
+
+
