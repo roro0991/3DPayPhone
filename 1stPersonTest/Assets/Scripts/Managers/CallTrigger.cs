@@ -21,8 +21,9 @@ public class CallTrigger : MonoBehaviour
         // Optional: assign number for a test contact
         if (testContact != null)
         {
-            string assignedNumber = phoneNumberManager.AssignNumber(testContact);
-            Debug.Log($"TestContact '{testContact.ContactName}' assigned number: {assignedNumber}");
+            testContact.DiscoverContact();
+            //string assignedNumber = phoneNumberManager.AssignNumber(testContact);
+            //Debug.Log($"TestContact '{testContact.ContactName}' assigned number: {assignedNumber}");
         }
     }
 

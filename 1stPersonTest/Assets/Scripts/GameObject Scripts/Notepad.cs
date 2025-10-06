@@ -7,10 +7,12 @@ public class Notepad : MonoBehaviour
 {
     [Header("Notepad Setup")]
     [SerializeField] private GameObject environNotepad;
-    [SerializeField] private List<GameObject> pages = new List<GameObject>();
-    [SerializeField] private GameObject pagePrefab;
+    [SerializeField] private List<GameObject> pages = new List<GameObject>();    
     [SerializeField] private Transform pagesParent;
+    [SerializeField] private GameObject pagePrefab;
     [SerializeField] private TextMeshPro pageNumber;
+    [SerializeField] private GameObject contacts;
+    [SerializeField] private GameObject notes;
 
     [Header("Camera & Input")]
     [SerializeField] private Camera equiprenderCam;
@@ -21,7 +23,6 @@ public class Notepad : MonoBehaviour
     [SerializeField] private LinePool linePool;
 
     private int currentPageIndex = 0;
-    private int pageNumberAsInt = 1;
 
     private Line currentLine;
     private TextMeshPro currentNote;
@@ -85,7 +86,7 @@ public class Notepad : MonoBehaviour
 
         // Position in local space to avoid world offsets
         Vector3 localPos = hit.transform.InverseTransformPoint(hit.point);
-        currentNote.transform.localPosition = new Vector3(localPos.x, localPos.y + 0.015f, localPos.z);
+        currentNote.transform.localPosition = new Vector3(localPos.x, localPos.y + 0.050f, localPos.z);
 
         currentNote.rectTransform.sizeDelta = new Vector2(horizontalDelta - 0.05f, verticalDelta);
         currentNote.text = ""; // ensure blank
@@ -143,31 +144,38 @@ public class Notepad : MonoBehaviour
 
     public void FlipPageForward()
     {
-        pages[currentPageIndex].SetActive(false);
-        currentPageIndex++;
-        pageNumberAsInt++;
-        pageNumber.text = pageNumberAsInt.ToString();
-
-        if (currentPageIndex >= pages.Count)
+        if (notes.gameObject.activeSelf)
         {
-            GameObject newPage = Instantiate(pagePrefab, pagesParent, false);
-            pages.Add(newPage);
-        }
+            pages[currentPageIndex].SetActive(false);
+            currentPageIndex++;
+            //pageNumberAsInt++;
+            int page = currentPageIndex + 1;
+            pageNumber.text = page.ToString();
 
-        pages[currentPageIndex].SetActive(true);
-        RestorePageContent(currentPageIndex);
+            if (currentPageIndex >= pages.Count)
+            {
+                GameObject newPage = Instantiate(pagePrefab, pagesParent, false);
+                pages.Add(newPage);
+            }
+
+            pages[currentPageIndex].SetActive(true);
+            RestorePageContent(currentPageIndex);
+        }
     }
 
     public void FlipPageBackward()
     {
-        if (currentPageIndex == 0) return;
-
-        pages[currentPageIndex].SetActive(false);
-        currentPageIndex--;
-        pageNumberAsInt--;
-        pageNumber.text = pageNumberAsInt.ToString();
-        pages[currentPageIndex].SetActive(true);
-        RestorePageContent(currentPageIndex);
+        if (notes.gameObject.activeSelf)
+        {
+            if (currentPageIndex == 0) return;
+            pages[currentPageIndex].SetActive(false);
+            currentPageIndex--;
+            //pageNumberAsInt--;
+            int page = currentPageIndex + 1;
+            pageNumber.text = page.ToString();
+            pages[currentPageIndex].SetActive(true);
+            RestorePageContent(currentPageIndex);
+        }
     }
 
     #endregion
@@ -184,6 +192,20 @@ public class Notepad : MonoBehaviour
     {
         gameObject.SetActive(false);
         environNotepad.SetActive(true);
+    }
+
+    public void OpenNotes()
+    {
+        contacts.gameObject.SetActive(false);
+        notes.gameObject.SetActive(true);
+        int page = currentPageIndex + 1;
+        pageNumber.text = page.ToString();
+    }
+
+    public void OpenContacts()
+    {
+        notes.gameObject.SetActive(false);
+        contacts.gameObject.SetActive(true);
     }
 
     #endregion

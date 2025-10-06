@@ -8,7 +8,8 @@ public class TestContact : Contact
 
     private void Start()
     {
-        ContactName = "Them";
+        ContactName = "John Smith";
+        ContactAddress = "123 Olympic Blvd";
         OpeningLine = "Hello?";
 
         // Add words using singleton

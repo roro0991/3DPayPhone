@@ -8,8 +8,10 @@ public class PhoneNumberManager : MonoBehaviour
     // Store phone numbers keyed by contact reference
     private readonly Dictionary<Contact, string> contactNumbers = new Dictionary<Contact, string>();
 
-    [SerializeField] private int numberLength = 7; // Default length for phone numbers
+    [SerializeField] private int numberLength = 4; // last digits after prefix
     public int NumberLength => numberLength;
+
+    [SerializeField] private string numberPrefix = "555"; // prefix for all numbers
 
     /// <summary>
     /// Get the number for this contact, or generate one if it doesn't exist yet.
@@ -52,23 +54,24 @@ public class PhoneNumberManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Generates a unique random N-digit number that isn't already assigned.
+    /// Generates a unique random phone number in the format prefix-XXXX.
     /// </summary>
     private string GenerateUniqueRandomNumber()
     {
         string newNumber;
-        int min = (int)Mathf.Pow(10, numberLength - 1);
-        int max = (int)Mathf.Pow(10, numberLength) - 1;
 
         do
         {
-            int num = Random.Range(min, max + 1);
-            newNumber = num.ToString();
-        } while (contactNumbers.ContainsValue(newNumber)); // Ensure uniqueness
+            int lastDigits = Random.Range(0, (int)Mathf.Pow(10, numberLength)); // 0 - 9999 for 4 digits
+            newNumber = $"{numberPrefix}-{lastDigits:D4}"; // pads with leading zeros
+        }
+        while (contactNumbers.ContainsValue(newNumber)); // Ensure uniqueness
 
         return newNumber;
     }
 }
+
+
 
 
 
