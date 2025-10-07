@@ -3,54 +3,76 @@ using UnityEngine;
 
 public abstract class Contact : MonoBehaviour
 {
-    [SerializeField] private AddressBook addressBook;
+    [SerializeField] private AddressBook addressBook;  // Must be assigned in Inspector
     [SerializeField] private PhoneNumberManager phoneNumberManager;
 
     public List<Word> SentenceWords = new List<Word>();
     public string ContactNumber;
     public string ContactName;
     public string ContactAddress;
-    public bool Discovered;
+    private bool nameKnown;
+    private bool numberKnown;
+    private bool addressKnown;
     [HideInInspector] public string ContactID = System.Guid.NewGuid().ToString();
     public string OpeningLine = string.Empty;
     public string PlayerInput = string.Empty;
     public string ContactResponse = string.Empty;
 
-    [SerializeField] protected WordBank wordBank; // reference to the player’s word bank
+    [SerializeField] protected WordBank wordBank;
 
-    public void DiscoverContact()
+    private void Awake()
     {
-        if (Discovered) return;
-
-        Discovered = true;
-
         if (addressBook == null)
         {
-            addressBook = FindObjectOfType<AddressBook>();
-        }
-
-        if (phoneNumberManager == null)
-        {
-            phoneNumberManager = FindObjectOfType<PhoneNumberManager>();
-        }
-
-        if (addressBook != null)
-        {
-            addressBook.OnContactDiscovered(this);
-        }
-        else
-        {
-            Debug.LogWarning($"No AddressBook found for {ContactName}");
+            Debug.LogWarning($"Contact '{ContactName}' has no AddressBook assigned in Inspector.");
         }
     }
 
-    // Abstract methods to be implemented by subclasses
+    public void DiscoverName(string name)
+    {
+        ContactName = name;
+        nameKnown = true;
+        NotifyAddressBook();
+    }
+
+    public void DiscoverNumber(PhoneNumberManager phoneNumberManager)
+    {
+        if (!numberKnown)
+        {
+            ContactNumber = phoneNumberManager.GetOrGenerateNumber(this);
+            numberKnown = true;
+            Debug.Log($"{ContactName} number discovered: {ContactNumber}");
+        }
+
+        NotifyAddressBook();
+    }
+
+    public void DiscoverAddress(string address)
+    {
+        ContactAddress = address;
+        addressKnown = true;
+        NotifyAddressBook();
+    }
+
+    private void NotifyAddressBook()
+    {
+        if (addressBook != null)
+        {
+            var data = new ContactData(
+                ContactID,
+                nameKnown ? ContactName : "",
+                numberKnown ? ContactNumber : "",
+                addressKnown ? ContactAddress : ""
+            );
+
+            Debug.Log($"Notifying AddressBook with: {data.Name}, {data.PhoneNumber}");
+            addressBook.UpdateContact(data);
+        }
+    }
+
     public abstract void SpeakFirstLine();
     public abstract void GenerateResponse();
 
-    /// <summary>
-    /// Pushes current SentenceWords to the WordBank.
-    /// </summary>
     protected void UpdateWordBankFromSentence()
     {
         if (wordBank != null)
@@ -58,27 +80,17 @@ public abstract class Contact : MonoBehaviour
             wordBank.ClearWordBank();
             wordBank.AddWordsToWordBank(SentenceWords);
         }
-        else
-        {
-            Debug.LogWarning($"{ContactName} has no WordBank reference assigned.");
-        }
     }
 
-    /// <summary>
-    /// Utility: Add words to SentenceWords using WordDatabase singleton
-    /// </summary>
     protected void AddWordToSentence(string key)
     {
         var word = WordDataBase.Instance.GetWord(key);
         if (word != null && !SentenceWords.Contains(word))
-        {
             SentenceWords.Add(word);
-        }
-        else if (word == null)
-        {
-            Debug.LogWarning($"Word '{key}' not found in WordDatabase!");
-        }
     }
 }
+
+
+
 
 

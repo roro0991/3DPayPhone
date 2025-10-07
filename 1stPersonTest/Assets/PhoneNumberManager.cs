@@ -10,6 +10,7 @@ public class PhoneNumberManager : MonoBehaviour
 
     [SerializeField] private int numberLength = 4; // last digits after prefix
     public int NumberLength => numberLength;
+    public int FullNumberLength => numberPrefix.Length + numberLength;
 
     [SerializeField] private string numberPrefix = "555"; // prefix for all numbers
 
@@ -45,13 +46,18 @@ public class PhoneNumberManager : MonoBehaviour
     /// </summary>
     public Contact GetContactByNumber(string number)
     {
+        // Normalize both by removing any dashes before comparison
+        string normalizedInput = number.Replace("-", "");
+
         foreach (var kvp in contactNumbers)
         {
-            if (kvp.Value == number)
+            string storedNormalized = kvp.Value.Replace("-", "");
+            if (storedNormalized == normalizedInput)
                 return kvp.Key;
         }
         return null;
     }
+
 
     /// <summary>
     /// Generates a unique random phone number in the format prefix-XXXX.

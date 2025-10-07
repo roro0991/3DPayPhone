@@ -4,41 +4,58 @@ using UnityEngine;
 
 public class AddressBook : MonoBehaviour
 {
+    [SerializeField] private GameObject addressBookRoot;
     [SerializeField] private PhoneNumberManager phoneNumberManager;
-    [SerializeField] private List<GameObject> contactSlots; // Each slot has Name/Number TMPs
+    [SerializeField] private List<GameObject> contactSlots;
     [SerializeField] private int contactsPerPage = 4;
 
     private readonly List<ContactData> allContacts = new List<ContactData>();
     private int currentPage = 0;
 
+    public void OnAddressBookOpened()
+    {
+        RefreshCurrentPage();
+    }
+
     public void AddContact(ContactData data)
     {
-        // Avoid duplicates
         if (!allContacts.Exists(c => c.ID == data.ID))
             allContacts.Add(data);
 
-        UpdatePage();
+        RefreshCurrentPage();
     }
 
     public void NextPage()
     {
+        if (!addressBookRoot.activeSelf) return;
         if ((currentPage + 1) * contactsPerPage < allContacts.Count)
         {
             currentPage++;
-            UpdatePage();
+            RefreshCurrentPage();
         }
     }
 
     public void PrevPage()
     {
+        if (!addressBookRoot.activeSelf) return;
         if (currentPage > 0)
         {
             currentPage--;
-            UpdatePage();
+            RefreshCurrentPage();
         }
     }
 
-    private void UpdatePage()
+    private int GetPageOfContact(string contactID)
+    {
+        for (int i = 0; i < allContacts.Count; i++)
+        {
+            if (allContacts[i].ID == contactID)
+                return i / contactsPerPage;
+        }
+        return -1;
+    }
+
+    private void RefreshCurrentPage()
     {
         int start = currentPage * contactsPerPage;
 
@@ -46,58 +63,54 @@ public class AddressBook : MonoBehaviour
         {
             TMP_Text nameText = contactSlots[i].transform.Find("NameText").GetComponent<TMP_Text>();
             TMP_Text numberText = contactSlots[i].transform.Find("NumberText").GetComponent<TMP_Text>();
-            TMP_Text addressText = contactSlots[i].transform.Find("AddressText")?.GetComponent<TMP_Text>(); // safe optional
+            TMP_Text addressText = contactSlots[i].transform.Find("AddressText")?.GetComponent<TMP_Text>();
 
             int index = start + i;
 
             if (index < allContacts.Count)
             {
-                ContactData data = allContacts[index];
-
-                nameText.text = $"Name: {data.Name.Trim()}";
-                numberText.text = $"Phone: {data.PhoneNumber.Trim()}";
-
+                var data = allContacts[index];
+                nameText.text = $"Name: {data.Name}";
+                numberText.text = $"Phone: {data.PhoneNumber}";
                 if (addressText != null)
-                    addressText.text = $"Address: {data.Address.Trim()}";
+                    addressText.text = $"Address: {data.Address}";
             }
             else
             {
-                // Keep the labels, just clear the data
                 nameText.text = "Name:";
                 numberText.text = "Phone:";
-
                 if (addressText != null)
                     addressText.text = "Address:";
             }
 
-            contactSlots[i].SetActive(true); // always active now
+            contactSlots[i].SetActive(true);
         }
     }
 
-
-
-    public void OnContactDiscovered(Contact contact)
+    public void UpdateContact(ContactData updatedContact)
     {
-        if (phoneNumberManager == null)
-            phoneNumberManager = FindObjectOfType<PhoneNumberManager>();
+        var existing = allContacts.Find(c => c.ID == updatedContact.ID);
 
-        if (phoneNumberManager == null)
+        if (existing != null)
         {
-            Debug.LogError("AddressBook: PhoneNumberManager not found in scene!");
-            return;
+            existing.UpdateInfo(
+                name: string.IsNullOrEmpty(updatedContact.Name) ? existing.Name : updatedContact.Name,
+                number: string.IsNullOrEmpty(updatedContact.PhoneNumber) ? existing.PhoneNumber : updatedContact.PhoneNumber,
+                address: string.IsNullOrEmpty(updatedContact.Address) ? existing.Address : updatedContact.Address
+            );
+        }
+        else
+        {
+            allContacts.Add(updatedContact);
         }
 
-        string number = phoneNumberManager.GetOrGenerateNumber(contact);
-        contact.ContactNumber = number;
+        // Keep the current page on the updated contact
+        int page = GetPageOfContact(updatedContact.ID);
+        if (page >= 0)
+            currentPage = page;
 
-        ContactData newContact = new ContactData(
-            contact.ContactID,
-            contact.ContactName,
-            contact.ContactNumber,
-            contact.ContactAddress // new line
-        );
-
-        AddContact(newContact);
+        // Always refresh the page, active or not—it won’t hurt
+        RefreshCurrentPage();
     }
 
 }
@@ -110,14 +123,20 @@ public class ContactData
     public string PhoneNumber;
     public string Address;
 
-    public ContactData(string id, string name, string number, string address)
+    public ContactData(string id, string name = "", string number = "", string address = "")
     {
         ID = id;
         Name = name;
         PhoneNumber = number;
         Address = address;
     }
-}
 
+    public void UpdateInfo(string name = null, string number = null, string address = null)
+    {
+        if (name != null) Name = name;
+        if (number != null) PhoneNumber = number;
+        if (address != null) Address = address;
+    }
+}
 
 

@@ -21,7 +21,8 @@ public class CallTrigger : MonoBehaviour
         // Optional: assign number for a test contact
         if (testContact != null)
         {
-            testContact.DiscoverContact();
+            testContact.DiscoverName(testContact.ContactName); 
+            testContact.DiscoverNumber(phoneNumberManager); 
             //string assignedNumber = phoneNumberManager.AssignNumber(testContact);
             //Debug.Log($"TestContact '{testContact.ContactName}' assigned number: {assignedNumber}");
         }
@@ -46,7 +47,7 @@ public class CallTrigger : MonoBehaviour
         }
 
         // Only try to call when the full number length is dialed
-        if (!isCallInProgress && phoneManager.GetDigitCount() == phoneNumberManager.NumberLength)
+        if (!isCallInProgress && phoneManager.GetDigitCount() == phoneNumberManager.FullNumberLength)
         {
             TryCall(numberToCall);
         }
