@@ -57,6 +57,10 @@ public class CallTrigger : MonoBehaviour
         {
             StopAllCoroutines();
             isCallInProgress = false;
+
+            // Stop ringing audio
+            if (sfxManager.dialSource.isPlaying)
+                sfxManager.dialSource.Stop();
         }
     }
 

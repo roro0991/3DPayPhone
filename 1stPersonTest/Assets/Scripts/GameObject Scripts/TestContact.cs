@@ -13,8 +13,7 @@ public class TestContact : Contact
         OpeningLine = "Hello?";
 
         // Add words using singleton
-        AddWordToSentence("hi");
-        AddWordToSentence("there");
+        AddWordToSentence("dog");
     }
 
     public override void SpeakFirstLine()

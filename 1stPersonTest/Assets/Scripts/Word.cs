@@ -32,7 +32,7 @@ public class NounForms
 
 [System.Serializable]
 public class VerbForms
-{    
+{
     // Verbs (basic set)
     public string Base; //e.g. "run"
     public string Past; //e.g. "ran"
@@ -65,7 +65,7 @@ public class Word
     public Word(string text, PartsOfSpeech partOfSpeech)
     {
         Text = text;
-        PartOfSpeech = partOfSpeech;    
+        PartOfSpeech = partOfSpeech;
     }
 
     public bool HasPartOfSpeech(PartsOfSpeech pos)

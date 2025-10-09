@@ -193,8 +193,8 @@ public class PhoneManager : MonoBehaviour
                 _currentPhoneNumberArrayIndex = 0;
 
                 //SFX
-                sfxManager.ReceiverDown();
                 dialogueaudioManager.dialogueaudioSource.Stop();
+                sfxManager.ReceiverDown();
                 break;
 
             default:
