@@ -4,7 +4,7 @@ using UnityEngine;
 public class TestContact : Contact
 {
     private Dictionary<string, string> inputResponses = new Dictionary<string, string>();
-    private Dictionary<string, List<Word>> wordsForBank = new Dictionary<string, List<Word>>();
+    private Dictionary<string, List<SentenceWordEntry>> wordsForBank = new Dictionary<string, List<SentenceWordEntry>>();
 
     private void Start()
     {
@@ -14,6 +14,7 @@ public class TestContact : Contact
 
         // Add words using singleton
         AddWordToSentence("dog");
+        AddWordToSentence("dogs");
     }
 
     public override void SpeakFirstLine()

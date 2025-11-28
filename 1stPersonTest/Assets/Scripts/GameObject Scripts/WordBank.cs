@@ -5,7 +5,7 @@ using TMPro;
 
 public class WordBank : MonoBehaviour
 {
-    private Queue<Word> wordsInQueue = new Queue<Word>();    // store Word objects now
+    private Queue<SentenceWordEntry> wordsInQueue = new Queue<SentenceWordEntry>();    // store Word objects now
     public GameObject draggableWordPrefab;
 
     private List<Coroutine> runningFades = new List<Coroutine>();
@@ -27,7 +27,7 @@ public class WordBank : MonoBehaviour
         }
 
         // Generate new words
-        foreach (Word word in wordsInQueue)
+        foreach (SentenceWordEntry word in wordsInQueue)
         {
             CreateWordUI(word);
         }
@@ -35,10 +35,10 @@ public class WordBank : MonoBehaviour
         Debug.Log("GenerateWords called. Words in queue: " + wordsInQueue.Count);
     }
 
-    public void AddWordsToWordBank(List<Word> words)
+    public void AddWordsToWordBank(List<SentenceWordEntry> words)
     {
         // Queue up the words
-        wordsInQueue = new Queue<Word>(words);
+        wordsInQueue = new Queue<SentenceWordEntry>(words);
 
         // If panel is active, generate immediately
         if (gameObject.activeInHierarchy)
@@ -58,14 +58,14 @@ public class WordBank : MonoBehaviour
         GenerateWords();
     }
 
-    private void CreateWordUI(Word word)
+    private void CreateWordUI(SentenceWordEntry word)
     {
         GameObject newWord = Instantiate(draggableWordPrefab, transform);
 
         TMP_Text textComponent = newWord.GetComponentInChildren<TMP_Text>();
         if (textComponent != null)
         {
-            textComponent.text = word.Text; // Use Word.Text instead of string
+            textComponent.text = word.Surface; // Use SentenceWordEntry surface instead of string
         }
         else
         {
@@ -128,9 +128,9 @@ public class WordBank : MonoBehaviour
         GenerateWords();
     }
 
-    public void UpdateWordBank(List<Word> words)
+    public void UpdateWordBank(List<SentenceWordEntry> words)
     {
-        foreach (Word word in words)
+        foreach (SentenceWordEntry word in words)
         {
             wordsInQueue.Enqueue(word);
         }

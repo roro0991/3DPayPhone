@@ -23,6 +23,13 @@ public enum PartsOfSpeech
 }
 
 [System.Serializable]
+public class SentenceWordEntry
+{
+    public Word Word; // semantic object
+    public string Surface; // the actual form used (ie. dog vs dogs)
+}
+
+[System.Serializable]
 public class NounForms
 {
     //Nouns
@@ -53,9 +60,9 @@ public class VerbForms
 // Define a class to hold info about each word
 [System.Serializable]
 public class Word
-{
-
-    public string Text;                     // e.g., "run"
+{    
+    public string Text;                     // e.g., "run"    
+    //public SentenceWordEntry SentenceWordEntry;
     public PartsOfSpeech PartOfSpeech;      // bitflags for multiple roles
 
     public List<NounForms> NounFormsList = new();
@@ -96,6 +103,26 @@ public class Word
 
     public VerbForms GetVerbForm(int index = 0) =>
         (VerbFormsList.Count > index) ? VerbFormsList[index] : null;
+
+    public bool IsSingular(string surfaceWord)
+    {
+        foreach (var nf in NounFormsList)
+        {
+            if (surfaceWord == nf.Singular)
+                return true;
+        }
+        return false;
+    }
+
+    public bool IsPlural(string surfaceWord)
+    {
+        foreach (var nf in NounFormsList)
+        {
+            if (surfaceWord == nf.Plural)
+                return true;
+        }
+        return false;
+    }
 }
 
 public static class SmartSentenceParser

@@ -127,11 +127,11 @@ public class CallManager : MonoBehaviour
             yield return new WaitForSeconds(2f);
 
             WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();
-
+            /*
             if (currentContact.ContactResponse == "I don't understand.")
-            {
+            {                
                 // ?? Add previous words back into the bank (convert from string to Word)
-                List<Word> previousSentenceWords = new List<Word>();
+                List<SentenceWordEntry> previousSentenceWords = new List<SentenceWordEntry>();
                 foreach (string token in currentContact.PlayerInput.Split(' '))
                 {
                     if (wdb.Words.TryGetValue(token.ToLower(), out Word w))
@@ -146,6 +146,7 @@ public class CallManager : MonoBehaviour
                 wordBankComponent.ClearWordBank();
                 wordBankComponent.AddWordsToWordBank(currentContact.SentenceWords);
             }
+            */
         }
     }
 

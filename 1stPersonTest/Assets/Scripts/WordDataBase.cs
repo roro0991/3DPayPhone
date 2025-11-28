@@ -103,6 +103,7 @@ public class WordDataBase : MonoBehaviour
 
         // ----------------- Adjectives -----------------
         AddWord(new Word("nice", PartsOfSpeech.Adjective));
+        AddWord(new Word("big", PartsOfSpeech.Adjective));
 
         // ----------------- Prepositions -----------------
         AddWord(new Word("to", PartsOfSpeech.Preposition));
@@ -166,6 +167,21 @@ public class WordDataBase : MonoBehaviour
     public Word GetWord(string key)
     {
         _words.TryGetValue(key.ToLower(), out var word);
+
+        if (word == null)
+        {
+            foreach (var w in WordDataBase.Instance.Words.Values)
+            {
+                foreach (var nf in w.NounFormsList)
+                {
+                    if (nf.Plural == key)
+                    {
+                        word = w;
+                        break;
+                    }
+                }
+            }
+        }
         return word;
     }
 

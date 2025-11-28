@@ -79,6 +79,22 @@ public class SentenceBuilder : MonoBehaviour
         UpdateWordPositions();
     }
 
+    public void TestSingularOrPlural(SentenceWordEntry word)
+    {
+        var placeholder = word; 
+        if (placeholder != null && placeholder.Word.PartOfSpeech == PartsOfSpeech.Noun)
+        {
+            if (placeholder.Word.IsSingular(placeholder.Surface))
+            {
+                Debug.Log("This word is singular");
+            }
+            else if (placeholder.Word.IsPlural(placeholder.Surface))
+            {
+                Debug.Log("This word is plural");
+            }
+        }
+    }
+
     public void RemovePlaceholder()
     {
         if (placeholderWord != null && wordList.Contains(placeholderWord))

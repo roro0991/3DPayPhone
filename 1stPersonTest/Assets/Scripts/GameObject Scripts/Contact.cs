@@ -6,7 +6,7 @@ public abstract class Contact : MonoBehaviour
     [SerializeField] private AddressBook addressBook;  // Must be assigned in Inspector
     [SerializeField] private PhoneNumberManager phoneNumberManager;
 
-    public List<Word> SentenceWords = new List<Word>();
+    public List<SentenceWordEntry> SentenceWords = new List<SentenceWordEntry>();
     public string ContactNumber;
     public string ContactName;
     public string ContactAddress;
@@ -84,9 +84,40 @@ public abstract class Contact : MonoBehaviour
 
     protected void AddWordToSentence(string key)
     {
+        key = key.ToLower();
+
+        // First try direct match
         var word = WordDataBase.Instance.GetWord(key);
-        if (word != null && !SentenceWords.Contains(word))
-            SentenceWords.Add(word);
+        if (word != null)
+        {
+            AddEntry(word, key);
+            return;
+        }   
+        
+        // Check known influections       
+        foreach (var w in WordDataBase.Instance.Words.Values)
+        {
+            // Check noun forms
+            foreach (var nf in w.NounFormsList)
+            {
+                if (nf.Plural == key)
+                {
+                    AddEntry(w, key);
+                    return;
+                }
+            }
+        }
+
+        Debug.LogWarning($"Couldn't find base word for '{key}'");
+    }
+
+    private void AddEntry(Word word, string surface)
+    {
+        SentenceWords.Add(new SentenceWordEntry
+        {
+            Word = word,
+            Surface = surface // ? THIS is "dogs"
+        });
     }
 }
 

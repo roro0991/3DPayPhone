@@ -1,11 +1,13 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    public Word wordData; // Reference to the semantic word
+    //public Word wordData; // Reference to the semantic word
+    public SentenceWordEntry sentenceWordEntry; // Reference to surface word
     private RectTransform rectTransform;
     private RectTransform placeholder;
     private Vector3 storedPosition;
@@ -19,11 +21,18 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private SentenceBuilder sentenceBuilder;
 
     private void Awake()
-    {
+    {               
         sentenceBuilder = FindObjectOfType<SentenceBuilder>();
         rectTransform = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
         canvasGroup = GetComponentInChildren<CanvasGroup>();
+    }
+
+    private void Start()
+    {
+        sentenceWordEntry.Surface = this.GetComponent<TMP_Text>().text.ToString();
+        sentenceWordEntry.Word = WordDataBase.Instance.GetWord(this.GetComponent<TMP_Text>().text.ToString());
+        //wordData = WordDataBase.Instance.GetWord(this.GetComponent<TMP_Text>().text.ToString());
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -100,7 +109,8 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                     out localPoint
                 );
                 int insertIndex = sentenceBuilder.GetInsertionIndex(localPoint.x);
-                sentenceBuilder.InsertWordAt(rectTransform, wordData, insertIndex);
+                sentenceBuilder.InsertWordAt(rectTransform, sentenceWordEntry.Word, insertIndex);
+                sentenceBuilder.TestSingularOrPlural(sentenceWordEntry);
                 isInSentencePanel = true;
             }
             else if (dropTarget.GetComponentInParent<WordBank>() != null)
@@ -138,7 +148,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         // Copy Word reference
         DraggableWord placeholderScript = placeholderGO.GetComponent<DraggableWord>();
-        placeholderScript.wordData = this.wordData;
+        placeholderScript.sentenceWordEntry.Word = this.sentenceWordEntry.Word;
 
         return placeholderGO.GetComponent<RectTransform>();
     }
