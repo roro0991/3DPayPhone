@@ -9,7 +9,6 @@ public class PhoneManager : MonoBehaviour
     [SerializeField] private CallManager callManager;
     [SerializeField] private CallTrigger callTrigger;
     [SerializeField] private DialogueAudioManager dialogueaudioManager;
-    [SerializeField] private PuzzleManager puzzleManager;
     [SerializeField] private SFXManager sfxManager;
 
     [Header("Display")]

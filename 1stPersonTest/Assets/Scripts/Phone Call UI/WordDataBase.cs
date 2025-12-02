@@ -66,6 +66,11 @@ public class WordDataBase : MonoBehaviour
         dogWord.AddNounForm(dogForms);
         AddWord(dogWord);
 
+        var catForms = new NounForms { Singular = "cat", Plural = "cats" };
+        var catWord = new Word("cat", PartsOfSpeech.Noun);
+        catWord.AddNounForm(catForms);
+        AddWord(catWord);
+
         // ----------------- Verbs -----------------
         var meetForms = new VerbForms
         {

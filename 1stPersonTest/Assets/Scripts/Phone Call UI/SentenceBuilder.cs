@@ -1,19 +1,28 @@
 using UnityEngine;
 using System.Collections.Generic;
+using TMPro;
 
 public class SentenceBuilder : MonoBehaviour
 {
+    public WordBank wordBank;
+
     public Vector2 startPosition = Vector2.zero;
     public float spacing = 10f;
 
     public List<RectTransform> wordList = new List<RectTransform>();
-    public List<Word> wordDataList = new List<Word>(); // Track semantic words
+    public List<SentenceWordEntry> wordDataList = new List<SentenceWordEntry>(); // Track semantic words
     public string currentSentenceAsString;
+    public GameObject draggableWordPrefab;
 
     private RectTransform placeholderWord;
 
+    private void Start()
+    {
+        wordBank = FindAnyObjectByType<WordBank>();
+    }
+
     // ---------------- Sentence management ----------------
-    public void InsertWordAt(RectTransform rect, Word wordData, int index)
+    public void InsertWordAt(RectTransform rect, SentenceWordEntry wordData, int index)
     {
         if (wordList.Contains(rect))
         {
@@ -25,8 +34,46 @@ public class SentenceBuilder : MonoBehaviour
         wordList.Insert(index, rect);
         wordDataList.Insert(index, wordData);
 
+        if (wordData.Word.PartOfSpeech == PartsOfSpeech.Noun &&
+            wordData.Word.IsSingular(wordData.Surface))
+        {
+            InsertArticleIfMissing(index, wordData);
+        }
+
         UpdateWordPositions();
         UpdateSentenceString();
+    }
+
+    private void InsertArticleIfMissing(int nounIndex, SentenceWordEntry nounWord)
+    {
+        /*
+        string firstLetter = nounWord.Surface.ToLower();
+        bool startsWithVowel = "aeiou".Contains(firstLetter[0]);
+        string article = startsWithVowel ? "an" : "a";
+
+        if (nounIndex > 0)
+        {
+            var prev = wordDataList[nounIndex - 1];
+            if (prev.Word.PartOfSpeech == PartsOfSpeech.Article)
+            {
+                return;
+            }
+        }
+        */
+        
+        SentenceWordEntry articleData = new SentenceWordEntry
+        {
+            Surface = "a",
+            Word = WordDataBase.Instance.GetWord("a")
+        };
+
+        GameObject articleWord = Instantiate(draggableWordPrefab, transform);
+        articleWord.GetComponent<DraggableWord>().sentenceWordEntry = articleData;
+
+        RectTransform articleRect = articleWord.GetComponent<RectTransform>();
+        
+        wordList.Insert(nounIndex, articleRect);
+        wordDataList.Insert(nounIndex, articleData);
     }
 
     public void RemoveWord(RectTransform rect)
@@ -55,7 +102,7 @@ public class SentenceBuilder : MonoBehaviour
     public void UpdateSentenceString()
     {
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
-        foreach (var w in wordDataList) sb.Append(w.Text + " ");
+        foreach (var w in wordDataList) sb.Append(w.Surface + " ");
         currentSentenceAsString = sb.ToString().Trim();
     }
 

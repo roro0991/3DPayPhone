@@ -75,6 +75,13 @@ public class PhoneNumberManager : MonoBehaviour
 
         return newNumber;
     }
+
+    // This is called when a contact is discovered in the story
+    public void DiscoverContact(Contact contact)
+    {
+        string assignedNumber = GetOrGenerateNumber(contact);
+        Debug.Log($"Contact '{contact.ContactName}' discovered! Number assigned: {assignedNumber}");
+    }
 }
 
 

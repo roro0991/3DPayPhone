@@ -5,7 +5,8 @@ using TMPro;
 
 public class WordBank : MonoBehaviour
 {
-    private Queue<SentenceWordEntry> wordsInQueue = new Queue<SentenceWordEntry>();    // store Word objects now
+    private Queue<SentenceWordEntry> wordsInQueue = new Queue<SentenceWordEntry>(); // store Word objects now    
+    public List<SentenceWordEntry> backupWords = new List<SentenceWordEntry>();
     public GameObject draggableWordPrefab;
 
     private List<Coroutine> runningFades = new List<Coroutine>();
@@ -26,6 +27,7 @@ public class WordBank : MonoBehaviour
             Destroy(child.gameObject);
         }
 
+
         // Generate new words
         foreach (SentenceWordEntry word in wordsInQueue)
         {
@@ -37,6 +39,9 @@ public class WordBank : MonoBehaviour
 
     public void AddWordsToWordBank(List<SentenceWordEntry> words)
     {
+
+        backupWords = new List<SentenceWordEntry>(words);
+
         // Queue up the words
         wordsInQueue = new Queue<SentenceWordEntry>(words);
 
@@ -49,7 +54,7 @@ public class WordBank : MonoBehaviour
         {
             // Wait until the panel is active
             StartCoroutine(WaitForActivationAndGenerate());
-        }
+        }       
     }
 
     private IEnumerator WaitForActivationAndGenerate()
@@ -58,7 +63,7 @@ public class WordBank : MonoBehaviour
         GenerateWords();
     }
 
-    private void CreateWordUI(SentenceWordEntry word)
+    public void CreateWordUI(SentenceWordEntry word)
     {
         GameObject newWord = Instantiate(draggableWordPrefab, transform);
 
@@ -125,17 +130,18 @@ public class WordBank : MonoBehaviour
     public void ClearWordBank()
     {
         wordsInQueue.Clear();
+        backupWords.Clear();
         GenerateWords();
     }
 
-    public void UpdateWordBank(List<SentenceWordEntry> words)
+    /*public void UpdateWordBank(List<SentenceWordEntry> words)
     {
         foreach (SentenceWordEntry word in words)
         {
             wordsInQueue.Enqueue(word);
         }
         GenerateWords();
-    }
+    }*/
 }
 
 

@@ -5,6 +5,7 @@ public class TestContact : Contact
 {
     private Dictionary<string, string> inputResponses = new Dictionary<string, string>();
     private Dictionary<string, List<SentenceWordEntry>> wordsForBank = new Dictionary<string, List<SentenceWordEntry>>();
+    
 
     private void Start()
     {
@@ -15,6 +16,8 @@ public class TestContact : Contact
         // Add words using singleton
         AddWordToSentence("dog");
         AddWordToSentence("dogs");
+        AddWordToSentence("cat");
+        AddWordToSentence("cats");
     }
 
     public override void SpeakFirstLine()
@@ -33,9 +36,7 @@ public class TestContact : Contact
         }
         else
         {
-            ContactResponse = "I don't understand.";
-            SentenceWords.Clear();
-            UpdateWordBankFromSentence();
+            ContactResponse = "I don't understand.";            
             return;
         }
 

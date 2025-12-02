@@ -103,14 +103,7 @@ public class CallTrigger : MonoBehaviour
         yield return new WaitForSeconds(2.5f);
         sfxManager.dialSource.Stop();
         callManager.NotInService();
-    }
-
-    // This is called when a contact is discovered in the story
-    public void DiscoverContact(Contact contact)
-    {
-        string assignedNumber = phoneNumberManager.GetOrGenerateNumber(contact);
-        Debug.Log($"Contact '{contact.ContactName}' discovered! Number assigned: {assignedNumber}");
-    }
+    }    
 }
 
 

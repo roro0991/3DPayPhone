@@ -19,10 +19,12 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public bool isInSentencePanel = false;
 
     private SentenceBuilder sentenceBuilder;
+    private CallManager callManager;
 
     private void Awake()
     {               
-        sentenceBuilder = FindObjectOfType<SentenceBuilder>();
+        sentenceBuilder = FindFirstObjectByType<SentenceBuilder>();
+        callManager = FindFirstObjectByType<CallManager>();
         rectTransform = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
         canvasGroup = GetComponentInChildren<CanvasGroup>();
@@ -109,7 +111,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                     out localPoint
                 );
                 int insertIndex = sentenceBuilder.GetInsertionIndex(localPoint.x);
-                sentenceBuilder.InsertWordAt(rectTransform, sentenceWordEntry.Word, insertIndex);
+                sentenceBuilder.InsertWordAt(rectTransform, sentenceWordEntry, insertIndex);
                 sentenceBuilder.TestSingularOrPlural(sentenceWordEntry);
                 isInSentencePanel = true;
             }
@@ -117,7 +119,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             {
                 // Snap into WordBank at drop position
                 WordBank wb = dropTarget.GetComponentInParent<WordBank>();
-                transform.SetParent(wb.transform, true); // true = keep world position
+                transform.SetParent(wb.transform, true); // true = keep world position                
                 isInSentencePanel = false;
             }
             else

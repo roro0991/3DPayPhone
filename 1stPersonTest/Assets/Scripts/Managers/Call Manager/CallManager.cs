@@ -1,7 +1,8 @@
+using Ink.Parsed;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using System.Collections.Generic;
 
 public class CallManager : MonoBehaviour
 {
@@ -14,7 +15,6 @@ public class CallManager : MonoBehaviour
     [Header("Managers")]
     [SerializeField] SentenceBuilder sentenceBuilder;
     [SerializeField] PhoneManager PhoneManager;
-    [SerializeField] PuzzleManager PuzzleManager;
     [SerializeField] SFXManager SfxManager;
     [SerializeField] DialogueAudioManager DialogueAudioManager;
 
@@ -127,16 +127,18 @@ public class CallManager : MonoBehaviour
             yield return new WaitForSeconds(2f);
 
             WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();
-            /*
+            
             if (currentContact.ContactResponse == "I don't understand.")
-            {                
+            {
                 // ?? Add previous words back into the bank (convert from string to Word)
-                List<SentenceWordEntry> previousSentenceWords = new List<SentenceWordEntry>();
+                List<SentenceWordEntry> previousSentenceWords = new List<SentenceWordEntry>(wordBankComponent.backupWords);
+                /*
                 foreach (string token in currentContact.PlayerInput.Split(' '))
                 {
                     if (wdb.Words.TryGetValue(token.ToLower(), out Word w))
                         previousSentenceWords.Add(w);
                 }
+                */
 
                 wordBankComponent.AddWordsToWordBank(previousSentenceWords);
             }
@@ -146,7 +148,7 @@ public class CallManager : MonoBehaviour
                 wordBankComponent.ClearWordBank();
                 wordBankComponent.AddWordsToWordBank(currentContact.SentenceWords);
             }
-            */
+            
         }
     }
 
