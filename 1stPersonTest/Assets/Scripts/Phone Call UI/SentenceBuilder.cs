@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using TMPro;
+using UnityEngine.UI;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -33,48 +34,48 @@ public class SentenceBuilder : MonoBehaviour
         index = Mathf.Clamp(index, 0, wordList.Count);
         wordList.Insert(index, rect);
         wordDataList.Insert(index, wordData);
-
+        
         if (wordData.Word.PartOfSpeech == PartsOfSpeech.Noun &&
             wordData.Word.IsSingular(wordData.Surface))
         {
-            InsertArticleIfMissing(index, wordData);
+            InsertArticle(rect, wordData);
         }
-
+        
         UpdateWordPositions();
         UpdateSentenceString();
     }
 
-    private void InsertArticleIfMissing(int nounIndex, SentenceWordEntry nounWord)
+    public void InsertArticle(RectTransform rect, SentenceWordEntry wordData)
     {
-        /*
-        string firstLetter = nounWord.Surface.ToLower();
+        if (wordData.hasArticle)
+        {
+            return;
+        }
+        string firstLetter = wordData.Surface.ToLower();
         bool startsWithVowel = "aeiou".Contains(firstLetter[0]);
         string article = startsWithVowel ? "an" : "a";
 
-        if (nounIndex > 0)
-        {
-            var prev = wordDataList[nounIndex - 1];
-            if (prev.Word.PartOfSpeech == PartsOfSpeech.Article)
-            {
-                return;
-            }
-        }
-        */
-        
-        SentenceWordEntry articleData = new SentenceWordEntry
-        {
-            Surface = "a",
-            Word = WordDataBase.Instance.GetWord("a")
-        };
+        TMP_Text tmp = rect.GetComponent<TMP_Text>();
+       
+        tmp.text = article + " " + wordData.Surface;
+        wordData.hasArticle = true;
 
-        GameObject articleWord = Instantiate(draggableWordPrefab, transform);
-        articleWord.GetComponent<DraggableWord>().sentenceWordEntry = articleData;
-
-        RectTransform articleRect = articleWord.GetComponent<RectTransform>();
-        
-        wordList.Insert(nounIndex, articleRect);
-        wordDataList.Insert(nounIndex, articleData);
+        tmp.ForceMeshUpdate();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
     }
+
+    public void RemoveArticle(RectTransform rect, SentenceWordEntry wordData)
+    {
+        string[] words = wordData.Surface.Split(' ');
+        string noun = words[words.Length - 1];
+
+        TMP_Text tmp = rect.GetComponent<TMP_Text>();       
+        tmp.text = noun;
+        wordData.hasArticle = false;
+
+        tmp.ForceMeshUpdate();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+    }  
 
     public void RemoveWord(RectTransform rect)
     {
@@ -121,6 +122,7 @@ public class SentenceBuilder : MonoBehaviour
     {
         if (placeholderWord != null) RemovePlaceholder();
         placeholderWord = placeholder;
+
         index = Mathf.Clamp(index, 0, wordList.Count);
         wordList.Insert(index, placeholderWord);
         UpdateWordPositions();

@@ -16,8 +16,8 @@ public class TestContact : Contact
         // Add words using singleton
         AddWordToSentence("dog");
         AddWordToSentence("dogs");
-        AddWordToSentence("cat");
-        AddWordToSentence("cats");
+        AddWordToSentence("elephant");
+        AddWordToSentence("elephants");
     }
 
     public override void SpeakFirstLine()

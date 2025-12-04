@@ -158,6 +158,7 @@ public class FloatingText : MonoBehaviour
             rectTransform = GetComponent<RectTransform>();
 
         rectTransform.anchoredPosition = newPosition;
+
         direction = Random.insideUnitCircle.normalized;
         noiseOffsetX = Random.Range(0f, 100f);
         noiseOffsetY = Random.Range(0f, 100f);

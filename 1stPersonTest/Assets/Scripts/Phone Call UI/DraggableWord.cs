@@ -19,10 +19,12 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public bool isInSentencePanel = false;
 
     private SentenceBuilder sentenceBuilder;
+    private WordBank wordBank;
     private CallManager callManager;
 
     private void Awake()
-    {               
+    {
+        wordBank = FindFirstObjectByType<WordBank>();
         sentenceBuilder = FindFirstObjectByType<SentenceBuilder>();
         callManager = FindFirstObjectByType<CallManager>();
         rectTransform = GetComponent<RectTransform>();
@@ -43,6 +45,11 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         canvasGroup.blocksRaycasts = false;
         storedPosition = rectTransform.anchoredPosition;
         storedParent = transform.parent;
+
+        if (sentenceWordEntry.hasArticle)
+        {
+            sentenceBuilder.RemoveArticle(rectTransform, sentenceWordEntry);            
+        }
 
         // Move to top-level DragLayer for drag clarity
         GameObject dragLayer = GameObject.Find("DragLayer");
@@ -119,23 +126,18 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             {
                 // Snap into WordBank at drop position
                 WordBank wb = dropTarget.GetComponentInParent<WordBank>();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
                 transform.SetParent(wb.transform, true); // true = keep world position                
                 isInSentencePanel = false;
-            }
-            else
-            {
-                // Not dropped in a valid panel — return to previous parent
-                transform.SetParent(storedParent, false);
-                rectTransform.anchoredPosition = storedPosition;
-                if (isInSentencePanel) sentenceBuilder.UpdateWordPositions();
-            }
+            }            
         }
         else
         {
-            // No drop target — return to previous parent
-            transform.SetParent(storedParent, false);
+            // No drop target — return to WordBank
+            transform.SetParent(wordBank.transform, false);
             rectTransform.anchoredPosition = storedPosition;
-            if (isInSentencePanel) sentenceBuilder.UpdateWordPositions();
+            //if (isInSentencePanel) sentenceBuilder.UpdateWordPositions();
+            isInSentencePanel = false;
         }
     }
 
@@ -151,6 +153,19 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         // Copy Word reference
         DraggableWord placeholderScript = placeholderGO.GetComponent<DraggableWord>();
         placeholderScript.sentenceWordEntry.Word = this.sentenceWordEntry.Word;
+
+        if (sentenceWordEntry.Word.PartOfSpeech == PartsOfSpeech.Noun &&
+            sentenceWordEntry.Word.IsSingular(sentenceWordEntry.Surface))
+        {
+            TMP_Text tmp = placeholderGO.GetComponent<TMP_Text>();
+
+            string baseWord = placeholderScript.sentenceWordEntry.Surface;
+
+            bool startsWithVowel = "aeiou".Contains(char.ToLower(baseWord[0]));
+            string article = startsWithVowel ? "an" : "a";
+
+            tmp.text = $"{article} {baseWord}";
+        }
 
         return placeholderGO.GetComponent<RectTransform>();
     }
