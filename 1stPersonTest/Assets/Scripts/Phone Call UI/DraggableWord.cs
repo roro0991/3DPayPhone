@@ -51,6 +51,11 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             sentenceBuilder.RemoveArticle(rectTransform, sentenceWordEntry);            
         }
 
+        if (sentenceWordEntry.hasPunctuation)
+        {
+            sentenceBuilder.RemovePunctuation(rectTransform, sentenceWordEntry);
+        }
+
         // Move to top-level DragLayer for drag clarity
         GameObject dragLayer = GameObject.Find("DragLayer");
         if (dragLayer != null) transform.SetParent(dragLayer.transform, false);
@@ -126,8 +131,8 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             {
                 // Snap into WordBank at drop position
                 WordBank wb = dropTarget.GetComponentInParent<WordBank>();
-                LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
                 transform.SetParent(wb.transform, true); // true = keep world position                
+                rectTransform.pivot = new Vector2(0.5f, 0.5f); // to keep from bouncing out of bounds
                 isInSentencePanel = false;
             }            
         }
@@ -136,7 +141,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             // No drop target — return to WordBank
             transform.SetParent(wordBank.transform, false);
             rectTransform.anchoredPosition = storedPosition;
-            //if (isInSentencePanel) sentenceBuilder.UpdateWordPositions();
+            rectTransform.pivot = new Vector2(0.5f, 0.5f); // to keep from bouncing out of bounds
             isInSentencePanel = false;
         }
     }

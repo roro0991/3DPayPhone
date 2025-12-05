@@ -131,15 +131,8 @@ public class CallManager : MonoBehaviour
             if (currentContact.ContactResponse == "I don't understand.")
             {
                 // ?? Add previous words back into the bank (convert from string to Word)
-                List<SentenceWordEntry> previousSentenceWords = new List<SentenceWordEntry>(wordBankComponent.backupWords);
-                /*
-                foreach (string token in currentContact.PlayerInput.Split(' '))
-                {
-                    if (wdb.Words.TryGetValue(token.ToLower(), out Word w))
-                        previousSentenceWords.Add(w);
-                }
-                */
-
+                List<SentenceWordEntry> previousSentenceWords = 
+                    new List<SentenceWordEntry>(wordBankComponent.backupWords);                
                 wordBankComponent.AddWordsToWordBank(previousSentenceWords);
             }
             else

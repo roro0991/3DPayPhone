@@ -3,9 +3,16 @@ using UnityEngine;
 
 public class TestContact : Contact
 {
-    private Dictionary<string, string> inputResponses = new Dictionary<string, string>();
-    private Dictionary<string, List<SentenceWordEntry>> wordsForBank = new Dictionary<string, List<SentenceWordEntry>>();
-    
+    private Dictionary<string, string> inputResponses = new Dictionary<string, string>()
+    {
+        { "hello.", "who is this?" }
+    };
+    private Dictionary<string, List<string>> wordsForBank = new Dictionary<string, List<string>>()
+    {
+        { "who is this?", new List<string>
+            { "who", "are", "you" } }
+    };
+        
 
     private void Start()
     {
@@ -14,16 +21,12 @@ public class TestContact : Contact
         OpeningLine = "Hello?";
 
         // Add words using singleton
-        AddWordToSentence("dog");
-        AddWordToSentence("dogs");
-        AddWordToSentence("elephant");
-        AddWordToSentence("elephants");
+        AddWordToSentence("hello");
     }
 
     public override void SpeakFirstLine()
     {
-        ContactResponse = OpeningLine;
-        UpdateWordBankFromSentence(); // load initial SentenceWords into bank
+        ContactResponse = OpeningLine;        
     }
 
     public override void GenerateResponse()
@@ -43,14 +46,16 @@ public class TestContact : Contact
         if (wordsForBank.ContainsKey(ContactResponse))
         {
             SentenceWords.Clear();
-            SentenceWords.AddRange(wordsForBank[ContactResponse]);
+            foreach (string word in wordsForBank[ContactResponse])
+            {
+                AddWordToSentence(word);
+            }
+            //SentenceWords.AddRange(wordsForBank[ContactResponse]);
         }
         else
         {
             SentenceWords.Clear();
         }
-
-        UpdateWordBankFromSentence();
     }
 }
 

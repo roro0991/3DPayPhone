@@ -31,6 +31,17 @@ public class WordDataBase : MonoBehaviour
     {
         _words.Clear();
 
+        // ----------------- Interrogatives -----------------
+        AddWord(new Word(".", PartsOfSpeech.Punctuation));
+        AddWord(new Word("?", PartsOfSpeech.Punctuation));
+
+        // ----------------- Interrogatives -----------------
+        AddWord(new Word("who", PartsOfSpeech.Interrogative));
+        AddWord(new Word("what", PartsOfSpeech.Interrogative));
+        AddWord(new Word("where", PartsOfSpeech.Interrogative));
+        AddWord(new Word("when", PartsOfSpeech.Interrogative));
+        AddWord(new Word("why", PartsOfSpeech.Interrogative));
+
         // ----------------- Articles -----------------
         AddWord(new Word("the", PartsOfSpeech.Article));
         AddWord(new Word("a", PartsOfSpeech.Article));
@@ -40,6 +51,7 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word("hi", PartsOfSpeech.Interjection));
 
         // ----------------- Pronouns -----------------
+
         AddWord(new Word("i", PartsOfSpeech.SubjectPronoun));
         AddWord(new Word("you", PartsOfSpeech.SubjectPronoun | PartsOfSpeech.ObjectPronoun));
         AddWord(new Word("he", PartsOfSpeech.SubjectPronoun));
@@ -134,8 +146,7 @@ public class WordDataBase : MonoBehaviour
         AddWord(runWord);
 
         // ----------------- Test Words -----------------
-        AddWord(new Word("hi", PartsOfSpeech.Interjection));
-        AddWord(new Word("there", PartsOfSpeech.Adverb));
+        AddWord(new Word("hello", PartsOfSpeech.Interjection));
     }
 
     private void AddWord(Word word)

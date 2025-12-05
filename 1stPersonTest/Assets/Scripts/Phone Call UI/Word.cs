@@ -20,6 +20,8 @@ public enum PartsOfSpeech
     Conjunction = 1 << 10,
     Punctuation = 1 << 11,
     Article = 1 << 12,
+    Interrogative = 1 << 13,
+
 }
 
 [System.Serializable]
@@ -27,7 +29,8 @@ public class SentenceWordEntry
 {
     public Word Word; // semantic object
     public string Surface; // the actual form used (ie. dog vs dogs)
-    public bool hasArticle;
+    public bool hasArticle; // if noun does it have an article?
+    public bool hasPunctuation; // ie. last word has '?'
 }
 
 [System.Serializable]

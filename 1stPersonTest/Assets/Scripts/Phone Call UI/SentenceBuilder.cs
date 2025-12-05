@@ -23,6 +23,52 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     // ---------------- Sentence management ----------------
+
+    private void CheckForPunctuation(List<SentenceWordEntry> wordDataList)
+    {
+        if (wordDataList == null || wordDataList.Count == 0)
+            return;
+
+        int lastIndex = wordDataList.Count - 1;
+        TMP_Text lastWord = wordList[lastIndex].GetComponent<TMP_Text>();
+
+            for (int i = 0; i < wordDataList.Count; i++)
+            {
+                if (wordDataList[i].hasPunctuation)
+                {
+                    RemovePunctuation(wordList[i], wordDataList[i]);
+                }
+
+            }
+
+        if (wordDataList[0].Word.PartOfSpeech == PartsOfSpeech.Interrogative)
+        {
+            wordDataList[lastIndex].Surface += "?";
+        }
+        else
+        {
+            wordDataList[lastIndex].Surface += ".";
+        }
+
+        lastWord.text = wordDataList[lastIndex].Surface;
+        lastWord.ForceMeshUpdate();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(wordList[lastIndex]);
+        wordDataList[lastIndex].hasPunctuation = true;
+    }    
+
+    public void RemovePunctuation(RectTransform rect, SentenceWordEntry wordData)
+    {
+        TMP_Text text = rect.GetComponent<TMP_Text>();
+        if (wordData.hasPunctuation == true)
+        {
+            wordData.Surface = wordData.Surface.Remove(wordData.Surface.Length - 1);
+            text.text = wordData.Surface;
+        }
+        text.ForceMeshUpdate();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+        wordData.hasPunctuation = false;
+    }
+
     public void InsertWordAt(RectTransform rect, SentenceWordEntry wordData, int index)
     {
         if (wordList.Contains(rect))
@@ -40,6 +86,8 @@ public class SentenceBuilder : MonoBehaviour
         {
             InsertArticle(rect, wordData);
         }
+
+        CheckForPunctuation(wordDataList);
         
         UpdateWordPositions();
         UpdateSentenceString();
@@ -85,6 +133,9 @@ public class SentenceBuilder : MonoBehaviour
             wordList.RemoveAt(idx);
             wordDataList.RemoveAt(idx);
         }
+
+        CheckForPunctuation(wordDataList);
+
         UpdateWordPositions();
         UpdateSentenceString();
     }
