@@ -35,6 +35,9 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word(".", PartsOfSpeech.Punctuation));
         AddWord(new Word("?", PartsOfSpeech.Punctuation));
 
+        // ----------------- Conjunctions -----------------
+        AddWord(new Word("and", PartsOfSpeech.Conjunction));
+
         // ----------------- Interrogatives -----------------
         AddWord(new Word("who", PartsOfSpeech.Interrogative));
         AddWord(new Word("what", PartsOfSpeech.Interrogative));

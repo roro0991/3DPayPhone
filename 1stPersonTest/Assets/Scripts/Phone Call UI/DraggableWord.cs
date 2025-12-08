@@ -6,15 +6,16 @@ using UnityEngine.UI;
 
 public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    //public Word wordData; // Reference to the semantic word
-    public SentenceWordEntry sentenceWordEntry; // Reference to surface word
+    public SentenceWordEntry sentenceWordEntry;
     private RectTransform rectTransform;
-    private RectTransform placeholder;
+
     private Vector3 storedPosition;
     private Transform storedParent;
+
     private Canvas canvas;
     private CanvasGroup canvasGroup;
 
+    public bool isDraggable = true;
     public bool isBeingDragged = false;
     public bool isInSentencePanel = false;
 
@@ -27,6 +28,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         wordBank = FindFirstObjectByType<WordBank>();
         sentenceBuilder = FindFirstObjectByType<SentenceBuilder>();
         callManager = FindFirstObjectByType<CallManager>();
+
         rectTransform = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
         canvasGroup = GetComponentInChildren<CanvasGroup>();
@@ -34,78 +36,52 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     private void Start()
     {
-        sentenceWordEntry.Surface = this.GetComponent<TMP_Text>().text.ToString();
-        sentenceWordEntry.Word = WordDataBase.Instance.GetWord(this.GetComponent<TMP_Text>().text.ToString());
-        //wordData = WordDataBase.Instance.GetWord(this.GetComponent<TMP_Text>().text.ToString());
+        TMP_Text tmp = GetComponent<TMP_Text>();
+        sentenceWordEntry.Surface = tmp.text;
+        sentenceWordEntry.Word = WordDataBase.Instance.GetWord(tmp.text);
     }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (!isDraggable) return; // prevent drag entirely
+
         isBeingDragged = true;
         canvasGroup.blocksRaycasts = false;
+
         storedPosition = rectTransform.anchoredPosition;
         storedParent = transform.parent;
 
+        /*
         if (sentenceWordEntry.hasArticle)
-        {
-            sentenceBuilder.RemoveArticle(rectTransform, sentenceWordEntry);            
-        }
+            sentenceBuilder.RemoveArticle(rectTransform, sentenceWordEntry);
 
         if (sentenceWordEntry.hasPunctuation)
-        {
             sentenceBuilder.RemovePunctuation(rectTransform, sentenceWordEntry);
-        }
+        */
 
-        // Move to top-level DragLayer for drag clarity
         GameObject dragLayer = GameObject.Find("DragLayer");
-        if (dragLayer != null) transform.SetParent(dragLayer.transform, false);
+        if (dragLayer != null)
+            transform.SetParent(dragLayer.transform, false);
 
         rectTransform.pivot = new Vector2(0.5f, 0.5f);
 
         if (isInSentencePanel && sentenceBuilder.wordList.Contains(rectTransform))
             sentenceBuilder.RemoveWord(rectTransform);
-
-        if (isInSentencePanel) rectTransform.pivot = new Vector2(0f, 0.5f);
     }
 
     public void OnDrag(PointerEventData eventData)
     {
+        if (!isDraggable) return; // prevent drag entirely
+
         rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
-
-        if (sentenceBuilder == null) return;
-
-        GameObject hoverTarget = eventData.pointerEnter;
-        bool isOverSentencePanel = hoverTarget != null && hoverTarget.CompareTag("SentencePanel");
-
-        if (isOverSentencePanel)
-        {
-            Vector2 localPoint;
-            RectTransform sentenceRect = sentenceBuilder.transform as RectTransform;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(sentenceRect, eventData.position, eventData.pressEventCamera, out localPoint);
-
-            int insertIndex = sentenceBuilder.GetInsertionIndex(localPoint.x);
-            if (placeholder == null) placeholder = CreatePlaceholder();
-            sentenceBuilder.ShowPlaceholderAt(insertIndex, placeholder);
-        }
-        else if (placeholder != null)
-        {
-            sentenceBuilder.RemovePlaceholder();
-            Destroy(placeholder.gameObject);
-            placeholder = null;
-        }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        if (!isDraggable) return; // prevent drag entirely
+
         isBeingDragged = false;
         canvasGroup.blocksRaycasts = true;
-
-        if (placeholder != null)
-        {
-            sentenceBuilder.RemovePlaceholder();
-            Destroy(placeholder.gameObject);
-            placeholder = null;
-        }
 
         GameObject dropTarget = eventData.pointerEnter;
 
@@ -113,8 +89,9 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         {
             if (dropTarget.CompareTag("SentencePanel"))
             {
-                // Dropped in SentencePanel
+                // Insert into sentence
                 transform.SetParent(sentenceBuilder.transform, false);
+
                 Vector2 localPoint;
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     sentenceBuilder.transform as RectTransform,
@@ -122,57 +99,32 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                     eventData.pressEventCamera,
                     out localPoint
                 );
+
                 int insertIndex = sentenceBuilder.GetInsertionIndex(localPoint.x);
-                sentenceBuilder.InsertWordAt(rectTransform, sentenceWordEntry, insertIndex);
+                sentenceBuilder.InsertWordAt(rectTransform, insertIndex);
                 sentenceBuilder.TestSingularOrPlural(sentenceWordEntry);
+
                 isInSentencePanel = true;
+                return;
             }
-            else if (dropTarget.GetComponentInParent<WordBank>() != null)
+
+            if (dropTarget.GetComponentInParent<WordBank>() != null)
             {
-                // Snap into WordBank at drop position
+                // Back to word bank
                 WordBank wb = dropTarget.GetComponentInParent<WordBank>();
-                transform.SetParent(wb.transform, true); // true = keep world position                
-                rectTransform.pivot = new Vector2(0.5f, 0.5f); // to keep from bouncing out of bounds
+                transform.SetParent(wb.transform, true);
+
+                //rectTransform.pivot = new Vector2(0.5f, 0.5f);
                 isInSentencePanel = false;
-            }            
-        }
-        else
-        {
-            // No drop target — return to WordBank
-            transform.SetParent(wordBank.transform, false);
-            rectTransform.anchoredPosition = storedPosition;
-            rectTransform.pivot = new Vector2(0.5f, 0.5f); // to keep from bouncing out of bounds
-            isInSentencePanel = false;
-        }
-    }
-
-
-    private RectTransform CreatePlaceholder()
-    {
-        GameObject placeholderGO = Instantiate(gameObject, sentenceBuilder.transform);
-        placeholderGO.name = "Placeholder";
-        CanvasGroup cg = placeholderGO.GetComponent<CanvasGroup>() ?? placeholderGO.AddComponent<CanvasGroup>();
-        cg.alpha = 0.5f;
-        cg.blocksRaycasts = false;
-
-        // Copy Word reference
-        DraggableWord placeholderScript = placeholderGO.GetComponent<DraggableWord>();
-        placeholderScript.sentenceWordEntry.Word = this.sentenceWordEntry.Word;
-
-        if (sentenceWordEntry.Word.PartOfSpeech == PartsOfSpeech.Noun &&
-            sentenceWordEntry.Word.IsSingular(sentenceWordEntry.Surface))
-        {
-            TMP_Text tmp = placeholderGO.GetComponent<TMP_Text>();
-
-            string baseWord = placeholderScript.sentenceWordEntry.Surface;
-
-            bool startsWithVowel = "aeiou".Contains(char.ToLower(baseWord[0]));
-            string article = startsWithVowel ? "an" : "a";
-
-            tmp.text = $"{article} {baseWord}";
+                return;
+            }
         }
 
-        return placeholderGO.GetComponent<RectTransform>();
+        // Drop failed ? return to wordbank
+        transform.SetParent(wordBank.transform, false);
+        rectTransform.anchoredPosition = storedPosition;
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        isInSentencePanel = false;
     }
 }
 

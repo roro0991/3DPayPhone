@@ -30,7 +30,7 @@ public class SentenceWordEntry
     public Word Word; // semantic object
     public string Surface; // the actual form used (ie. dog vs dogs)
     public bool hasArticle; // if noun does it have an article?
-    public bool hasPunctuation; // ie. last word has '?'
+    public RectTransform article;
 }
 
 [System.Serializable]

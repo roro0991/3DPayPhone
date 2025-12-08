@@ -21,7 +21,9 @@ public class TestContact : Contact
         OpeningLine = "Hello?";
 
         // Add words using singleton
-        AddWordToSentence("hello");
+        AddWordToSentence("dog");
+        AddWordToSentence("elephant");
+        AddWordToSentence("dogs");
     }
 
     public override void SpeakFirstLine()

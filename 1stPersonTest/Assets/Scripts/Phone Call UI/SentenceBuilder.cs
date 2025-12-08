@@ -2,6 +2,8 @@ using UnityEngine;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine.UI;
+using System;
+using Unity.VisualScripting;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -11,11 +13,9 @@ public class SentenceBuilder : MonoBehaviour
     public float spacing = 10f;
 
     public List<RectTransform> wordList = new List<RectTransform>();
-    public List<SentenceWordEntry> wordDataList = new List<SentenceWordEntry>(); // Track semantic words
+    //public List<SentenceWordEntry> wordDataList = new List<SentenceWordEntry>();
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
-
-    private RectTransform placeholderWord;
 
     private void Start()
     {
@@ -24,118 +24,155 @@ public class SentenceBuilder : MonoBehaviour
 
     // ---------------- Sentence management ----------------
 
-    private void CheckForPunctuation(List<SentenceWordEntry> wordDataList)
+    /*
+    private void RemoveTrailingPunctuation()
     {
-        if (wordDataList == null || wordDataList.Count == 0)
-            return;
-
-        int lastIndex = wordDataList.Count - 1;
-        TMP_Text lastWord = wordList[lastIndex].GetComponent<TMP_Text>();
-
-            for (int i = 0; i < wordDataList.Count; i++)
+        while (wordList.Count > 0)
+        {
+            var lastWord = wordList[wordList.Count - 1].GetComponent<DraggableWord>();
+            if (lastWord.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
             {
-                if (wordDataList[i].hasPunctuation)
-                {
-                    RemovePunctuation(wordList[i], wordDataList[i]);
-                }
-
+                RemoveWord(lastWord.GetComponent<RectTransform>());
             }
-
-        if (wordDataList[0].Word.PartOfSpeech == PartsOfSpeech.Interrogative)
-        {
-            wordDataList[lastIndex].Surface += "?";
+            else break;
         }
-        else
-        {
-            wordDataList[lastIndex].Surface += ".";
-        }
+    }
+    */
+    
 
-        lastWord.text = wordDataList[lastIndex].Surface;
-        lastWord.ForceMeshUpdate();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(wordList[lastIndex]);
-        wordDataList[lastIndex].hasPunctuation = true;
-    }    
-
-    public void RemovePunctuation(RectTransform rect, SentenceWordEntry wordData)
+    private void InsertTrailingPunctuation()
     {
-        TMP_Text text = rect.GetComponent<TMP_Text>();
-        if (wordData.hasPunctuation == true)
+        if (wordList.Count == 0) return; // if no words in sentencepanel
+
+        // Create punctuation object
+        GameObject punctuationWord = Instantiate(draggableWordPrefab, transform);
+        TMP_Text text = punctuationWord.GetComponent<TMP_Text>();
+
+        // Determine punctuation character
+        string punctuation;
+        var firstWord = wordList[0].GetComponent<DraggableWord>().sentenceWordEntry;                        
+        switch (firstWord.Word.PartOfSpeech)
         {
-            wordData.Surface = wordData.Surface.Remove(wordData.Surface.Length - 1);
-            text.text = wordData.Surface;
+            case PartsOfSpeech.Interrogative:
+                punctuation = "?";
+                break;
+            default:
+                punctuation = ".";
+                break;
         }
+
+        // Set punctuation data
+        var draggable = punctuationWord.GetComponent<DraggableWord>();
+        draggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(punctuation);
+        draggable.sentenceWordEntry.Surface = punctuation;
+        draggable.isInSentencePanel = true;
+        draggable.isDraggable = false;
+
+        // Update TMP mesh immediately
+        text.text = punctuation;
         text.ForceMeshUpdate();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
-        wordData.hasPunctuation = false;
-    }
-
-    public void InsertWordAt(RectTransform rect, SentenceWordEntry wordData, int index)
-    {
-        if (wordList.Contains(rect))
-        {
-            wordList.Remove(rect);
-            wordDataList.Remove(wordData);
-        }
-
-        index = Mathf.Clamp(index, 0, wordList.Count);
-        wordList.Insert(index, rect);
-        wordDataList.Insert(index, wordData);
+        LayoutRebuilder.ForceRebuildLayoutImmediate(punctuationWord.GetComponent<RectTransform>());
         
-        if (wordData.Word.PartOfSpeech == PartsOfSpeech.Noun &&
-            wordData.Word.IsSingular(wordData.Surface))
-        {
-            InsertArticle(rect, wordData);
-        }
-
-        CheckForPunctuation(wordDataList);
-        
-        UpdateWordPositions();
-        UpdateSentenceString();
+        wordList.Add(punctuationWord.GetComponent<RectTransform>());
     }
-
-    public void InsertArticle(RectTransform rect, SentenceWordEntry wordData)
+    private RectTransform InsertArticleAt(RectTransform rect, int index, SentenceWordEntry wordData)
     {
-        if (wordData.hasArticle)
-        {
-            return;
-        }
+        // Create article object
+        GameObject articleWord = Instantiate(draggableWordPrefab, transform);
+        TMP_Text text = articleWord.GetComponent<TMP_Text>();
+
+        // Determine article
         string firstLetter = wordData.Surface.ToLower();
         bool startsWithVowel = "aeiou".Contains(firstLetter[0]);
         string article = startsWithVowel ? "an" : "a";
 
-        TMP_Text tmp = rect.GetComponent<TMP_Text>();
-       
-        tmp.text = article + " " + wordData.Surface;
-        wordData.hasArticle = true;
+        // Set word data
+        var draggable = articleWord.GetComponent<DraggableWord>();
+        draggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(article);
+        draggable.sentenceWordEntry.Surface = article;
+        draggable.isInSentencePanel = true;
+        draggable.isDraggable = false;
+        
+        // Update TMP mesh immediately
+        text.text = article;
+        text.ForceMeshUpdate();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(articleWord.GetComponent<RectTransform>());
 
-        tmp.ForceMeshUpdate();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+        //InsertWordAt(articleWord.GetComponent<RectTransform>(), index);
+        return articleWord.GetComponent<RectTransform>();
     }
 
-    public void RemoveArticle(RectTransform rect, SentenceWordEntry wordData)
+    public void InsertWordAt(RectTransform rect, int index)
     {
-        string[] words = wordData.Surface.Split(' ');
-        string noun = words[words.Length - 1];
+        SentenceWordEntry wordData = rect.GetComponent<DraggableWord>().sentenceWordEntry;
 
-        TMP_Text tmp = rect.GetComponent<TMP_Text>();       
-        tmp.text = noun;
-        wordData.hasArticle = false;
+        // Remove trailing punctuation
+        if (wordList.Count > 0)
+        {
+            var lastWord = wordList[wordList.Count - 1].GetComponent<DraggableWord>();
+            if (lastWord.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+            {
+                RectTransform punctRect = wordList[wordList.Count - 1];
+                wordList.RemoveAt(wordList.Count - 1);
+                Destroy(punctRect.gameObject);
+            }
+        }
 
-        tmp.ForceMeshUpdate();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
-    }  
+        // Remove the word if it already exists in the list
+        if (wordList.Contains(rect))
+        {
+            wordList.Remove(rect);
+        }
+
+        // Clamp index first to ensure it's within bounds
+        index = Mathf.Clamp(index, 0, wordList.Count);
+
+        // Insert article before singular nouns
+        if (wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun) && wordData.Word.IsSingular(wordData.Surface))
+        {
+            RectTransform articleRect = InsertArticleAt(rect, index, wordData);
+            wordList.Insert(index, articleRect);
+            wordData.article = articleRect;
+            wordData.hasArticle = true;
+
+            index++; // make sure main word comes after article
+            index = Mathf.Clamp(index, 0, wordList.Count); // clamp again
+        }
+
+        // Insert the main word
+        wordList.Insert(index, rect);
+
+        // Add punctuation at the end
+        InsertTrailingPunctuation();
+
+        // Refresh positions and sentence string
+        UpdateWordPositions();
+        UpdateSentenceString();
+    }
+
+
 
     public void RemoveWord(RectTransform rect)
     {
         int idx = wordList.IndexOf(rect);
+
         if (idx >= 0)
         {
             wordList.RemoveAt(idx);
-            wordDataList.RemoveAt(idx);
         }
 
-        CheckForPunctuation(wordDataList);
+        var draggable = rect.GetComponent<DraggableWord>();
+        var wordData = draggable.sentenceWordEntry;
 
+        if (wordData.hasArticle && wordData.article != null) // remove article
+        {
+            RectTransform articleRect = wordData.article;
+            wordList.Remove(articleRect); // remove article from word List
+            Destroy(articleRect.gameObject); // destroy the article
+            wordData.hasArticle = false;
+            wordData.article = null;
+        }
+        
         UpdateWordPositions();
         UpdateSentenceString();
     }
@@ -143,18 +180,30 @@ public class SentenceBuilder : MonoBehaviour
     public void UpdateWordPositions()
     {
         float currentX = startPosition.x;
+
         foreach (var rect in wordList)
         {
             rect.pivot = new Vector2(0f, 0.5f);
             rect.anchoredPosition = new Vector2(currentX, startPosition.y);
+
             currentX += rect.rect.width * rect.localScale.x + spacing;
         }
     }
 
     public void UpdateSentenceString()
     {
+        List<SentenceWordEntry> wordDataList = new List<SentenceWordEntry>();
+
+        foreach (RectTransform rect in wordList)
+        {
+            wordDataList.Add(rect.GetComponent<DraggableWord>().
+                sentenceWordEntry);
+        }
+
         System.Text.StringBuilder sb = new System.Text.StringBuilder();
-        foreach (var w in wordDataList) sb.Append(w.Surface + " ");
+        foreach (var w in wordDataList)
+            sb.Append(w.Surface + " ");
+
         currentSentenceAsString = sb.ToString().Trim();
     }
 
@@ -163,45 +212,23 @@ public class SentenceBuilder : MonoBehaviour
     public void ClearSentence()
     {
         wordList.Clear();
-        wordDataList.Clear();
-        for (int i = transform.childCount - 1; i >= 0; i--) Destroy(transform.GetChild(i).gameObject);
+
+        for (int i = transform.childCount - 1; i >= 0; i--)
+            Destroy(transform.GetChild(i).gameObject);
+
         currentSentenceAsString = string.Empty;
-    }
-
-    // ---------------- Placeholder logic ----------------
-    public void ShowPlaceholderAt(int index, RectTransform placeholder)
-    {
-        if (placeholderWord != null) RemovePlaceholder();
-        placeholderWord = placeholder;
-
-        index = Mathf.Clamp(index, 0, wordList.Count);
-        wordList.Insert(index, placeholderWord);
-        UpdateWordPositions();
     }
 
     public void TestSingularOrPlural(SentenceWordEntry word)
     {
-        var placeholder = word; 
-        if (placeholder != null && placeholder.Word.PartOfSpeech == PartsOfSpeech.Noun)
-        {
-            if (placeholder.Word.IsSingular(placeholder.Surface))
-            {
-                Debug.Log("This word is singular");
-            }
-            else if (placeholder.Word.IsPlural(placeholder.Surface))
-            {
-                Debug.Log("This word is plural");
-            }
-        }
-    }
+        if (word == null || word.Word == null) return;
 
-    public void RemovePlaceholder()
-    {
-        if (placeholderWord != null && wordList.Contains(placeholderWord))
+        if (word.Word.PartOfSpeech == PartsOfSpeech.Noun)
         {
-            wordList.Remove(placeholderWord);
-            UpdateWordPositions();
-            placeholderWord = null;
+            if (word.Word.IsSingular(word.Surface))
+                Debug.Log("This word is singular");
+            else if (word.Word.IsPlural(word.Surface))
+                Debug.Log("This word is plural");
         }
     }
 
@@ -209,11 +236,16 @@ public class SentenceBuilder : MonoBehaviour
     {
         for (int i = 0; i < wordList.Count; i++)
         {
-            float wordCenterX = wordList[i].anchoredPosition.x + wordList[i].rect.width * 0.5f;
-            if (localX < wordCenterX) return i;
+            float centerX = wordList[i].anchoredPosition.x +
+                            wordList[i].rect.width * 0.5f;
+
+            if (localX < centerX)
+                return i;
         }
+
         return wordList.Count;
     }
 }
+
 
 
