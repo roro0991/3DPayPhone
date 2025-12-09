@@ -24,25 +24,9 @@ public class SentenceBuilder : MonoBehaviour
 
     // ---------------- Sentence management ----------------
 
-    /*
-    private void RemoveTrailingPunctuation()
-    {
-        while (wordList.Count > 0)
-        {
-            var lastWord = wordList[wordList.Count - 1].GetComponent<DraggableWord>();
-            if (lastWord.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
-            {
-                RemoveWord(lastWord.GetComponent<RectTransform>());
-            }
-            else break;
-        }
-    }
-    */
-    
-
     private void InsertTrailingPunctuation()
     {
-        if (wordList.Count == 0) return; // if no words in sentencepanel
+        if (wordList.Count == 0) return; // if no words in sentencepanel        
 
         // Create punctuation object
         GameObject punctuationWord = Instantiate(draggableWordPrefab, transform);
@@ -172,13 +156,23 @@ public class SentenceBuilder : MonoBehaviour
             wordData.hasArticle = false;
             wordData.article = null;
         }
-        
+
+        if (wordList.Count == 1 && wordList[0].GetComponent<DraggableWord>().
+            sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+        {
+            Destroy(wordList[0].gameObject);
+            wordList.Clear();
+            return;
+        }
+
         UpdateWordPositions();
         UpdateSentenceString();
     }
 
     public void UpdateWordPositions()
     {
+        if (wordList.Count == 0) return;
+
         float currentX = startPosition.x;
 
         foreach (var rect in wordList)
@@ -245,6 +239,27 @@ public class SentenceBuilder : MonoBehaviour
 
         return wordList.Count;
     }
+
+    /*
+    public RectTransform CreatePlaceHolder(RectTransform rect)
+    {
+        var originalDraggable = rect.GetComponent<DraggableWord>(); // oriignal word
+
+        // Create placeholder
+        GameObject placeholder = Instantiate(draggableWordPrefab, transform);
+        placeholder.name = "placeholder";
+
+        // Set placeholder word data
+        var draggable = placeholder.GetComponent<DraggableWord>();
+        draggable.sentenceWordEntry.Word =
+            WordDataBase.Instance.GetWord(originalDraggable.GetComponent<TMP_Text>().text);
+        draggable.sentenceWordEntry.Surface = originalDraggable.sentenceWordEntry.Surface;        
+        draggable.isDraggable = false;
+        draggable.isInSentencePanel = true;
+
+        return placeholder.GetComponent<RectTransform>();
+    }
+    */
 }
 
 

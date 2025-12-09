@@ -15,9 +15,11 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private Canvas canvas;
     private CanvasGroup canvasGroup;
 
+    private bool hasPlaceholder = false;
+
     public bool isDraggable = true;
     public bool isBeingDragged = false;
-    public bool isInSentencePanel = false;
+    public bool isInSentencePanel = false;    
 
     private SentenceBuilder sentenceBuilder;
     private WordBank wordBank;
@@ -51,14 +53,6 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         storedPosition = rectTransform.anchoredPosition;
         storedParent = transform.parent;
 
-        /*
-        if (sentenceWordEntry.hasArticle)
-            sentenceBuilder.RemoveArticle(rectTransform, sentenceWordEntry);
-
-        if (sentenceWordEntry.hasPunctuation)
-            sentenceBuilder.RemovePunctuation(rectTransform, sentenceWordEntry);
-        */
-
         GameObject dragLayer = GameObject.Find("DragLayer");
         if (dragLayer != null)
             transform.SetParent(dragLayer.transform, false);
@@ -74,6 +68,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         if (!isDraggable) return; // prevent drag entirely
 
         rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
+       
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -92,15 +87,19 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                 // Insert into sentence
                 transform.SetParent(sentenceBuilder.transform, false);
 
+                
                 Vector2 localPoint;
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     sentenceBuilder.transform as RectTransform,
                     eventData.position,
                     eventData.pressEventCamera,
-                    out localPoint
+                    out localPoint                
                 );
 
-                int insertIndex = sentenceBuilder.GetInsertionIndex(localPoint.x);
+                var width = rectTransform.rect.width;
+                var wordMidX = localPoint.x + (width * 0.5f);
+
+                int insertIndex = sentenceBuilder.GetInsertionIndex(wordMidX);
                 sentenceBuilder.InsertWordAt(rectTransform, insertIndex);
                 sentenceBuilder.TestSingularOrPlural(sentenceWordEntry);
 
