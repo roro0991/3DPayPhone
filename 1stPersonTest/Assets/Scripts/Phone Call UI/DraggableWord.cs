@@ -143,6 +143,9 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
             // Show placeholder at corrected index
             sentenceBuilder.ShowPlaceholderAt(insertIndex, placeholder);
+
+            // Always show trailing punctuation at the end
+            sentenceBuilder.UpdatePlaceholderTrailingPunctuation();
         }
         else
         {
@@ -151,6 +154,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
                 sentenceBuilder.RemovePlaceholder();
                 placeholder = null;
             }
+            sentenceBuilder.RemovePlaceholderTrailingPunctuation();
         }
     }
 
@@ -158,57 +162,67 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (!isDraggable) return; // prevent drag entirely
+        if (!isDraggable) return;
 
         isBeingDragged = false;
         canvasGroup.blocksRaycasts = true;
 
         GameObject dropTarget = eventData.pointerEnter;
 
-        if (dropTarget != null)
+        // -------------------------------
+        // Dropped onto Sentence Panel
+        // -------------------------------
+        if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
         {
-            if (dropTarget.CompareTag("SentencePanel"))
-            {
-                // Insert into sentence
-                sentenceBuilder.RemovePlaceholder();
-                placeholder = null;
-                transform.SetParent(sentenceBuilder.transform, false);
+            sentenceBuilder.RemovePlaceholder();
+            placeholder = null;
 
-                
-                Vector2 localPoint;
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    sentenceBuilder.transform as RectTransform,
-                    eventData.position,
-                    eventData.pressEventCamera,
-                    out localPoint                
-                );
+            transform.SetParent(sentenceBuilder.transform, false);
 
-                float pointerX = localPoint.x;
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                sentenceBuilder.transform as RectTransform,
+                eventData.position,
+                eventData.pressEventCamera,
+                out localPoint
+            );
 
-                int insertIndex = sentenceBuilder.GetInsertionIndex(pointerX);
-                sentenceBuilder.InsertWordAt(rectTransform, insertIndex);
-                sentenceBuilder.TestSingularOrPlural(sentenceWordEntry);
+            int insertIndex = sentenceBuilder.GetInsertionIndex(localPoint.x);
+            sentenceBuilder.InsertWordAt(rectTransform, insertIndex);
+            sentenceBuilder.TestSingularOrPlural(sentenceWordEntry);
 
-                isInSentencePanel = true;
-                return;
-            }
-
-            if (dropTarget.GetComponentInParent<WordBank>() != null)
-            {
-                // Back to word bank
-                WordBank wb = dropTarget.GetComponentInParent<WordBank>();
-                transform.SetParent(wb.transform, true);
-
-                //rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                isInSentencePanel = false;
-                return;
-            }
+            isInSentencePanel = true;
+            return;
         }
 
-        // Drop failed ? return to wordbank
-        transform.SetParent(wordBank.transform, false);
-        rectTransform.anchoredPosition = storedPosition;
-        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        // -------------------------------
+        // Dropped anywhere else ? return to WordBank
+        // -------------------------------
+        WordBank wb = dropTarget != null
+            ? dropTarget.GetComponentInParent<WordBank>()
+            : wordBank;
+
+        if (wb != null)
+        {
+            // Convert screen position ? WordBank local space
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                wb.GetComponent<RectTransform>(),
+                eventData.position,
+                eventData.pressEventCamera,
+                out localPoint
+            );
+
+            // Reparent without changing world position
+            transform.SetParent(wb.transform, false);
+
+            // Place word exactly where it was dropped
+            rectTransform.anchoredPosition = localPoint;
+
+            // Ensure pivot consistency
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        }
+
         isInSentencePanel = false;
     }
 }

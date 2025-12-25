@@ -21,6 +21,7 @@ public class TestContact : Contact
         OpeningLine = "Hello?";
 
         // Add words using singleton
+        AddWordToSentence("what");
         AddWordToSentence("dog");
         AddWordToSentence("elephant");
         AddWordToSentence("dogs");
