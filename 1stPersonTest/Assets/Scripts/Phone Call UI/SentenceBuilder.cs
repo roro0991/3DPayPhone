@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine.UI;
 using System;
 using Unity.VisualScripting;
+using UnityEngine.EventSystems;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -22,15 +23,49 @@ public class SentenceBuilder : MonoBehaviour
 
     private void Start()
     {
-        wordBank = FindAnyObjectByType<WordBank>();
+        wordBank = FindAnyObjectByType<WordBank>();       
+    }
+
+    public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
+    {
+        GameObject dropTarget = eventData.pointerEnter;
+        RectTransform draggableWord = word.GetComponent<RectTransform>();
+
+        if (dropTarget == null)
+            return;
+
+        if (dropTarget.CompareTag("SentencePanel"))
+        {
+            draggableWord.transform.SetParent(transform, false);
+            // Convert pointer to localX
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                transform as RectTransform,
+                eventData.position,
+                eventData.pressEventCamera,
+                out localPoint
+            );
+
+            float pointerX = localPoint.x;
+
+            int insertIndex = GetInsertionIndex(pointerX);
+
+            InsertWordAt(draggableWord, insertIndex);
+        }        
     }
 
     // ---------------- Sentence management ----------------
 
     private void InsertTrailingPunctuation()
     {
-        if (wordList.Count == 0) return; // if no words in sentencepanel        
+        // Remove any placeholder trailing punctuation first
+        if (placeholderTrailingPunctuation != null)
+        {
+            RemovePlaceholderTrailingPunctuation();
+        }
 
+        if (wordList.Count == 0) return; // if no words in sentencepanel
+                                      
         // Create punctuation object
         GameObject punctuationWord = Instantiate(draggableWordPrefab, transform);
         TMP_Text text = punctuationWord.GetComponent<TMP_Text>();
@@ -62,6 +97,7 @@ public class SentenceBuilder : MonoBehaviour
         
         wordList.Add(punctuationWord.GetComponent<RectTransform>());
     }
+
     private RectTransform InsertArticleAt(RectTransform rect, int index, SentenceWordEntry wordData)
     {
         // Create article object
@@ -84,8 +120,7 @@ public class SentenceBuilder : MonoBehaviour
         text.text = article;
         text.ForceMeshUpdate();
         LayoutRebuilder.ForceRebuildLayoutImmediate(articleWord.GetComponent<RectTransform>());
-
-        //InsertWordAt(articleWord.GetComponent<RectTransform>(), index);
+        
         return articleWord.GetComponent<RectTransform>();
     }
 
@@ -138,9 +173,6 @@ public class SentenceBuilder : MonoBehaviour
         // Insert the main word
         wordList.Insert(index, rect);
 
-        // Add punctuation at the end
-        InsertTrailingPunctuation();
-
         // Refresh positions and sentence string
         UpdateWordPositions();
         UpdateSentenceString();
@@ -178,7 +210,7 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         TMP_Text text = rect.GetComponent<TMP_Text>();
-
+        
         UpdateWordPositions();
         UpdateSentenceString();
     }
@@ -195,7 +227,14 @@ public class SentenceBuilder : MonoBehaviour
             rect.anchoredPosition = new Vector2(currentX, startPosition.y);
 
             currentX += rect.rect.width * rect.localScale.x + spacing;
+        }        
+
+        if (placeholderTrailingPunctuation != null)
+        {
+            RemovePlaceholderTrailingPunctuation();
         }
+
+        InsertTrailingPunctuation();
     }
 
     public void UpdateSentenceString()
@@ -458,7 +497,6 @@ public class SentenceBuilder : MonoBehaviour
             UpdateWordPositions();
         }
     }
-
 }
 
 

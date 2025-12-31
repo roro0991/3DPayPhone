@@ -21,7 +21,8 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public bool isPlaceholder = false;
     public bool isDraggable = true;
     public bool isBeingDragged = false;
-    public bool isInSentencePanel = false;    
+    public bool isInSentencePanel = false;
+    public bool isOverSentencePanel;    
 
     private SentenceBuilder sentenceBuilder;
     private WordBank wordBank;
@@ -52,38 +53,9 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         isBeingDragged = true;
         canvasGroup.blocksRaycasts = false;
 
-        storedPosition = rectTransform.anchoredPosition;
-        storedParent = transform.parent;
-
         GameObject dragLayer = GameObject.Find("DragLayer");
         if (dragLayer != null)
             transform.SetParent(dragLayer.transform, false);
-
-        Vector2 localPoint;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle
-            (rectTransform,
-            eventData.position,
-            eventData.pressEventCamera,
-            out localPoint);
-
-        float normalizedPivotX = Mathf.Clamp01((localPoint.x / rectTransform.rect.width) + 0.5f);
-        float normalizedPivotY = Mathf.Clamp01((localPoint.y / rectTransform.rect.height) + 0.5f);
-
-        Vector2 oldSize = rectTransform.rect.size;
-        Vector2 pivotDelta = new Vector2(
-            normalizedPivotX - rectTransform.pivot.x,
-            normalizedPivotY - rectTransform.pivot.y
-            );
-
-
-        if (placeholder != null)
-        {
-            sentenceBuilder.RemovePlaceholder();
-            placeholder = null;
-        }
-
-        if (isInSentencePanel && sentenceBuilder.wordList.Contains(rectTransform))
-            sentenceBuilder.RemoveWord(rectTransform);
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -94,68 +66,6 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         GameObject hover = eventData.pointerEnter;
         bool overSentence = hover != null && hover.CompareTag("SentencePanel");
-
-        if (overSentence && sentenceBuilder != null)
-        {
-            if (placeholder == null)
-            {
-                placeholder = sentenceBuilder.CreatePlaceHolder(rectTransform);
-            }
-
-            // Convert pointer to local X
-            Vector2 localPoint;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                sentenceBuilder.transform as RectTransform,
-                eventData.position,
-                eventData.pressEventCamera,
-                out localPoint
-            );
-            float pointerX = localPoint.x;
-
-            // Get raw insertion index
-            int insertIndex = sentenceBuilder.GetInsertionIndex(pointerX);
-
-            // --- Adjust insertion index to prevent splitting noun + article ---
-            if (sentenceBuilder.wordList != null &&
-                insertIndex < sentenceBuilder.wordList.Count)
-            {
-                var targetRect = sentenceBuilder.wordList[insertIndex];
-                if (targetRect != null)
-                {
-                    var targetWord = targetRect.GetComponent<DraggableWord>();
-                    if (targetWord != null && targetWord.rectTransform != null &&
-                        targetWord.sentenceWordEntry != null &&
-                        targetWord.sentenceWordEntry.Word != null)
-                    {
-                        // If the word is a noun with an article and cursor is to the left, shift insertion index right
-                        if (targetWord.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
-                            targetWord.sentenceWordEntry.hasArticle)
-                        {
-                            float nounLeftX = targetWord.rectTransform.anchoredPosition.x;
-                            if (pointerX < nounLeftX) // cursor is to the left of noun
-                            {
-                                insertIndex++; // force placeholder to go after article+noun
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Show placeholder at corrected index
-            sentenceBuilder.ShowPlaceholderAt(insertIndex, placeholder);
-
-            // Always show trailing punctuation at the end
-            sentenceBuilder.UpdatePlaceholderTrailingPunctuation();
-        }
-        else
-        {
-            if (placeholder != null && sentenceBuilder != null)
-            {
-                sentenceBuilder.RemovePlaceholder();
-                placeholder = null;
-            }
-            sentenceBuilder.RemovePlaceholderTrailingPunctuation();
-        }
     }
 
 
@@ -169,38 +79,20 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         GameObject dropTarget = eventData.pointerEnter;
 
-        // -------------------------------
-        // Dropped onto Sentence Panel
-        // -------------------------------
         if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
         {
-            sentenceBuilder.RemovePlaceholder();
-            placeholder = null;
-
-            transform.SetParent(sentenceBuilder.transform, false);
-
-            Vector2 localPoint;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                sentenceBuilder.transform as RectTransform,
-                eventData.position,
-                eventData.pressEventCamera,
-                out localPoint
-            );
-
-            int insertIndex = sentenceBuilder.GetInsertionIndex(localPoint.x);
-            sentenceBuilder.InsertWordAt(rectTransform, insertIndex);
-            sentenceBuilder.TestSingularOrPlural(sentenceWordEntry);
-
             isInSentencePanel = true;
-            return;
+            sentenceBuilder.HandleWordDropped(this, eventData);
         }
-
+        else
+        {
         // -------------------------------
-        // Dropped anywhere else ? return to WordBank
+        // Dropped anywhere other than SentencePanel ? return to WordBank
         // -------------------------------
         WordBank wb = dropTarget != null
             ? dropTarget.GetComponentInParent<WordBank>()
             : wordBank;
+
 
         if (wb != null)
         {
@@ -221,10 +113,12 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
             // Ensure pivot consistency
             rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        }
+        }            
 
         isInSentencePanel = false;
-    }
+
+        }
+    }    
 }
 
 
