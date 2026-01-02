@@ -78,46 +78,8 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         canvasGroup.blocksRaycasts = true;
 
         GameObject dropTarget = eventData.pointerEnter;
-
-        if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
-        {
-            isInSentencePanel = true;
-            sentenceBuilder.HandleWordDropped(this, eventData);
-        }
-        else
-        {
-        // -------------------------------
-        // Dropped anywhere other than SentencePanel ? return to WordBank
-        // -------------------------------
-        WordBank wb = dropTarget != null
-            ? dropTarget.GetComponentInParent<WordBank>()
-            : wordBank;
-
-
-        if (wb != null)
-        {
-            // Convert screen position ? WordBank local space
-            Vector2 localPoint;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                wb.GetComponent<RectTransform>(),
-                eventData.position,
-                eventData.pressEventCamera,
-                out localPoint
-            );
-
-            // Reparent without changing world position
-            transform.SetParent(wb.transform, false);
-
-            // Place word exactly where it was dropped
-            rectTransform.anchoredPosition = localPoint;
-
-            // Ensure pivot consistency
-            rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        }            
-
-        isInSentencePanel = false;
-
-        }
+        
+        sentenceBuilder.HandleWordDropped(this, eventData);        
     }    
 }
 
