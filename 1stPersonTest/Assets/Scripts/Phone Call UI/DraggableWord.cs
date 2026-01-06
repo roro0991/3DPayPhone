@@ -10,13 +10,8 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public SentenceWordEntry sentenceWordEntry;
     private RectTransform rectTransform;
 
-    private Vector3 storedPosition;
-    private Transform storedParent;
-
     private Canvas canvas;
     private CanvasGroup canvasGroup;
-
-    private RectTransform placeholder;
 
     public bool isPlaceholder = false;
     public bool isDraggable = true;
@@ -50,12 +45,13 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     {
         if (!isDraggable) return; // prevent drag entirely
 
+        if (isInSentencePanel)
+        {
+            sentenceBuilder.RemoveWord(rectTransform);
+        }
+
         isBeingDragged = true;
         canvasGroup.blocksRaycasts = false;
-
-        GameObject dragLayer = GameObject.Find("DragLayer");
-        if (dragLayer != null)
-            transform.SetParent(dragLayer.transform, false);
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -66,9 +62,16 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         GameObject hover = eventData.pointerEnter;
         bool overSentence = hover != null && hover.CompareTag("SentencePanel");
+
+        if (overSentence)
+        {
+            sentenceBuilder.HandleHoveringWord(this, eventData);
+        }
+        else
+        {
+            sentenceBuilder.RemovePlaceholder();
+        }
     }
-
-
 
     public void OnEndDrag(PointerEventData eventData)
     {

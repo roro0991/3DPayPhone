@@ -29,8 +29,30 @@ public class SentenceBuilder : MonoBehaviour
         wordBank = FindAnyObjectByType<WordBank>();       
     }
 
+    public void HandleHoveringWord(DraggableWord word, PointerEventData eventData)
+    {
+        // Convert pointer to localX
+        Vector2 localPoint;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            transform as RectTransform,
+            eventData.position,
+            eventData.pressEventCamera,
+            out localPoint
+        );
+
+        int insertIndex = GetInsertionIndex(localPoint.x);
+
+        if (placeholderWord == null)
+            placeholderWord = CreatePlaceHolder(word.GetComponent<RectTransform>());
+
+        ShowPlaceholderAt(insertIndex, placeholderWord);
+    }
+
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
     {
+        if (placeholderWord != null)
+            RemovePlaceholder();
+
         GameObject dropTarget = eventData.pointerEnter;
         RectTransform draggableWord = word.GetComponent<RectTransform>();
 
@@ -345,30 +367,29 @@ public class SentenceBuilder : MonoBehaviour
 
     public int GetInsertionIndex(float localX)
     {
-        // Clean up any destroyed rects before use
-        for (int i = wordList.Count - 1; i >= 0; i--)
-        {
-            if (wordList[i] == null)   // Unity null check handles destroyed objects
-            {
-                wordList.RemoveAt(i);
-                continue;
-            }
-        }
 
-        // Now safe to calculate
         for (int i = 0; i < wordList.Count; i++)
         {
             RectTransform rect = wordList[i];
-            if (rect == null) continue; // extra safety
+            if (rect == null) continue;
 
-            float centerX = rect.anchoredPosition.x + (rect.rect.width * 0.5f);
+            // Include placeholder in the position calculation, but treat it as zero-width if you want
+            float leftEdge = rect.anchoredPosition.x;
+            float rightEdge = rect.anchoredPosition.x + rect.rect.width * rect.localScale.x;
 
-            if (localX < centerX)
+            float mid = (leftEdge + rightEdge) / 2f;
+
+            // margin proportional to word width (e.g., 10% of width)
+            float margin = rect.rect.width * rect.localScale.x * 0.1f;
+
+            // Insert before this word if pointer is left of mid + margin
+            if (localX < mid + margin)
                 return i;
         }
 
-        return wordList.Count;
+        return wordList.Count; // pointer is past all words, insert at end
     }
+
 
 
     // ---------------- Placeholder Methods ----------------
@@ -413,19 +434,9 @@ public class SentenceBuilder : MonoBehaviour
         TMP_Text text = placeholderWord.GetComponent<TMP_Text>();
         text.color = Color.gray;
 
-        string display = placeholderWordDraggable.sentenceWordEntry.Surface;
-
-        // --- Article logic restored ---
-        if (placeholderWordDraggable.sentenceWordEntry.Word.PartOfSpeech == PartsOfSpeech.Noun &&
-            placeholderWordDraggable.sentenceWordEntry.Word.IsSingular(placeholderWordDraggable.sentenceWordEntry.Surface))
-        {
-            bool startsWithVowel = "aeiou".Contains(char.ToLower(display[0]));
-            string article = startsWithVowel ? "an" : "a";
-
-            display = $"{article} {display}";
-        }
-
-        text.text = display;
+        text.text = placeholderWordDraggable.sentenceWordEntry.Surface;
+        text.ForceMeshUpdate();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(placeholderWord);
 
         Debug.Log("Placeholder has been created.");
         Debug.Log("Placeholder name is: " + placeholderWord.name);
@@ -436,6 +447,9 @@ public class SentenceBuilder : MonoBehaviour
     
     public void ShowPlaceholderAt(int index, RectTransform placeholder)
     {
+        if (placeholder == null)
+            return;
+
         // If placeholder is already in the list, just move it
         int existingIndex = wordList.IndexOf(placeholder);
         if (existingIndex != -1)
@@ -444,29 +458,13 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         index = Mathf.Clamp(index, 0, wordList.Count);
-        wordList.Insert(index, placeholder);
 
-        placeholderWord = placeholder;
-
-        for (int i = wordList.Count - 1; i >= 0; i--)
+        if (index == wordList.Count && trailingPunctuation != null)
         {
-            var word = wordList[i].GetComponent<DraggableWord>();
-
-            // Skip if anything is null
-            if (word == null || word.isPlaceholder || word.sentenceWordEntry == null || word.sentenceWordEntry.Word == null)
-                continue;
-
-            if (word.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
-            {
-                RectTransform punctRect = wordList[i];
-                wordList.RemoveAt(i);
-                Destroy(punctRect.gameObject);
-            }
-            else
-            {
-                break; // stop when hitting a non-punctuation word
-            }
+            index = wordList.Count - 1;
         }
+
+        wordList.Insert(index, placeholder);
 
         UpdateWordPositions();
     }
