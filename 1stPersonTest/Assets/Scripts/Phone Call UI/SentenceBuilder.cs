@@ -6,6 +6,7 @@ using System;
 using Unity.VisualScripting;
 using UnityEngine.EventSystems;
 using UnityEditor.Rendering;
+using NUnit.Framework.Constraints;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -22,6 +23,7 @@ public class SentenceBuilder : MonoBehaviour
     private RectTransform trailingPunctuation;
 
     private RectTransform placeholderWord;
+    private RectTransform placeholderArticle;
     private RectTransform placeholderTrailingPunctuation;
 
     private void Start()
@@ -40,11 +42,18 @@ public class SentenceBuilder : MonoBehaviour
             out localPoint
         );
 
+        // Early out if placeholder already exists and pointer hasn't moved much
+        if (placeholderWord != null)
+        {
+            float delta = Mathf.Abs(localPoint.x - placeholderWord.anchoredPosition.x);
+            if (delta < 2f) return; // tiny dead zone
+        }
+
         int insertIndex = GetInsertionIndex(localPoint.x);
 
         if (placeholderWord == null)
             placeholderWord = CreatePlaceHolder(word.GetComponent<RectTransform>());
-
+        
         ShowPlaceholderAt(insertIndex, placeholderWord);
     }
 
@@ -365,13 +374,19 @@ public class SentenceBuilder : MonoBehaviour
         }
     }
 
-    public int GetInsertionIndex(float localX)
+    public int GetInsertionIndex(float localX, RectTransform ignoreRect = null)
     {
+        int rawIndex = wordList.Count; // default to end
 
         for (int i = 0; i < wordList.Count; i++)
         {
             RectTransform rect = wordList[i];
-            if (rect == null) continue;
+            if (rect == null)
+                continue;
+
+            var dw = rect.GetComponent<DraggableWord>();
+            if (dw == null || dw.sentenceWordEntry?.Word == null)
+                continue;
 
             // Include placeholder in the position calculation, but treat it as zero-width if you want
             float leftEdge = rect.anchoredPosition.x;
@@ -384,18 +399,44 @@ public class SentenceBuilder : MonoBehaviour
 
             // Insert before this word if pointer is left of mid + margin
             if (localX < mid + margin)
-                return i;
+            {
+                rawIndex = i;
+                break;
+            }               
         }
 
-        return wordList.Count; // pointer is past all words, insert at end
+        // Ensure the insertion respects article-noun boundaries (and any future rules)
+        return NormalizeInsertionIndex(rawIndex);
     }
 
+    // Pass insertion index here to make sure placeholders and drops follow basic grammar
+    private int NormalizeInsertionIndex(int index)
+    {
+        if (index <= 0 || index >= wordList.Count)
+            return index;
 
+        RectTransform next = wordList[index];
+        var nextDW = next?.GetComponent<DraggableWord>();
+
+        if (nextDW != null &&
+            nextDW.sentenceWordEntry != null &&
+            nextDW.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
+            nextDW.sentenceWordEntry.hasArticle &&
+            wordList[index - 1] == nextDW.sentenceWordEntry.article)
+        {
+            // Redirect insertion to BEFORE the article
+            return index - 1;
+        }
+
+        return index;
+    }
 
     // ---------------- Placeholder Methods ----------------
-
+        
     public RectTransform CreatePlaceHolder(RectTransform originalRect)
     {
+        if (originalRect == null) return null;
+
         var originalScript = originalRect.GetComponent<DraggableWord>();
 
         // Instantiate a new placeholder from the prefab
@@ -458,6 +499,9 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         index = Mathf.Clamp(index, 0, wordList.Count);
+
+        // Called again to ensure placeholder doesn't preview in places it shouldn't
+        index = NormalizeInsertionIndex(index);
 
         if (index == wordList.Count && trailingPunctuation != null)
         {
