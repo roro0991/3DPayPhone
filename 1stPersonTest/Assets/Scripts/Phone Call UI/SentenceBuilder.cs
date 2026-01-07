@@ -42,24 +42,31 @@ public class SentenceBuilder : MonoBehaviour
             out localPoint
         );
 
-        // Early out if placeholder already exists and pointer hasn't moved much
         if (placeholderWord != null)
         {
             float delta = Mathf.Abs(localPoint.x - placeholderWord.anchoredPosition.x);
             if (delta < 2f) return; // tiny dead zone
-        }
+        }        
 
         int insertIndex = GetInsertionIndex(localPoint.x);
 
         if (placeholderWord == null)
             placeholderWord = CreatePlaceHolder(word.GetComponent<RectTransform>());
         
-        ShowPlaceholderAt(insertIndex, placeholderWord);
+        if (placeholderArticle != null)
+        {
+            ShowPlaceholderAt(insertIndex, placeholderArticle);
+            ShowPlaceholderAt(insertIndex + 1, placeholderWord);
+        }
+        else
+        {
+            ShowPlaceholderAt(insertIndex, placeholderWord);
+        }
     }
 
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
     {
-        if (placeholderWord != null)
+        if (placeholderWord != null || placeholderArticle != null)
             RemovePlaceholder();
 
         GameObject dropTarget = eventData.pointerEnter;
@@ -255,6 +262,7 @@ public class SentenceBuilder : MonoBehaviour
 
         // Update TMP mesh immediately
         TMP_Text text = trailingPunctuation.GetComponent<TMP_Text>();
+        text.raycastTarget = false;
         text.text = punctuation;
         LayoutRebuilder.ForceRebuildLayoutImmediate(trailingPunctuation.GetComponent<RectTransform>());
     }
@@ -471,6 +479,48 @@ public class SentenceBuilder : MonoBehaviour
         placeholderWordDraggable.isDraggable = false;
         placeholderWordDraggable.isInSentencePanel = true;
 
+        // Article logic for singular nouns
+        SentenceWordEntry swe = originalScript.sentenceWordEntry;
+        if (swe.Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
+            swe.Word.IsSingular(swe.Surface))
+        {
+            placeholderArticle = Instantiate(draggableWordPrefab, transform).GetComponent<RectTransform>();
+            placeholderArticle.name = "PlaceholderArticle";
+
+            CanvasGroup articleCG = placeholderArticle.GetComponent<CanvasGroup>();
+            if (articleCG == null)            
+                articleCG = placeholderArticle.gameObject.AddComponent<CanvasGroup>();
+            articleCG.blocksRaycasts = false; // placeholder doesn't block raycasts
+
+            TMP_Text articleText = placeholderArticle.GetComponent<TMP_Text>();
+            if (articleText != null)
+                articleText.raycastTarget = false;
+
+            Image articleIMG = placeholderArticle.GetComponent<Image>();
+            if (articleIMG != null)
+                articleIMG.raycastTarget = false;
+
+            // Determine article
+            string firstLetter = swe.Surface.ToLower();
+            bool startswithVowel = "aeiou".Contains(firstLetter[0]);
+            string article = startswithVowel ? "an" : "a";
+
+            // Set article word data
+            var draggableScript = placeholderArticle.GetComponent<DraggableWord>();
+            draggableScript.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(article);
+            draggableScript.sentenceWordEntry.Surface = article;
+            draggableScript.isDraggable = false;
+            draggableScript.isInSentencePanel = true;
+                        
+            // Set visual text
+            articleText.text = article;
+            articleText.color = Color.gray;
+
+            // Update TMP mesh immediately
+            articleText.ForceMeshUpdate();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(placeholderArticle.GetComponent<RectTransform>());
+        }
+
         // Set visual text
         TMP_Text text = placeholderWord.GetComponent<TMP_Text>();
         text.color = Color.gray;
@@ -522,6 +572,14 @@ public class SentenceBuilder : MonoBehaviour
             Destroy(placeholderWord.gameObject);
             UpdateWordPositions();
             placeholderWord = null;
+        }
+
+        if (placeholderArticle != null && wordList.Contains(placeholderArticle))
+        {
+            wordList.Remove(placeholderArticle);
+            Destroy(placeholderArticle.gameObject);
+            UpdateWordPositions();
+            placeholderArticle = null;
         }
     }
 
