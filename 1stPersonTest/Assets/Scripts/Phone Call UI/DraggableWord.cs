@@ -70,6 +70,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         else
         {
             sentenceBuilder.RemovePlaceholder();
+            sentenceBuilder.RemovePlaceholderTrailingPunctuation();
         }
     }
 

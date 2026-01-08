@@ -62,10 +62,19 @@ public class SentenceBuilder : MonoBehaviour
         {
             ShowPlaceholderAt(insertIndex, placeholderWord);
         }
+
+        if (placeholderTrailingPunctuation == null)
+        {
+            TemporarilyRemoveTrailingPunctuation();
+            placeholderTrailingPunctuation = CreatePlaceholderTrailingPunctuation();
+        }
+        UpdatePlaceholderTrailingPunctuation();
     }
 
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
     {
+        RemovePlaceholderTrailingPunctuation();
+
         if (placeholderWord != null || placeholderArticle != null)
             RemovePlaceholder();
 
@@ -157,6 +166,7 @@ public class SentenceBuilder : MonoBehaviour
         wordList.Insert(index, rect);
 
         // Handle trailing punctuation
+        RemovePlaceholderTrailingPunctuation();
         EnsureTrailingPunctuationExists();
         UpdateTrailingPunctuation();
 
@@ -210,6 +220,28 @@ public class SentenceBuilder : MonoBehaviour
         wordList.Add(trailingPunctuation);
     }
 
+    private void TemporarilyRemoveTrailingPunctuation()
+    {
+        if (trailingPunctuation == null)
+            return;
+
+        wordList.Remove(trailingPunctuation);
+        trailingPunctuation.gameObject.SetActive(false);
+    }
+
+    private void RestoreTrailingPunctuation()
+    {
+        if (trailingPunctuation == null)
+            return;
+
+        trailingPunctuation.gameObject.SetActive(true);
+
+        if (!wordList.Contains(trailingPunctuation))
+            wordList.Add(trailingPunctuation);
+    }
+
+
+
     private void RemoveTrailingPunctuationIfEmpty()
     {
         if (HasContentWords())
@@ -220,7 +252,7 @@ public class SentenceBuilder : MonoBehaviour
 
         wordList.Remove(trailingPunctuation);
         Destroy(trailingPunctuation.gameObject);
-        trailingPunctuation = null;
+        trailingPunctuation = null;       
     }
 
     private void UpdateTrailingPunctuation()
@@ -326,12 +358,7 @@ public class SentenceBuilder : MonoBehaviour
             rect.anchoredPosition = new Vector2(currentX, startPosition.y);
 
             currentX += rect.rect.width * rect.localScale.x + spacing;
-        }        
-
-        if (placeholderTrailingPunctuation != null)
-        {
-            RemovePlaceholderTrailingPunctuation();
-        }        
+        }       
     }
 
     public void UpdateSentenceString()
@@ -393,7 +420,7 @@ public class SentenceBuilder : MonoBehaviour
                 continue;
 
             var dw = rect.GetComponent<DraggableWord>();
-            if (dw == null || dw.sentenceWordEntry?.Word == null)
+            if (dw == null || dw.sentenceWordEntry?.Word == null || rect == trailingPunctuation || rect == placeholderTrailingPunctuation)
                 continue;
 
             // Include placeholder in the position calculation, but treat it as zero-width if you want
@@ -585,53 +612,55 @@ public class SentenceBuilder : MonoBehaviour
 
     // ---------------- Placeholder Trailing Punctuation ----------------    
 
+    // NOTE: Placeholder punctuation is intentionally separate from real punctuation.
+    // Do not unify unless preview + commit lifecycles truly converge.
+
     // Creates the placeholder punctuation object
     public RectTransform CreatePlaceholderTrailingPunctuation()
     {
-        // Determine punctuation based on first word
-        SentenceWordEntry firstWord = null;
-        if (wordList.Count > 0)
-            firstWord = wordList[0].GetComponent<DraggableWord>()?.sentenceWordEntry;
-        else if (placeholderWord != null)
-            firstWord = placeholderWord.GetComponent<DraggableWord>()?.sentenceWordEntry;
-
-        if (firstWord == null || firstWord.Word == null)
+        if (!HasContentWords() && placeholderWord == null)
             return null;
 
-        placeholderTrailingPunctuation = Instantiate(draggableWordPrefab, transform).GetComponent<RectTransform>();
-        placeholderTrailingPunctuation.name = "PlaceholderTrailingPunctuation";
+        RectTransform rt = Instantiate(draggableWordPrefab, transform).GetComponent<RectTransform>();
+        rt.name = "PlaceholderTrailingPunctuation";
 
-        CanvasGroup cg = placeholderTrailingPunctuation.GetComponent<CanvasGroup>();
-        if (cg == null)
-            cg = placeholderTrailingPunctuation.gameObject.AddComponent<CanvasGroup>();
+        CanvasGroup cg = rt.GetComponent<CanvasGroup>() ?? rt.gameObject.AddComponent<CanvasGroup>();
         cg.blocksRaycasts = false;
 
-        TMP_Text tmp = placeholderTrailingPunctuation.GetComponent<TMP_Text>();
-        if (tmp != null)
-        {
-            tmp.raycastTarget = false;
-            tmp.color = Color.gray;
-        }
+        TMP_Text tmp = rt.GetComponent<TMP_Text>();
+        tmp.raycastTarget = false;
+        tmp.color = Color.gray;
 
-        Image img = placeholderTrailingPunctuation.GetComponent<Image>();
+        Image img = rt.GetComponent<Image>();
         if (img != null)
             img.raycastTarget = false;
 
-        string punctuation = firstWord.Word.PartOfSpeech == PartsOfSpeech.Interrogative ? "?" : ".";
+        var dw = rt.GetComponent<DraggableWord>();
+        dw.isPlaceholder = true;
+        dw.isDraggable = false;
+        dw.isInSentencePanel = true;
 
-        var draggable = placeholderTrailingPunctuation.GetComponent<DraggableWord>();
-        draggable.sentenceWordEntry = new SentenceWordEntry
-        {
-            Word = WordDataBase.Instance.GetWord(punctuation),
-            Surface = punctuation
-        };
-        draggable.isInSentencePanel = true;
-        draggable.isDraggable = false;
-        draggable.isPlaceholder = true;
+        return rt;
+    }
 
-        tmp.text = punctuation;
+    private string DetermineTrailingPunctuationForPreview()
+    {
+        // Determine the preview "first word"
+        RectTransform first = null;
 
-        return placeholderTrailingPunctuation;
+        if (wordList.Count > 0)
+            first = wordList[0];
+        else if (placeholderWord != null)
+            first = placeholderWord;
+
+        if (first == null)
+            return ".";
+
+        var entry = first.GetComponent<DraggableWord>()?.sentenceWordEntry;
+        if (entry?.Word == null)
+            return ".";
+
+        return entry.Word.PartOfSpeech == PartsOfSpeech.Interrogative ? "?" : ".";
     }
 
     // Inserts or updates the trailing punctuation at the end of the sentence
@@ -646,13 +675,26 @@ public class SentenceBuilder : MonoBehaviour
         if (wordList.Contains(placeholderTrailingPunctuation))
             wordList.Remove(placeholderTrailingPunctuation);
 
-        wordList.Add(placeholderTrailingPunctuation); // always at the end
+        // Always recompute punctuation based on preview state
+        string punctuation = DetermineTrailingPunctuationForPreview();
+
+        var draggable = placeholderTrailingPunctuation.GetComponent<DraggableWord>();
+        draggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(punctuation);
+        draggable.sentenceWordEntry.Surface = punctuation;
+
+        TMP_Text text = placeholderTrailingPunctuation.GetComponent<TMP_Text>();
+        text.text = punctuation;
+        text.ForceMeshUpdate();
+
+        wordList.Add(placeholderTrailingPunctuation);
         UpdateWordPositions();
     }
+
 
     // Removes the placeholder trailing punctuation
     public void RemovePlaceholderTrailingPunctuation()
     {
+
         if (placeholderTrailingPunctuation != null && wordList.Contains(placeholderTrailingPunctuation))
         {
             wordList.Remove(placeholderTrailingPunctuation);
@@ -660,6 +702,9 @@ public class SentenceBuilder : MonoBehaviour
             placeholderTrailingPunctuation = null;
             UpdateWordPositions();
         }
+        
+        RestoreTrailingPunctuation();
+        UpdateWordPositions();
     }
 }
 
