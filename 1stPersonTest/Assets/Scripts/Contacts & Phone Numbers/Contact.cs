@@ -9,10 +9,8 @@ public abstract class Contact : MonoBehaviour
     public List<SentenceWordEntry> SentenceWords = new List<SentenceWordEntry>();
     public string ContactNumber;
     public string ContactName;
-    public string ContactAddress;
     private bool nameKnown;
     private bool numberKnown;
-    private bool addressKnown;
     [HideInInspector] public string ContactID = System.Guid.NewGuid().ToString();
     public string OpeningLine = string.Empty;
     public string PlayerInput = string.Empty;
@@ -47,13 +45,6 @@ public abstract class Contact : MonoBehaviour
         NotifyAddressBook();
     }
 
-    public void DiscoverAddress(string address)
-    {
-        ContactAddress = address;
-        addressKnown = true;
-        NotifyAddressBook();
-    }
-
     private void NotifyAddressBook()
     {
         if (addressBook != null)
@@ -61,8 +52,7 @@ public abstract class Contact : MonoBehaviour
             var data = new ContactData(
                 ContactID,
                 nameKnown ? ContactName : "",
-                numberKnown ? ContactNumber : "",
-                addressKnown ? ContactAddress : ""
+                numberKnown ? ContactNumber : ""
             );
 
             Debug.Log($"Notifying AddressBook with: {data.Name}, {data.PhoneNumber}");
@@ -71,7 +61,7 @@ public abstract class Contact : MonoBehaviour
     }
 
     public abstract void SpeakFirstLine();
-    public abstract void GenerateResponse();
+    public abstract string GenerateResponse(SentenceBreakdown sb);
 
     protected void UpdateWordBankFromSentence()
     {

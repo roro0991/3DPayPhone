@@ -14,6 +14,7 @@ public class CallManager : MonoBehaviour
 
     [Header("Managers")]
     [SerializeField] SentenceBuilder sentenceBuilder;
+    [SerializeField] InputInterpreter inputInterpreter;
     [SerializeField] PhoneManager PhoneManager;
     [SerializeField] SFXManager SfxManager;
     [SerializeField] DialogueAudioManager DialogueAudioManager;
@@ -99,12 +100,11 @@ public class CallManager : MonoBehaviour
     // --- PLAYER INPUT ---
     public void ReadPlayerInput(string s)
     {
-        if (CurrentState != Call_State.IN_CALL) return;
+        if (CurrentState != Call_State.IN_CALL) return;        
 
-        currentContact.PlayerInput = sentenceBuilder.GetSentenceAsString();
-        if (string.IsNullOrEmpty(currentContact.PlayerInput)) return;
+        SentenceBreakdown sb = inputInterpreter.InterpretPlayerInput(sentenceBuilder.wordList);
 
-        currentContact.GenerateResponse();
+        currentContact.GenerateResponse(sb);
         StartCoroutine(ReadPlayerInputSequence());
     }
 

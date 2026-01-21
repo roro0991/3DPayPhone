@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class TestContact : Contact
@@ -17,14 +18,10 @@ public class TestContact : Contact
     private void Start()
     {
         ContactName = "John Smith";
-        ContactAddress = "123 Olympic Blvd";
         OpeningLine = "Hello?";
 
-        // Add words using singleton
-        AddWordToSentence("what");
-        AddWordToSentence("dog");
-        AddWordToSentence("elephant");
-        AddWordToSentence("dogs");
+        AddWordToSentence("Who");
+        AddWordToSentence("Anna");
     }
 
     public override void SpeakFirstLine()
@@ -32,33 +29,29 @@ public class TestContact : Contact
         ContactResponse = OpeningLine;        
     }
 
-    public override void GenerateResponse()
+    public override string GenerateResponse(SentenceBreakdown sb)
     {
         ContactResponse = string.Empty;
 
-        if (inputResponses.ContainsKey(PlayerInput))
+        switch (sb.Intent)
         {
-            ContactResponse = inputResponses[PlayerInput];
-        }
-        else
-        {
-            ContactResponse = "I don't understand.";            
-            return;
+            case Intent.ASK_ABOUT_IDENTITY:
+                switch (sb.Topic)
+                {
+                    case "anna":
+                        ContactResponse = "Anna is my very important friend";
+                        break;
+                    default:
+                        ContactResponse = "I've never heard of this person.";
+                        break;
+                }
+                break;
+            default:
+                ContactResponse = "I don't understand.";
+                break;
         }
 
-        if (wordsForBank.ContainsKey(ContactResponse))
-        {
-            SentenceWords.Clear();
-            foreach (string word in wordsForBank[ContactResponse])
-            {
-                AddWordToSentence(word);
-            }
-            //SentenceWords.AddRange(wordsForBank[ContactResponse]);
-        }
-        else
-        {
-            SentenceWords.Clear();
-        }
+        return ContactResponse;
     }
 }
 

@@ -53,6 +53,10 @@ public class WordDataBase : MonoBehaviour
         // ----------------- Interjections -----------------
         AddWord(new Word("hi", PartsOfSpeech.Interjection));
 
+        // ----------------- ProperNouns -----------------
+
+        AddWord(new Word("Anna", PartsOfSpeech.ProperNoun));
+
         // ----------------- Pronouns -----------------
 
         AddWord(new Word("i", PartsOfSpeech.SubjectPronoun));

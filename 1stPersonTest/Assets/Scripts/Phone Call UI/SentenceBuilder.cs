@@ -16,7 +16,6 @@ public class SentenceBuilder : MonoBehaviour
     public float spacing = 10f;
 
     public List<RectTransform> wordList = new List<RectTransform>();
-    //public List<SentenceWordEntry> wordDataList = new List<SentenceWordEntry>();
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
 

@@ -134,14 +134,6 @@ public class WordBank : MonoBehaviour
         GenerateWords();
     }
 
-    /*public void UpdateWordBank(List<SentenceWordEntry> words)
-    {
-        foreach (SentenceWordEntry word in words)
-        {
-            wordsInQueue.Enqueue(word);
-        }
-        GenerateWords();
-    }*/
 }
 
 
