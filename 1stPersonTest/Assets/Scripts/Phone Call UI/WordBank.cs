@@ -5,11 +5,56 @@ using TMPro;
 
 public class WordBank : MonoBehaviour
 {
-    private Queue<SentenceWordEntry> wordsInQueue = new Queue<SentenceWordEntry>(); // store Word objects now    
-    public List<SentenceWordEntry> backupWords = new List<SentenceWordEntry>();
+    public List<SentenceWordEntry> wordsInQueue = new List<SentenceWordEntry>(); // store Word objects now        
     public GameObject draggableWordPrefab;
 
     private List<Coroutine> runningFades = new List<Coroutine>();
+
+    // Methods for adding words to wordbank based on current contact called
+    // These methods will possibly be replaced
+
+    public void AddWordToSentence(string key)
+    {
+        key = key.ToLower();
+
+        // First try direct match
+        var word = WordDataBase.Instance.GetWord(key);
+        if (word != null)
+        {
+            AddEntry(word, key);
+            return;
+        }
+
+        // Check known influections       
+        foreach (var w in WordDataBase.Instance.Words.Values)
+        {
+            // Check noun forms
+            foreach (var nf in w.NounFormsList)
+            {
+                if (nf.Plural == key)
+                {
+                    AddEntry(w, key);
+                    return;
+                }
+            }
+        }
+
+        Debug.LogWarning($"Couldn't find base word for '{key}'");
+    }
+
+    private void AddEntry(Word word, string surface)
+    {
+        wordsInQueue.Add(new SentenceWordEntry
+        {
+            Word = word,
+            Surface = surface // ? THIS is "dogs"
+        });
+    }
+
+    public void Refresh()
+    {
+        GenerateWords();
+    }
 
     private void GenerateWords()
     {
@@ -22,11 +67,12 @@ public class WordBank : MonoBehaviour
         runningFades.Clear();
 
         // Clear existing children
+        /*
         foreach (Transform child in transform)
         {
             Destroy(child.gameObject);
         }
-
+        */
 
         // Generate new words
         foreach (SentenceWordEntry word in wordsInQueue)
@@ -39,11 +85,8 @@ public class WordBank : MonoBehaviour
 
     public void AddWordsToWordBank(List<SentenceWordEntry> words)
     {
-
-        backupWords = new List<SentenceWordEntry>(words);
-
         // Queue up the words
-        wordsInQueue = new Queue<SentenceWordEntry>(words);
+        wordsInQueue = new List<SentenceWordEntry>(words);
 
         // If panel is active, generate immediately
         if (gameObject.activeInHierarchy)
@@ -130,7 +173,6 @@ public class WordBank : MonoBehaviour
     public void ClearWordBank()
     {
         wordsInQueue.Clear();
-        backupWords.Clear();
         GenerateWords();
     }
 

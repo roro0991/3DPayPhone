@@ -16,6 +16,7 @@ public class SentenceBuilder : MonoBehaviour
     public float spacing = 10f;
 
     public List<RectTransform> wordList = new List<RectTransform>();
+    public List<SentenceWordEntry> storedWordList = new List<SentenceWordEntry>();
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
 
@@ -163,6 +164,7 @@ public class SentenceBuilder : MonoBehaviour
 
         // Insert the main word
         wordList.Insert(index, rect);
+        storedWordList.Add(wordData); // Add to backup list
 
         // Handle trailing punctuation
         RemovePlaceholderTrailingPunctuation();
@@ -393,6 +395,11 @@ public class SentenceBuilder : MonoBehaviour
             Destroy(transform.GetChild(i).gameObject);
 
         currentSentenceAsString = string.Empty;
+    }
+
+    public void ClearStoredWords()
+    {
+        storedWordList.Clear();        
     }
 
     public void TestSingularOrPlural(SentenceWordEntry word)

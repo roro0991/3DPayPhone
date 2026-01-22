@@ -78,7 +78,8 @@ public class CallManager : MonoBehaviour
 
         WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();
         wordBankComponent.ClearWordBank();
-        wordBankComponent.AddWordsToWordBank(currentContact.SentenceWords);
+        currentContact.PopulateWordBank();
+        wordBankComponent.Refresh();
     }
 
 
@@ -111,12 +112,12 @@ public class CallManager : MonoBehaviour
     private IEnumerator ReadPlayerInputSequence()
     {
         var wdb = WordDataBase.Instance;
-        float delay = currentContact.PlayerInput.Length * 0.15f;
+        float delay = sentenceBuilder.GetSentenceAsString().Length * 0.15f;
 
-        if (!string.IsNullOrWhiteSpace(currentContact.PlayerInput))
+        if (sentenceBuilder.wordList.Count > 0)
         {
+            messagePanel.AddMessage("You: " + sentenceBuilder.GetSentenceAsString());
             sentenceBuilder.ClearSentence();
-            messagePanel.AddMessage("You: " + currentContact.PlayerInput);
         }
 
         yield return new WaitForSeconds(delay);
@@ -130,16 +131,16 @@ public class CallManager : MonoBehaviour
             
             if (currentContact.ContactResponse == "I don't understand.")
             {
-                // ?? Add previous words back into the bank (convert from string to Word)
-                List<SentenceWordEntry> previousSentenceWords = 
-                    new List<SentenceWordEntry>(wordBankComponent.backupWords);                
-                wordBankComponent.AddWordsToWordBank(previousSentenceWords);
+                // ?? Add previous words back into the bank (convert from string to Word)                                
+                wordBankComponent.AddWordsToWordBank(sentenceBuilder.storedWordList);
+                sentenceBuilder.ClearStoredWords();
             }
             else
             {
                 // Normal flow: replace with NPC's new SentenceWords
                 wordBankComponent.ClearWordBank();
                 wordBankComponent.AddWordsToWordBank(currentContact.SentenceWords);
+                sentenceBuilder.ClearStoredWords();
             }
             
         }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public enum Intent
 {
+    None,
     ASK_ABOUT_IDENTITY,
 }
 public class SentenceBreakdown
@@ -41,6 +42,7 @@ public class InputInterpreter : MonoBehaviour
                 sb.Intent = Intent.ASK_ABOUT_IDENTITY;
                 break;
             default:
+                sb.Intent = Intent.None;
                 break;
         }
 

@@ -16,7 +16,7 @@ public abstract class Contact : MonoBehaviour
     public string PlayerInput = string.Empty;
     public string ContactResponse = string.Empty;
 
-    [SerializeField] protected WordBank wordBank;
+    [SerializeField] public WordBank wordBank;
 
     private void Awake()
     {
@@ -63,51 +63,9 @@ public abstract class Contact : MonoBehaviour
     public abstract void SpeakFirstLine();
     public abstract string GenerateResponse(SentenceBreakdown sb);
 
-    protected void UpdateWordBankFromSentence()
+    public virtual void PopulateWordBank()
     {
-        if (wordBank != null)
-        {
-            wordBank.ClearWordBank();
-            wordBank.AddWordsToWordBank(SentenceWords);
-        }
-    }
-
-    protected void AddWordToSentence(string key)
-    {
-        key = key.ToLower();
-
-        // First try direct match
-        var word = WordDataBase.Instance.GetWord(key);
-        if (word != null)
-        {
-            AddEntry(word, key);
-            return;
-        }   
-        
-        // Check known influections       
-        foreach (var w in WordDataBase.Instance.Words.Values)
-        {
-            // Check noun forms
-            foreach (var nf in w.NounFormsList)
-            {
-                if (nf.Plural == key)
-                {
-                    AddEntry(w, key);
-                    return;
-                }
-            }
-        }
-
-        Debug.LogWarning($"Couldn't find base word for '{key}'");
-    }
-
-    private void AddEntry(Word word, string surface)
-    {
-        SentenceWords.Add(new SentenceWordEntry
-        {
-            Word = word,
-            Surface = surface // ? THIS is "dogs"
-        });
+        // default: do nothing
     }
 }
 

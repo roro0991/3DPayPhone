@@ -4,29 +4,22 @@ using UnityEngine;
 
 public class TestContact : Contact
 {
-    private Dictionary<string, string> inputResponses = new Dictionary<string, string>()
-    {
-        { "hello.", "who is this?" }
-    };
-    private Dictionary<string, List<string>> wordsForBank = new Dictionary<string, List<string>>()
-    {
-        { "who is this?", new List<string>
-            { "who", "are", "you" } }
-    };
-        
-
     private void Start()
     {
         ContactName = "John Smith";
-        OpeningLine = "Hello?";
-
-        AddWordToSentence("Who");
-        AddWordToSentence("Anna");
+        OpeningLine = "Hello?";        
     }
 
     public override void SpeakFirstLine()
     {
         ContactResponse = OpeningLine;        
+    }
+
+    public override void PopulateWordBank()
+    {
+        wordBank.AddWordToSentence("Who");
+        wordBank.AddWordToSentence("Anna");
+        wordBank.AddWordToSentence("Dog");
     }
 
     public override string GenerateResponse(SentenceBreakdown sb)
