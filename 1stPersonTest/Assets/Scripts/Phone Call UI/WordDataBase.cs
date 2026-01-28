@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Dialogue.Core;
 
 public class WordDataBase : MonoBehaviour
 {
@@ -31,6 +32,10 @@ public class WordDataBase : MonoBehaviour
     {
         _words.Clear();
 
+        // ----------------- Characters -----------------
+
+        AddWord(new Word("anna", PartsOfSpeech.Character, wordID: WordID.Anna));
+
         // ----------------- Interrogatives -----------------
         AddWord(new Word(".", PartsOfSpeech.Punctuation));
         AddWord(new Word("?", PartsOfSpeech.Punctuation));
@@ -39,9 +44,11 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word("and", PartsOfSpeech.Conjunction));
 
         // ----------------- Interrogatives -----------------
-        AddWord(new Word("who", PartsOfSpeech.Interrogative));
+        AddWord(new Word("who", PartsOfSpeech.Interrogative, 
+            intent: Intent.ASK_ABOUT_IDENTITY));
         AddWord(new Word("what", PartsOfSpeech.Interrogative));
-        AddWord(new Word("where", PartsOfSpeech.Interrogative));
+        AddWord(new Word("where", PartsOfSpeech.Interrogative,
+            intent: Intent.ASK_ABOUT_LOCATION));
         AddWord(new Word("when", PartsOfSpeech.Interrogative));
         AddWord(new Word("why", PartsOfSpeech.Interrogative));
 
@@ -52,11 +59,7 @@ public class WordDataBase : MonoBehaviour
 
         // ----------------- Interjections -----------------
         AddWord(new Word("hi", PartsOfSpeech.Interjection));
-
-        // ----------------- ProperNouns -----------------
-
-        AddWord(new Word("Anna", PartsOfSpeech.ProperNoun));
-
+        
         // ----------------- Pronouns -----------------
 
         AddWord(new Word("i", PartsOfSpeech.SubjectPronoun));
@@ -80,23 +83,23 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word("theirs", PartsOfSpeech.PossessivePronoun));
 
         // ----------------- Nouns -----------------
-        var dogForms = new NounForms { Singular = "dog", Plural = "dogs" };
+        var dogForms = new Word.NounForms { Singular = "dog", Plural = "dogs" };
         var dogWord = new Word("dog", PartsOfSpeech.Noun);
         dogWord.AddNounForm(dogForms);
         AddWord(dogWord);
 
-        var catForms = new NounForms { Singular = "cat", Plural = "cats" };
+        var catForms = new Word.NounForms { Singular = "cat", Plural = "cats" };
         var catWord = new Word("cat", PartsOfSpeech.Noun);
         catWord.AddNounForm(catForms);
         AddWord(catWord);
 
-        var elephantForms = new NounForms { Singular = "elephant", Plural = "elephants" };
+        var elephantForms = new Word.NounForms { Singular = "elephant", Plural = "elephants" };
         var elephantWord = new Word("elephant", PartsOfSpeech.Noun);
         elephantWord.AddNounForm(elephantForms);
         AddWord(elephantWord);
 
         // ----------------- Verbs -----------------
-        var meetForms = new VerbForms
+        var meetForms = new Word.VerbForms
         {
             Base = "meet",
             Past = "met",
@@ -108,7 +111,7 @@ public class WordDataBase : MonoBehaviour
         meetWord.AddVerbForm(meetForms);
         AddWord(meetWord);
 
-        var beForms = new VerbForms
+        var beForms = new Word.VerbForms
         {
             Base = "be",
             FirstPersonSingular = "am",
@@ -138,8 +141,8 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word("to", PartsOfSpeech.Preposition));
 
         // ----------------- Multi-role word example: run -----------------
-        var runNoun = new NounForms { Singular = "run", Plural = "runs" };
-        var runVerb = new VerbForms
+        var runNoun = new Word.NounForms { Singular = "run", Plural = "runs" };
+        var runVerb = new Word.VerbForms
         {
             Base = "run",
             Past = "ran",
@@ -177,7 +180,7 @@ public class WordDataBase : MonoBehaviour
         AddKey(word.Text);
 
         // Safe enumeration of verb forms
-        foreach (var vf in new List<VerbForms>(word.VerbFormsList))
+        foreach (var vf in new List<Word.VerbForms>(word.VerbFormsList))
         {
             if (!string.IsNullOrEmpty(vf.Past)) AddKey(vf.Past);
             if (!string.IsNullOrEmpty(vf.PastParticiple)) AddKey(vf.PastParticiple);

@@ -3,8 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
+[System.Serializable]
+public class SentenceWordEntry
+{
+    public Word Word; // semantic object
+    public string Surface; // the actual form used (ie. dog vs dogs)
+    public bool hasArticle; // if noun does it have an article?
+    public RectTransform article;
+}
+
 public class WordBank : MonoBehaviour
 {
+
     public List<SentenceWordEntry> wordsInQueue = new List<SentenceWordEntry>(); // store Word objects now        
     public GameObject draggableWordPrefab;
 

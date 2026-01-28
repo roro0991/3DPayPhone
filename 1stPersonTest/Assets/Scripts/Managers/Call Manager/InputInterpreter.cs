@@ -1,52 +1,44 @@
 using Ink.Parsed;
 using UnityEngine;
 using System.Collections.Generic;
+using Dialogue.Core;
 
-public enum Intent
-{
-    None,
-    ASK_ABOUT_IDENTITY,
-}
-public class SentenceBreakdown
-    {
-        public Intent Intent; // Is it a question. If so, what kind of question?
-        public string Topic; // What is the question about?
-    }
+
 
 public class InputInterpreter : MonoBehaviour
-{        
-    public string ContactResponse;
+{
+    Intent intent;
+    WordID wordID;
 
-    public SentenceBreakdown InterpretPlayerInput(List<RectTransform> playerInput)
+    public ResponseKey InterpretPlayerInput(List<RectTransform> playerInput)
     {
         List<RectTransform> sentence = new List<RectTransform>();
-
         sentence = playerInput;
-
-        SentenceBreakdown sb = new SentenceBreakdown();
-
-        string firstWord = sentence[0].GetComponent<DraggableWord>().sentenceWordEntry.Surface; 
+        
 
         for (int i = 0; i < sentence.Count; i++)
         {
-            if (sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.ProperNoun))
+            if(sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
+                Intent != Intent.None)
+               
             {
-                sb.Topic = sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Surface;
-                break;
+                intent = sentence[i].GetComponent<DraggableWord>().
+                    sentenceWordEntry.Word.Intent;
             }
         }
 
-        switch (firstWord)
+        for (int i = 0; i < sentence.Count; i++)
         {
-            case "Who":
-                sb.Intent = Intent.ASK_ABOUT_IDENTITY;
-                break;
-            default:
-                sb.Intent = Intent.None;
-                break;
+            if (sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
+                HasPartOfSpeech(PartsOfSpeech.Character))
+            {
+                wordID = sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
+                WordID;
+            }
         }
 
-        Debug.Log("The Topic is: "+sb.Topic);
-        return sb;
+        ResponseKey responsekey = new ResponseKey(intent, wordID);
+
+        return responsekey;
     }
 }

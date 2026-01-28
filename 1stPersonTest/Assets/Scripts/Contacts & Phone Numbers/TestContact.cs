@@ -1,13 +1,20 @@
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Windows.Speech;
+using Dialogue.Core;
 
 public class TestContact : Contact
 {
     private void Start()
     {
         ContactName = "John Smith";
-        OpeningLine = "Hello?";        
+        OpeningLine = "Hello?";
+
+        ResponsesByIntent[new ResponseKey(Intent.ASK_ABOUT_IDENTITY, WordID.Anna)] =
+            "Anna is my friend.";
+        ResponsesByIntent[new ResponseKey(Intent.ASK_ABOUT_LOCATION, WordID.Anna)] =
+            "Anna is at the office.";
     }
 
     public override void SpeakFirstLine()
@@ -19,30 +26,14 @@ public class TestContact : Contact
     {
         wordBank.AddWordToSentence("Who");
         wordBank.AddWordToSentence("Anna");
-        wordBank.AddWordToSentence("Dog");
+        wordBank.AddWordToSentence("Where");
     }
 
-    public override string GenerateResponse(SentenceBreakdown sb)
+    public override string GenerateResponse(ResponseKey responsekey)
     {
         ContactResponse = string.Empty;
 
-        switch (sb.Intent)
-        {
-            case Intent.ASK_ABOUT_IDENTITY:
-                switch (sb.Topic)
-                {
-                    case "anna":
-                        ContactResponse = "Anna is my very important friend";
-                        break;
-                    default:
-                        ContactResponse = "I've never heard of this person.";
-                        break;
-                }
-                break;
-            default:
-                ContactResponse = "I don't understand.";
-                break;
-        }
+        ContactResponse = ResponsesByIntent[responsekey];
 
         return ContactResponse;
     }

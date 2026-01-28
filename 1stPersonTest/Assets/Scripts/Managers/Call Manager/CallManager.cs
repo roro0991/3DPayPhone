@@ -1,3 +1,4 @@
+using Dialogue.Core;
 using Ink.Parsed;
 using System.Collections;
 using System.Collections.Generic;
@@ -103,9 +104,9 @@ public class CallManager : MonoBehaviour
     {
         if (CurrentState != Call_State.IN_CALL) return;        
 
-        SentenceBreakdown sb = inputInterpreter.InterpretPlayerInput(sentenceBuilder.wordList);
+        ResponseKey responseKey = inputInterpreter.InterpretPlayerInput(sentenceBuilder.wordList);
 
-        currentContact.GenerateResponse(sb);
+        currentContact.GenerateResponse(responseKey);
         StartCoroutine(ReadPlayerInputSequence());
     }
 
