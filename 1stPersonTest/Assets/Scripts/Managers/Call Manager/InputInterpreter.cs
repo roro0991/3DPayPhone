@@ -7,8 +7,8 @@ using Dialogue.Core;
 
 public class InputInterpreter : MonoBehaviour
 {
-    Intent intent;
-    WordID wordID;
+    Intent foundIntent = Intent.None;
+    WordID foundTopic = WordID.None;
 
     public ResponseKey InterpretPlayerInput(List<RectTransform> playerInput)
     {
@@ -22,7 +22,7 @@ public class InputInterpreter : MonoBehaviour
                 Intent != Intent.None)
                
             {
-                intent = sentence[i].GetComponent<DraggableWord>().
+                foundIntent = sentence[i].GetComponent<DraggableWord>().
                     sentenceWordEntry.Word.Intent;
             }
         }
@@ -32,12 +32,12 @@ public class InputInterpreter : MonoBehaviour
             if (sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
                 HasPartOfSpeech(PartsOfSpeech.Character))
             {
-                wordID = sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
+                foundTopic = sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
                 WordID;
             }
         }
 
-        ResponseKey responsekey = new ResponseKey(intent, wordID);
+        ResponseKey responsekey = new ResponseKey(foundIntent, foundTopic);
 
         return responsekey;
     }

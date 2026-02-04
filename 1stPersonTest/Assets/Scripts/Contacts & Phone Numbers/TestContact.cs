@@ -31,9 +31,14 @@ public class TestContact : Contact
 
     public override string GenerateResponse(ResponseKey responsekey)
     {
-        ContactResponse = string.Empty;
-
-        ContactResponse = ResponsesByIntent[responsekey];
+        if (ResponsesByIntent.TryGetValue(responsekey, out var response))
+        {
+            ContactResponse = response;
+        }
+        else
+        {
+            ContactResponse = "I don't understand.";
+        }
 
         return ContactResponse;
     }

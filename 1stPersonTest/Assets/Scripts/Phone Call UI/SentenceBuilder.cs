@@ -137,6 +137,57 @@ public class SentenceBuilder : MonoBehaviour
 
     // ---------------- Sentence management ----------------
 
+    public void NormalizationPass()
+    {
+        // Remove loose articles.
+        for (int i = 0; i < wordList.Count; i++)
+        {
+            SentenceWordEntry wordData = wordList[i]
+                .GetComponent<DraggableWord>()
+                .sentenceWordEntry;
+
+            if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                continue;
+
+            bool hasNextWord = i + 1 < wordList.Count;
+
+            if (!hasNextWord)
+            {
+                RemoveWord(wordList[i]);
+            }
+            else
+            {
+                SentenceWordEntry nextWordData = wordList[i + 1]
+                    .GetComponent<DraggableWord>()
+                    .sentenceWordEntry;
+
+                if (!nextWordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                {
+                    RemoveWord(wordList[i]);
+                }
+            }
+        }
+
+        // Ensure all singular nouns have corresponding articles.
+        for (int i = 0; i < wordList.Count; i++)
+        {
+            SentenceWordEntry wordData = wordList[i].GetComponent<DraggableWord>().sentenceWordEntry;
+
+            int index = wordList.IndexOf(wordList[i]);
+
+            if (wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun) 
+                && wordData.Word.IsSingular(wordData.Surface)
+                && wordData.hasArticle == false)
+            {
+                RectTransform articleRect = InsertArticleAt(wordList[i], index, wordData);
+                wordList.Insert(index, articleRect);
+                wordData.article = articleRect;
+                wordData.hasArticle = true;
+            }
+        }
+
+    }
+
     public void InsertWordAt(RectTransform rect, int index)
     {
         SentenceWordEntry wordData = rect.GetComponent<DraggableWord>().sentenceWordEntry;      
