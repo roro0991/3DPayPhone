@@ -137,10 +137,19 @@ public class SentenceBuilder : MonoBehaviour
 
     // ---------------- Sentence management ----------------
 
-    public void NormalizationPass()
+    // Helper class for article insertion.
+    private class PendingArticleInsertion
     {
-        // Remove loose articles.
-        for (int i = 0; i < wordList.Count; i++)
+        public RectTransform nounRect;
+        public SentenceWordEntry nounData;
+    }
+
+    private void NormalizationPass()
+    {
+        // Collect loose articles for removal.
+        List<RectTransform> articlesToRemove = new List<RectTransform>();
+
+        for (int i = wordList.Count - 1; i >= 0; i--)
         {
             SentenceWordEntry wordData = wordList[i]
                 .GetComponent<DraggableWord>()
@@ -153,7 +162,7 @@ public class SentenceBuilder : MonoBehaviour
 
             if (!hasNextWord)
             {
-                RemoveWord(wordList[i]);
+                articlesToRemove.Add(wordList[i]);
             }
             else
             {
@@ -163,29 +172,62 @@ public class SentenceBuilder : MonoBehaviour
 
                 if (!nextWordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                 {
-                    RemoveWord(wordList[i]);
+                    articlesToRemove.Add(wordList[i]);
                 }
             }
         }
 
-        // Ensure all singular nouns have corresponding articles.
-        for (int i = 0; i < wordList.Count; i++)
+        // Collect nouns that need articles.
+        List<PendingArticleInsertion> missingArticles = new List<PendingArticleInsertion>(); 
+
+        for (int i = wordList.Count - 1; i >= 0; i--)
         {
             SentenceWordEntry wordData = wordList[i].GetComponent<DraggableWord>().sentenceWordEntry;
 
-            int index = wordList.IndexOf(wordList[i]);
-
-            if (wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun) 
-                && wordData.Word.IsSingular(wordData.Surface)
-                && wordData.hasArticle == false)
+            if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                continue;
+            if (!wordData.Word.IsSingular(wordData.Surface))
+                continue;
+            if (wordData.hasArticle)
+                continue;
+            
+            missingArticles.Add(new PendingArticleInsertion
             {
-                RectTransform articleRect = InsertArticleAt(wordList[i], index, wordData);
-                wordList.Insert(index, articleRect);
-                wordData.article = articleRect;
-                wordData.hasArticle = true;
-            }
+                nounRect = wordList[i],
+                nounData = wordData
+            });            
         }
 
+        RemoveArticles(articlesToRemove);
+        InsertArticles(missingArticles);
+
+    }
+
+    private void RemoveArticles(List<RectTransform> articlesToRemove)
+    {
+        foreach (RectTransform articleRect in articlesToRemove)
+        {
+            RemoveWord(articleRect);
+        }     
+    }
+
+    private void InsertArticles(List<PendingArticleInsertion> articlesToInsert)
+    {
+        foreach (var pending in articlesToInsert)
+        {
+            int nounIndex = wordList.IndexOf(pending.nounRect);
+
+            if (nounIndex < 0)
+                continue; // noun no longer exists - safety check
+
+            RectTransform articleRect =
+                InsertArticleAt(pending.nounRect, nounIndex, pending.nounData);
+
+            wordList.Insert(nounIndex, articleRect);
+
+            pending.nounData.article = articleRect;
+            pending.nounData.hasArticle = true;
+        }
     }
 
     public void InsertWordAt(RectTransform rect, int index)
@@ -398,7 +440,7 @@ public class SentenceBuilder : MonoBehaviour
         UpdateSentenceString();
     }
 
-    public void UpdateWordPositions()
+    private void UpdateWordPositions()
     {
         if (wordList.Count == 0) return;
 
@@ -413,7 +455,7 @@ public class SentenceBuilder : MonoBehaviour
         }       
     }
 
-    public void UpdateSentenceString()
+    private void UpdateSentenceString()
     {
         List<SentenceWordEntry> wordDataList = new List<SentenceWordEntry>();
 
@@ -466,7 +508,7 @@ public class SentenceBuilder : MonoBehaviour
         }
     }
 
-    public int GetInsertionIndex(float localX, RectTransform ignoreRect = null)
+    private int GetInsertionIndex(float localX, RectTransform ignoreRect = null)
     {
         int rawIndex = wordList.Count; // default to end
 
@@ -525,7 +567,7 @@ public class SentenceBuilder : MonoBehaviour
 
     // ---------------- Placeholder Methods ----------------
         
-    public RectTransform CreatePlaceHolder(RectTransform originalRect)
+    private RectTransform CreatePlaceHolder(RectTransform originalRect)
     {
         if (originalRect == null) return null;
 
@@ -620,7 +662,7 @@ public class SentenceBuilder : MonoBehaviour
         return placeholderWord;
     }
     
-    public void ShowPlaceholderAt(int index, RectTransform placeholder)
+    private void ShowPlaceholderAt(int index, RectTransform placeholder)
     {
         if (placeholder == null)
             return;
