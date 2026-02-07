@@ -8,7 +8,7 @@ public class SentenceWordEntry
 {
     public Word Word; // semantic object
     public string Surface; // the actual form used (ie. dog vs dogs)
-    public bool hasArticle; // if noun does it have an article?
+    public RectTransform owningNoun; // corresponding noun to this article
     public RectTransform article;
 }
 

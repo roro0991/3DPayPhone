@@ -101,7 +101,7 @@ public class SentenceBuilder : MonoBehaviour
             int insertIndex = GetInsertionIndex(pointerX);
 
             InsertWordAt(draggableWord, insertIndex);
-            word.isInSentencePanel = true;
+            word.isInSentencePanel = true;            
         }
         else
         {
@@ -166,11 +166,8 @@ public class SentenceBuilder : MonoBehaviour
             }
             else
             {
-                SentenceWordEntry nextWordData = wordList[i + 1]
-                    .GetComponent<DraggableWord>()
-                    .sentenceWordEntry;
-
-                if (!nextWordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                
+                if (wordData.owningNoun == null)
                 {
                     articlesToRemove.Add(wordList[i]);
                 }
@@ -188,7 +185,7 @@ public class SentenceBuilder : MonoBehaviour
                 continue;
             if (!wordData.Word.IsSingular(wordData.Surface))
                 continue;
-            if (wordData.hasArticle)
+            if (wordData.article != null)
                 continue;
             
             missingArticles.Add(new PendingArticleInsertion
@@ -200,6 +197,14 @@ public class SentenceBuilder : MonoBehaviour
 
         RemoveArticles(articlesToRemove);
         InsertArticles(missingArticles);
+
+        // Handle trailing punctuation
+        RemovePlaceholderTrailingPunctuation();
+        EnsureTrailingPunctuationExists();
+        UpdateTrailingPunctuation();
+
+        // Update sentencepanel & sentence string
+        UpdateSentence();
 
     }
 
@@ -226,7 +231,6 @@ public class SentenceBuilder : MonoBehaviour
             wordList.Insert(nounIndex, articleRect);
 
             pending.nounData.article = articleRect;
-            pending.nounData.hasArticle = true;
         }
     }
 
@@ -240,33 +244,32 @@ public class SentenceBuilder : MonoBehaviour
             wordList.Remove(rect);
         }
 
-        // Clamp index first to ensure it's within bounds
-        index = Mathf.Clamp(index, 0, wordList.Count);
-
-        // Insert article before singular nouns
-        if (wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun) && wordData.Word.IsSingular(wordData.Surface))
-        {
-            RectTransform articleRect = InsertArticleAt(rect, index, wordData);
-            wordList.Insert(index, articleRect);
-            wordData.article = articleRect;
-            wordData.hasArticle = true;
-
-            index++; // make sure main word comes after article
-            index = Mathf.Clamp(index, 0, wordList.Count); // clamp again
-        }
-
         // Insert the main word
         wordList.Insert(index, rect);
         storedWordList.Add(wordData); // Add to backup list
+        
+    }
 
-        // Handle trailing punctuation
-        RemovePlaceholderTrailingPunctuation();
-        EnsureTrailingPunctuationExists();
-        UpdateTrailingPunctuation();
+    public void RemoveWord(RectTransform rect)
+    {
+        int idx = wordList.IndexOf(rect);
 
-        // Refresh positions and sentence string
-        UpdateWordPositions();
-        UpdateSentenceString();
+        if (idx >= 0)
+        {
+            wordList.RemoveAt(idx);
+        }
+
+        var draggable = rect.GetComponent<DraggableWord>();
+        var wordData = draggable.sentenceWordEntry;
+
+        if (wordData.article != null) // remove article
+        {
+            var articleEntry = wordData.article.GetComponent<DraggableWord>().sentenceWordEntry;
+
+            articleEntry.owningNoun = null;
+            wordData.article = null;
+        }
+
     }
 
     private RectTransform InsertArticleAt(RectTransform rect, int index, SentenceWordEntry wordData)
@@ -285,6 +288,7 @@ public class SentenceBuilder : MonoBehaviour
         draggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(article);
         draggable.sentenceWordEntry.Surface = article;
         draggable.isInSentencePanel = true;
+        draggable.sentenceWordEntry.owningNoun = rect;
         draggable.isDraggable = false;
 
         // Update TMP mesh immediately
@@ -409,33 +413,10 @@ public class SentenceBuilder : MonoBehaviour
                 return true;
         }
         return false;
-    }
-   
-    public void RemoveWord(RectTransform rect)
+    }       
+
+    private void UpdateSentence()
     {
-        int idx = wordList.IndexOf(rect);
-
-        if (idx >= 0)
-        {
-            wordList.RemoveAt(idx);
-        }
-
-        var draggable = rect.GetComponent<DraggableWord>();
-        var wordData = draggable.sentenceWordEntry;
-
-        if (wordData.hasArticle && wordData.article != null) // remove article
-        {
-            RectTransform articleRect = wordData.article;
-            wordList.Remove(articleRect); // remove article from word List
-            Destroy(articleRect.gameObject); // destroy the article
-            wordData.hasArticle = false;
-            wordData.article = null;
-        }
-
-        TMP_Text text = rect.GetComponent<TMP_Text>();
-
-        EnsureTrailingPunctuationExists();
-        UpdateTrailingPunctuation();
         UpdateWordPositions();
         UpdateSentenceString();
     }
@@ -555,7 +536,7 @@ public class SentenceBuilder : MonoBehaviour
         if (nextDW != null &&
             nextDW.sentenceWordEntry != null &&
             nextDW.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
-            nextDW.sentenceWordEntry.hasArticle &&
+            nextDW.sentenceWordEntry.article != null &&
             wordList[index - 1] == nextDW.sentenceWordEntry.article)
         {
             // Redirect insertion to BEFORE the article
@@ -597,7 +578,6 @@ public class SentenceBuilder : MonoBehaviour
         {
             Surface = originalScript.sentenceWordEntry.Surface,
             Word = originalScript.sentenceWordEntry.Word,
-            hasArticle = originalScript.sentenceWordEntry.hasArticle,
             article = originalScript.sentenceWordEntry.article
         };
 
