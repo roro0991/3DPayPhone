@@ -26,9 +26,12 @@ public class SentenceBuilder : MonoBehaviour
     private RectTransform placeholderArticle;
     private RectTransform placeholderTrailingPunctuation;
 
+    public event Action OnSentenceMutated;
+
     private void Start()
     {
-        wordBank = FindAnyObjectByType<WordBank>();       
+        wordBank = FindAnyObjectByType<WordBank>();
+        OnSentenceMutated += NormalizationPass; 
     }
 
     public void HandleHoveringWord(DraggableWord word, PointerEventData eventData)
@@ -130,7 +133,7 @@ public class SentenceBuilder : MonoBehaviour
                 draggableWord.pivot = new Vector2(0.5f, 0.5f);
             }
 
-            RemoveWord(draggableWord);
+            RemoveWordAndNotify(draggableWord);
             word.isInSentencePanel = false;
         }
     }
@@ -195,6 +198,8 @@ public class SentenceBuilder : MonoBehaviour
             });            
         }
 
+        Debug.Log("articles to remove: "+articlesToRemove.Count);
+
         RemoveArticles(articlesToRemove);
         InsertArticles(missingArticles);
 
@@ -212,8 +217,10 @@ public class SentenceBuilder : MonoBehaviour
     {
         foreach (RectTransform articleRect in articlesToRemove)
         {
-            RemoveWord(articleRect);
-        }     
+            RemoveWordInternal(articleRect);
+            Destroy(articleRect.gameObject);
+        }
+
     }
 
     private void InsertArticles(List<PendingArticleInsertion> articlesToInsert)
@@ -247,29 +254,31 @@ public class SentenceBuilder : MonoBehaviour
         // Insert the main word
         wordList.Insert(index, rect);
         storedWordList.Add(wordData); // Add to backup list
-        
+
+        OnSentenceMutated?.Invoke();
     }
 
-    public void RemoveWord(RectTransform rect)
+    private void RemoveWordInternal(RectTransform rect)
     {
         int idx = wordList.IndexOf(rect);
-
         if (idx >= 0)
-        {
             wordList.RemoveAt(idx);
-        }
 
-        var draggable = rect.GetComponent<DraggableWord>();
-        var wordData = draggable.sentenceWordEntry;
-
-        if (wordData.article != null) // remove article
+        var wordData = rect.GetComponent<DraggableWord>().sentenceWordEntry;
+        if (wordData.article != null)
         {
-            var articleEntry = wordData.article.GetComponent<DraggableWord>().sentenceWordEntry;
+            var articleEntry =
+                wordData.article.GetComponent<DraggableWord>().sentenceWordEntry;
 
             articleEntry.owningNoun = null;
             wordData.article = null;
         }
+    }
 
+    public void RemoveWordAndNotify(RectTransform rect)
+    {
+        RemoveWordInternal(rect);
+        OnSentenceMutated?.Invoke();
     }
 
     private RectTransform InsertArticleAt(RectTransform rect, int index, SentenceWordEntry wordData)

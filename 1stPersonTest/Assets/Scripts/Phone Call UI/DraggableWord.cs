@@ -47,7 +47,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
         if (isInSentencePanel)
         {
-            sentenceBuilder.RemoveWord(rectTransform);
+            sentenceBuilder.RemoveWordAndNotify(rectTransform);
         }
 
         isBeingDragged = true;
