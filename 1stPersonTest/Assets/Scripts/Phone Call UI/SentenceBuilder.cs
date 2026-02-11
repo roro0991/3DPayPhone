@@ -15,8 +15,9 @@ public class SentenceBuilder : MonoBehaviour
     public Vector2 startPosition = Vector2.zero;
     public float spacing = 10f;
 
-    public List<RectTransform> wordList = new List<RectTransform>();
-    public List<SentenceWordEntry> storedWordList = new List<SentenceWordEntry>();
+    public List<RectTransform> wordList = new List<RectTransform>(); // sentence word gameobjects
+    public List<SentenceWordEntry> sentenceModel = new List<SentenceWordEntry>(); // sentence word data
+    public List<SentenceWordEntry> storedWordList = new List<SentenceWordEntry>(); // for wordbank repopulation
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
 
@@ -103,7 +104,9 @@ public class SentenceBuilder : MonoBehaviour
 
             int insertIndex = GetInsertionIndex(pointerX);
 
-            InsertWordAt(draggableWord, insertIndex);
+            var entryData = draggableWord.GetComponent<DraggableWord>().sentenceWordEntry;
+
+            InsertEntryAt(entryData, insertIndex);
             word.isInSentencePanel = true;            
         }
         else
@@ -133,56 +136,65 @@ public class SentenceBuilder : MonoBehaviour
                 draggableWord.pivot = new Vector2(0.5f, 0.5f);
             }
 
-            RemoveWordAndNotify(draggableWord);
+            // Remove from model first
+            sentenceModel.Remove(word.sentenceWordEntry);
+
+            // Trigger the normalization/UI Update
+            NotifySentenceMutated();
+
             word.isInSentencePanel = false;
         }
     }
 
     // ---------------- Sentence management ----------------
 
+    public void NotifySentenceMutated()
+    {
+        OnSentenceMutated?.Invoke();
+    }
+
     // Helper class for article insertion.
     private class PendingArticleInsertion
     {
-        public RectTransform nounRect;
         public SentenceWordEntry nounData;
+        public int nounIndex;
     }
 
     private void NormalizationPass()
     {
+        
         // Collect loose articles for removal.
-        List<RectTransform> articlesToRemove = new List<RectTransform>();
+        List<SentenceWordEntry> articlesToRemove = new List<SentenceWordEntry>();
 
         for (int i = wordList.Count - 1; i >= 0; i--)
         {
-            SentenceWordEntry wordData = wordList[i]
-                .GetComponent<DraggableWord>()
-                .sentenceWordEntry;
+            SentenceWordEntry wordData = sentenceModel[i];
 
             if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Article))
                 continue;
 
-            bool hasNextWord = i + 1 < wordList.Count;
+            bool hasNextWord = i + 1 < sentenceModel.Count;
 
             if (!hasNextWord)
             {
-                articlesToRemove.Add(wordList[i]);
+                articlesToRemove.Add(sentenceModel[i]);
             }
             else
             {
                 
                 if (wordData.owningNoun == null)
                 {
-                    articlesToRemove.Add(wordList[i]);
+                    articlesToRemove.Add(sentenceModel[i]);
                 }
             }
         }
 
         // Collect nouns that need articles.
-        List<PendingArticleInsertion> missingArticles = new List<PendingArticleInsertion>(); 
+        List<PendingArticleInsertion> articlesToInsert = new List<PendingArticleInsertion>(); 
 
-        for (int i = wordList.Count - 1; i >= 0; i--)
+        for (int i = sentenceModel.Count - 1; i >= 0; i--)
         {
-            SentenceWordEntry wordData = wordList[i].GetComponent<DraggableWord>().sentenceWordEntry;
+            SentenceWordEntry wordData = sentenceModel[i];
 
             if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                 continue;
@@ -191,26 +203,37 @@ public class SentenceBuilder : MonoBehaviour
             if (wordData.article != null)
                 continue;
             
-            missingArticles.Add(new PendingArticleInsertion
+            articlesToInsert.Add(new PendingArticleInsertion
             {
-                nounRect = wordList[i],
+                nounIndex = i,
                 nounData = wordData
             });            
         }
 
-        Debug.Log("articles to remove: "+articlesToRemove.Count);
 
-        RemoveArticles(articlesToRemove);
+        Debug.Log("missing articles: " + articlesToInsert.Count);
+        Debug.Log("articles to remove: " + articlesToRemove.Count);
+        
+    }
+
+    private void ApplyNormalizationResults(List<RectTransform> articlesToRemove, List<PendingArticleInsertion> missingArticles)
+    {
+        // Remove lose article gameobjects
+        foreach (RectTransform articleRect in articlesToRemove)
+        {
+            Destroy(articleRect.gameObject);
+        }
+
+        // Insert missing articles
         InsertArticles(missingArticles);
 
-        // Handle trailing punctuation
+        // Handle trailing punctuation: NOTE: logic separate from genuine word generation
         RemovePlaceholderTrailingPunctuation();
         EnsureTrailingPunctuationExists();
         UpdateTrailingPunctuation();
 
         // Update sentencepanel & sentence string
         UpdateSentence();
-
     }
 
     private void RemoveArticles(List<RectTransform> articlesToRemove)
@@ -241,21 +264,12 @@ public class SentenceBuilder : MonoBehaviour
         }
     }
 
-    public void InsertWordAt(RectTransform rect, int index)
+    public void InsertEntryAt(SentenceWordEntry entry, int index)
     {
-        SentenceWordEntry wordData = rect.GetComponent<DraggableWord>().sentenceWordEntry;      
+        sentenceModel.Insert(index, entry);
+        storedWordList.Add(entry); // Add to backup list
 
-        // Remove the word if it already exists in the list
-        if (wordList.Contains(rect))
-        {
-            wordList.Remove(rect);
-        }
-
-        // Insert the main word
-        wordList.Insert(index, rect);
-        storedWordList.Add(wordData); // Add to backup list
-
-        OnSentenceMutated?.Invoke();
+        NotifySentenceMutated();
     }
 
     private void RemoveWordInternal(RectTransform rect)
@@ -278,7 +292,7 @@ public class SentenceBuilder : MonoBehaviour
     public void RemoveWordAndNotify(RectTransform rect)
     {
         RemoveWordInternal(rect);
-        OnSentenceMutated?.Invoke();
+        NotifySentenceMutated();
     }
 
     private RectTransform InsertArticleAt(RectTransform rect, int index, SentenceWordEntry wordData)
