@@ -8,8 +8,8 @@ public class SentenceWordEntry
 {
     public Word Word; // semantic object
     public string Surface; // the actual form used (ie. dog vs dogs)
-    public RectTransform owningNoun; // corresponding noun to this article
-    public RectTransform article;
+    public SentenceWordEntry owningNoun; // corresponding noun to this article
+    public SentenceWordEntry article;
 }
 
 public class WordBank : MonoBehaviour

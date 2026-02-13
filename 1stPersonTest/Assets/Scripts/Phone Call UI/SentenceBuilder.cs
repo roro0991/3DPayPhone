@@ -8,7 +8,7 @@ using UnityEngine.EventSystems;
 using UnityEditor.Rendering;
 using NUnit.Framework.Constraints;
 
-public class SentenceBuilder : MonoBehaviour
+public class SentenceBuilder : MonoBehaviour 
 {
     public WordBank wordBank;
 
@@ -106,7 +106,7 @@ public class SentenceBuilder : MonoBehaviour
 
             var entryData = draggableWord.GetComponent<DraggableWord>().sentenceWordEntry;
 
-            InsertEntryAt(entryData, insertIndex);
+            InsertWordEntryAt(entryData, insertIndex);
             word.isInSentencePanel = true;            
         }
         else
@@ -164,9 +164,9 @@ public class SentenceBuilder : MonoBehaviour
     {
         
         // Collect loose articles for removal.
-        List<SentenceWordEntry> articlesToRemove = new List<SentenceWordEntry>();
+        List<SentenceWordEntry> articleEntriesToRemove = new List<SentenceWordEntry>();
 
-        for (int i = wordList.Count - 1; i >= 0; i--)
+        for (int i = sentenceModel.Count - 1; i >= 0; i--)
         {
             SentenceWordEntry wordData = sentenceModel[i];
 
@@ -177,20 +177,23 @@ public class SentenceBuilder : MonoBehaviour
 
             if (!hasNextWord)
             {
-                articlesToRemove.Add(sentenceModel[i]);
+                articleEntriesToRemove.Add(sentenceModel[i]);
             }
             else
             {
                 
                 if (wordData.owningNoun == null)
                 {
-                    articlesToRemove.Add(sentenceModel[i]);
+                    articleEntriesToRemove.Add(sentenceModel[i]);
                 }
             }
         }
 
+        Debug.Log("articles to remove: " + articleEntriesToRemove.Count);
+        RemoveArticles(articleEntriesToRemove);
+
         // Collect nouns that need articles.
-        List<PendingArticleInsertion> articlesToInsert = new List<PendingArticleInsertion>(); 
+        List<PendingArticleInsertion> articleEntriesToInsert = new List<PendingArticleInsertion>(); 
 
         for (int i = sentenceModel.Count - 1; i >= 0; i--)
         {
@@ -203,45 +206,30 @@ public class SentenceBuilder : MonoBehaviour
             if (wordData.article != null)
                 continue;
             
-            articlesToInsert.Add(new PendingArticleInsertion
+            articleEntriesToInsert.Add(new PendingArticleInsertion
             {
                 nounIndex = i,
                 nounData = wordData
             });            
         }
 
+        Debug.Log("missing articles: " + articleEntriesToInsert.Count);
+        InsertArticles(articleEntriesToInsert);
 
-        Debug.Log("missing articles: " + articlesToInsert.Count);
-        Debug.Log("articles to remove: " + articlesToRemove.Count);
-        
+        ApplyNormalizationResults();
+                
     }
 
-    private void ApplyNormalizationResults(List<RectTransform> articlesToRemove, List<PendingArticleInsertion> missingArticles)
+    private void ApplyNormalizationResults()
     {
-        // Remove lose article gameobjects
-        foreach (RectTransform articleRect in articlesToRemove)
-        {
-            Destroy(articleRect.gameObject);
-        }
-
-        // Insert missing articles
-        InsertArticles(missingArticles);
-
-        // Handle trailing punctuation: NOTE: logic separate from genuine word generation
-        RemovePlaceholderTrailingPunctuation();
-        EnsureTrailingPunctuationExists();
-        UpdateTrailingPunctuation();
-
-        // Update sentencepanel & sentence string
-        UpdateSentence();
+        // will conform UI to match sentenceModel
     }
 
-    private void RemoveArticles(List<RectTransform> articlesToRemove)
+    private void RemoveArticles(List<SentenceWordEntry> articlesToRemove)
     {
-        foreach (RectTransform articleRect in articlesToRemove)
+        foreach (SentenceWordEntry articleEntry in articlesToRemove)
         {
-            RemoveWordInternal(articleRect);
-            Destroy(articleRect.gameObject);
+            sentenceModel.Remove(articleEntry);
         }
 
     }
@@ -250,21 +238,19 @@ public class SentenceBuilder : MonoBehaviour
     {
         foreach (var pending in articlesToInsert)
         {
-            int nounIndex = wordList.IndexOf(pending.nounRect);
+            int nounIndex = pending.nounIndex;
 
             if (nounIndex < 0)
                 continue; // noun no longer exists - safety check
 
-            RectTransform articleRect =
-                InsertArticleAt(pending.nounRect, nounIndex, pending.nounData);
+            SentenceWordEntry articleEntry =
+                InsertArticleEntryAt(nounIndex, pending.nounData);
 
-            wordList.Insert(nounIndex, articleRect);
-
-            pending.nounData.article = articleRect;
+            sentenceModel.Insert(nounIndex, articleEntry);
         }
     }
 
-    public void InsertEntryAt(SentenceWordEntry entry, int index)
+    public void InsertWordEntryAt(SentenceWordEntry entry, int index)
     {
         sentenceModel.Insert(index, entry);
         storedWordList.Add(entry); // Add to backup list
@@ -272,6 +258,7 @@ public class SentenceBuilder : MonoBehaviour
         NotifySentenceMutated();
     }
 
+    /*
     private void RemoveWordInternal(RectTransform rect)
     {
         int idx = wordList.IndexOf(rect);
@@ -288,18 +275,19 @@ public class SentenceBuilder : MonoBehaviour
             wordData.article = null;
         }
     }
-
+    */
+    
+    /*
     public void RemoveWordAndNotify(RectTransform rect)
     {
         RemoveWordInternal(rect);
         NotifySentenceMutated();
     }
+    */
 
-    private RectTransform InsertArticleAt(RectTransform rect, int index, SentenceWordEntry wordData)
+    private SentenceWordEntry InsertArticleEntryAt(int index, SentenceWordEntry wordData)
     {
-        // Create article object
-        GameObject articleWord = Instantiate(draggableWordPrefab, transform);
-        TMP_Text text = articleWord.GetComponent<TMP_Text>();
+        SentenceWordEntry articleEntry = new SentenceWordEntry();
 
         // Determine article
         string firstLetter = wordData.Surface.ToLower();
@@ -307,19 +295,12 @@ public class SentenceBuilder : MonoBehaviour
         string article = startsWithVowel ? "an" : "a";
 
         // Set word data
-        var draggable = articleWord.GetComponent<DraggableWord>();
-        draggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(article);
-        draggable.sentenceWordEntry.Surface = article;
-        draggable.isInSentencePanel = true;
-        draggable.sentenceWordEntry.owningNoun = rect;
-        draggable.isDraggable = false;
+        articleEntry.Word = WordDataBase.Instance.GetWord(article);
+        articleEntry.Surface = article;
+        articleEntry.owningNoun = wordData;
+        wordData.article = articleEntry;
 
-        // Update TMP mesh immediately
-        text.text = article;
-        text.ForceMeshUpdate();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(articleWord.GetComponent<RectTransform>());
-
-        return articleWord.GetComponent<RectTransform>();
+        return articleEntry;
     }
 
     private void EnsureTrailingPunctuationExists()
@@ -438,11 +419,6 @@ public class SentenceBuilder : MonoBehaviour
         return false;
     }       
 
-    private void UpdateSentence()
-    {
-        UpdateWordPositions();
-        UpdateSentenceString();
-    }
 
     private void UpdateWordPositions()
     {
@@ -512,19 +488,15 @@ public class SentenceBuilder : MonoBehaviour
         }
     }
 
-    private int GetInsertionIndex(float localX, RectTransform ignoreRect = null)
+    private int GetInsertionIndex(float localX)
     {
-        int rawIndex = wordList.Count; // default to end
+        int modelIndex = sentenceModel.Count; // default to end
 
         for (int i = 0; i < wordList.Count; i++)
         {
             RectTransform rect = wordList[i];
             if (rect == null)
-                continue;
-
-            var dw = rect.GetComponent<DraggableWord>();
-            if (dw == null || dw.sentenceWordEntry?.Word == null || rect == trailingPunctuation || rect == placeholderTrailingPunctuation)
-                continue;
+                continue;            
 
             // Include placeholder in the position calculation, but treat it as zero-width if you want
             float leftEdge = rect.anchoredPosition.x;
@@ -538,36 +510,14 @@ public class SentenceBuilder : MonoBehaviour
             // Insert before this word if pointer is left of mid + margin
             if (localX < mid + margin)
             {
-                rawIndex = i;
+                modelIndex = i;
                 break;
             }               
         }
 
-        // Ensure the insertion respects article-noun boundaries (and any future rules)
-        return NormalizeInsertionIndex(rawIndex);
+        return modelIndex;
     }
 
-    // Pass insertion index here to make sure placeholders and drops follow basic grammar
-    private int NormalizeInsertionIndex(int index)
-    {
-        if (index <= 0 || index >= wordList.Count)
-            return index;
-
-        RectTransform next = wordList[index];
-        var nextDW = next?.GetComponent<DraggableWord>();
-
-        if (nextDW != null &&
-            nextDW.sentenceWordEntry != null &&
-            nextDW.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
-            nextDW.sentenceWordEntry.article != null &&
-            wordList[index - 1] == nextDW.sentenceWordEntry.article)
-        {
-            // Redirect insertion to BEFORE the article
-            return index - 1;
-        }
-
-        return index;
-    }
 
     // ---------------- Placeholder Methods ----------------
         
