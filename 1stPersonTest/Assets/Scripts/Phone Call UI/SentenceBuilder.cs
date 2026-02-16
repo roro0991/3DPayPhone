@@ -29,6 +29,8 @@ public class SentenceBuilder : MonoBehaviour
 
     public event Action OnSentenceMutated;
 
+    private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
+
     private void Start()
     {
         wordBank = FindAnyObjectByType<WordBank>();
@@ -106,6 +108,7 @@ public class SentenceBuilder : MonoBehaviour
 
             var entryData = draggableWord.GetComponent<DraggableWord>().sentenceWordEntry;
 
+            ModelRects[entryData] = draggableWord;
             InsertWordEntryAt(entryData, insertIndex);
             word.isInSentencePanel = true;            
         }
@@ -216,13 +219,105 @@ public class SentenceBuilder : MonoBehaviour
         Debug.Log("missing articles: " + articleEntriesToInsert.Count);
         InsertArticles(articleEntriesToInsert);
 
-        ApplyNormalizationResults();
-                
+        ApplyNormalizationResults();          
+    }
+
+    private void UpdateModelDictionary()
+    {
+        ModelRects.Clear();
+
+        foreach (SentenceWordEntry entry in sentenceModel)
+        {
+            RectTransform rect = FindRectForEntry(entry);
+            if (rect != null)
+                ModelRects.Add(entry, rect);
+        }        
+    }
+
+    private RectTransform FindRectForEntry(SentenceWordEntry entry)
+    {
+        foreach (RectTransform rect in wordList)
+        {
+            var draggable = rect.GetComponent<DraggableWord>();
+            if (draggable != null && draggable.sentenceWordEntry == entry)
+                return rect;
+        }
+
+        return null;
     }
 
     private void ApplyNormalizationResults()
     {
-        // will conform UI to match sentenceModel
+        // Collect UI rects to remove
+        List<RectTransform> uiRectsToRemove = new List<RectTransform>();
+        if (wordList.Count > 0)
+        {
+            foreach (RectTransform uiRect in wordList)
+            {
+                SentenceWordEntry uiEntry = uiRect.GetComponent<DraggableWord>().sentenceWordEntry;
+                if (uiEntry != null)
+                {
+                    if (!sentenceModel.Contains(uiEntry))
+                    {
+                        uiRectsToRemove.Add(uiRect);
+                    }
+                }
+            }
+        }
+
+        foreach (RectTransform uiRect in uiRectsToRemove)
+        {
+            wordList.Remove(uiRect);
+            Destroy(uiRect.gameObject);
+        }
+
+
+        foreach (SentenceWordEntry entry in sentenceModel)
+        {    
+            // Add sentenceModel rects not present in wordList.
+            if (ModelRects.TryGetValue(entry, out RectTransform existingRect))
+            {
+                if (!wordList.Contains(existingRect))
+                wordList.Add(existingRect);
+                continue;
+            }
+            
+            // Instantiate prefabs for sentenceModel elements that require them
+            RectTransform word = Instantiate(draggableWordPrefab, transform).GetComponent<RectTransform>();
+
+            // Set word data to model data
+            var draggable = word.GetComponent<DraggableWord>();
+            draggable.isInSentencePanel = true;
+            draggable.isDraggable = false;
+            draggable.sentenceWordEntry = entry;
+
+            TMP_Text wordText = word.GetComponent<TMP_Text>();
+            wordText.text = entry.Surface;
+
+            wordText.ForceMeshUpdate();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(word.GetComponent<RectTransform>());
+
+            // Add instantiated prefab to wordList
+            wordList.Add(word);
+            ModelRects[entry] = word;                
+        }
+
+        // Reorder wordList rects to match sentenceModel
+
+        List<RectTransform> reorderedRects = new List<RectTransform>();
+
+        foreach (SentenceWordEntry entry in sentenceModel)
+        {
+            if (ModelRects.ContainsKey(entry))
+            {
+                reorderedRects.Add(ModelRects[entry]);
+            }
+        }
+
+        wordList = reorderedRects; 
+
+        UpdateModelDictionary();
+        UpdateWordPositions();
     }
 
     private void RemoveArticles(List<SentenceWordEntry> articlesToRemove)
@@ -244,7 +339,7 @@ public class SentenceBuilder : MonoBehaviour
                 continue; // noun no longer exists - safety check
 
             SentenceWordEntry articleEntry =
-                InsertArticleEntryAt(nounIndex, pending.nounData);
+                CreateArticleForNoun(pending.nounData);
 
             sentenceModel.Insert(nounIndex, articleEntry);
         }
@@ -258,34 +353,31 @@ public class SentenceBuilder : MonoBehaviour
         NotifySentenceMutated();
     }
 
-    /*
-    private void RemoveWordInternal(RectTransform rect)
+    
+    public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry)
     {
-        int idx = wordList.IndexOf(rect);
+        int idx = sentenceModel.IndexOf(draggableEntry);
         if (idx >= 0)
-            wordList.RemoveAt(idx);
+            sentenceModel.RemoveAt(idx);
 
-        var wordData = rect.GetComponent<DraggableWord>().sentenceWordEntry;
-        if (wordData.article != null)
+        // remove rect to prevent destruction by normalization
+        ModelRects.TryGetValue(draggableEntry, out RectTransform draggableRect);
+        if (draggableRect != null && wordList.Contains(draggableRect))
         {
-            var articleEntry =
-                wordData.article.GetComponent<DraggableWord>().sentenceWordEntry;
+            wordList.Remove(draggableRect);
+        }
+
+        // sever grammatical connections
+        if (draggableEntry.article != null)
+        {
+            var articleEntry = draggableEntry.article;
 
             articleEntry.owningNoun = null;
-            wordData.article = null;
+            draggableEntry.article = null;
         }
     }
-    */
-    
-    /*
-    public void RemoveWordAndNotify(RectTransform rect)
-    {
-        RemoveWordInternal(rect);
-        NotifySentenceMutated();
-    }
-    */
 
-    private SentenceWordEntry InsertArticleEntryAt(int index, SentenceWordEntry wordData)
+    private SentenceWordEntry CreateArticleForNoun(SentenceWordEntry wordData)
     {
         SentenceWordEntry articleEntry = new SentenceWordEntry();
 
@@ -299,6 +391,10 @@ public class SentenceBuilder : MonoBehaviour
         articleEntry.Surface = article;
         articleEntry.owningNoun = wordData;
         wordData.article = articleEntry;
+       
+
+        Debug.Log("inserted article: " + article);
+        Debug.Log("article's owning noun: " + wordData.Surface);
 
         return articleEntry;
     }
@@ -492,10 +588,10 @@ public class SentenceBuilder : MonoBehaviour
     {
         int modelIndex = sentenceModel.Count; // default to end
 
-        for (int i = 0; i < wordList.Count; i++)
+        for (int i = 0; i < sentenceModel.Count; i++)
         {
-            RectTransform rect = wordList[i];
-            if (rect == null)
+            var entry = sentenceModel[i];
+            if (!ModelRects.TryGetValue(entry, out RectTransform rect))
                 continue;            
 
             // Include placeholder in the position calculation, but treat it as zero-width if you want
@@ -504,7 +600,7 @@ public class SentenceBuilder : MonoBehaviour
 
             float mid = (leftEdge + rightEdge) / 2f;
 
-            // margin proportional to word width (e.g., 10% of width)
+            // Margin proportional to word width (e.g., 10% of width)
             float margin = rect.rect.width * rect.localScale.x * 0.1f;
 
             // Insert before this word if pointer is left of mid + margin
@@ -628,9 +724,6 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         index = Mathf.Clamp(index, 0, wordList.Count);
-
-        // Called again to ensure placeholder doesn't preview in places it shouldn't
-        index = NormalizeInsertionIndex(index);
 
         if (index == wordList.Count && trailingPunctuation != null)
         {
