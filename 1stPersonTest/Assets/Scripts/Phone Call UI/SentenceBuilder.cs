@@ -7,6 +7,7 @@ using Unity.VisualScripting;
 using UnityEngine.EventSystems;
 using UnityEditor.Rendering;
 using NUnit.Framework.Constraints;
+using System.Linq;
 
 public class SentenceBuilder : MonoBehaviour 
 {
@@ -20,8 +21,6 @@ public class SentenceBuilder : MonoBehaviour
     public List<SentenceWordEntry> storedWordList = new List<SentenceWordEntry>(); // for wordbank repopulation
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
-
-    private RectTransform trailingPunctuation;
 
     private RectTransform placeholderWord;
     private RectTransform placeholderArticle;
@@ -71,7 +70,6 @@ public class SentenceBuilder : MonoBehaviour
 
         if (placeholderTrailingPunctuation == null)
         {
-            TemporarilyRemoveTrailingPunctuation();
             placeholderTrailingPunctuation = CreatePlaceholderTrailingPunctuation();
         }
         UpdatePlaceholderTrailingPunctuation();
@@ -219,6 +217,7 @@ public class SentenceBuilder : MonoBehaviour
         Debug.Log("missing articles: " + articleEntriesToInsert.Count);
         InsertArticles(articleEntriesToInsert);
 
+        NormalizeTrailingPunctuation();
         ApplyNormalizationResults();          
     }
 
@@ -314,7 +313,7 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
 
-        wordList = reorderedRects; 
+        wordList = reorderedRects;
 
         UpdateModelDictionary();
         UpdateWordPositions();
@@ -399,103 +398,33 @@ public class SentenceBuilder : MonoBehaviour
         return articleEntry;
     }
 
-    private void EnsureTrailingPunctuationExists()
+    private void NormalizeTrailingPunctuation()
     {
-        if (!HasContentWords())
+        // Remove any existing punctuation entries
+        sentenceModel.RemoveAll(entry =>
+        entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation));
+
+        // if no content words, do nothing
+        if (!sentenceModel.Any(entry =>
+            !entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation)))
             return;
 
-        if (trailingPunctuation != null)
-            return;
+        var firstWord = sentenceModel[0];
 
-        GameObject go = Instantiate(draggableWordPrefab, transform);
-        trailingPunctuation = go.GetComponent<RectTransform>();
+        string punctuation =
+            firstWord.Word.PartOfSpeech == PartsOfSpeech.Interrogative
+            ? "?"
+            : ".";
 
-        var dw = go.GetComponent<DraggableWord>();
-        dw.isDraggable = false;
-        dw.isInSentencePanel = true;
-
-
-        wordList.Add(trailingPunctuation);
-    }
-
-    private void TemporarilyRemoveTrailingPunctuation()
-    {
-        if (trailingPunctuation == null)
-            return;
-
-        wordList.Remove(trailingPunctuation);
-        trailingPunctuation.gameObject.SetActive(false);
-    }
-
-    private void RestoreTrailingPunctuation()
-    {
-        if (trailingPunctuation == null)
-            return;
-
-        trailingPunctuation.gameObject.SetActive(true);
-
-        if (!wordList.Contains(trailingPunctuation))
-            wordList.Add(trailingPunctuation);
-    }
-
-
-
-    private void RemoveTrailingPunctuationIfEmpty()
-    {
-        if (HasContentWords())
-            return;
-
-        if (trailingPunctuation == null)
-            return;
-
-        wordList.Remove(trailingPunctuation);
-        Destroy(trailingPunctuation.gameObject);
-        trailingPunctuation = null;       
-    }
-
-    private void UpdateTrailingPunctuation()
-    {
-        if (!HasContentWords())
+        var punctuationEntry = new SentenceWordEntry
         {
-            RemoveTrailingPunctuationIfEmpty();
-            return;
-        }
+            Word = WordDataBase.Instance.GetWord(punctuation),
+            Surface = punctuation
+        };
 
-        // Make sure trailing punctuation exists
-        if (trailingPunctuation == null)
-            EnsureTrailingPunctuationExists();
-
-        // Move it to the end of the list
-        if (wordList.Contains(trailingPunctuation))
-        {
-            wordList.Remove(trailingPunctuation);
-        }
-        wordList.Add(trailingPunctuation);
-
-        // Determine Punctuation
-        string punctuation;
-        var firstWord = wordList[0].GetComponent<DraggableWord>().sentenceWordEntry;
-        switch (firstWord.Word.PartOfSpeech)
-        {
-            case PartsOfSpeech.Interrogative:
-                punctuation = "?";
-                break;
-            default:
-                punctuation = ".";
-                break;
-        }
-
-        // Set Punctuation Data
-        var draggableScript = trailingPunctuation.GetComponent<DraggableWord>();
-        draggableScript.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(punctuation);
-        draggableScript.sentenceWordEntry.Surface = punctuation;
-
-        // Update TMP mesh immediately
-        TMP_Text text = trailingPunctuation.GetComponent<TMP_Text>();
-        text.raycastTarget = false;
-        text.text = punctuation;
-        LayoutRebuilder.ForceRebuildLayoutImmediate(trailingPunctuation.GetComponent<RectTransform>());
+        sentenceModel.Add(punctuationEntry);
     }
+    
 
     private bool HasContentWords()
     {
@@ -725,9 +654,21 @@ public class SentenceBuilder : MonoBehaviour
 
         index = Mathf.Clamp(index, 0, wordList.Count);
 
-        if (index == wordList.Count && trailingPunctuation != null)
+        if (index == wordList.Count)
         {
-            index = wordList.Count - 1;
+            var lastRect = wordList.LastOrDefault();
+            if (lastRect != null)
+            {
+                var entry = lastRect
+                    .GetComponent<DraggableWord>()
+                    ?.sentenceWordEntry;
+
+                if (entry != null &&
+                    entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+                {
+                    index = wordList.Count - 1;
+                }
+            }
         }
 
         wordList.Insert(index, placeholder);
@@ -831,6 +772,7 @@ public class SentenceBuilder : MonoBehaviour
         text.text = punctuation;
         text.ForceMeshUpdate();
 
+        // Add placeholder back to the end of the wordlist
         wordList.Add(placeholderTrailingPunctuation);
         UpdateWordPositions();
     }
@@ -848,7 +790,6 @@ public class SentenceBuilder : MonoBehaviour
             UpdateWordPositions();
         }
         
-        RestoreTrailingPunctuation();
         UpdateWordPositions();
     }
 }
