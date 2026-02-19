@@ -51,7 +51,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             sentenceBuilder.RemoveDraggableFromSentence(sentenceWordEntry);
 
             // Trigger normalization to update UI
-            sentenceBuilder.NotifySentenceMutated(); 
+            sentenceBuilder.CommitModelChange();
         }
 
         isBeingDragged = true;
@@ -73,8 +73,8 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
         else
         {
-            sentenceBuilder.RemovePlaceholder();
-            sentenceBuilder.RemovePlaceholderTrailingPunctuation();
+            sentenceBuilder.sentenceModel.RemoveAll(entry => entry.isPreview);
+            sentenceBuilder.CommitModelChange();
         }
     }
 

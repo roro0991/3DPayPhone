@@ -10,6 +10,7 @@ public class SentenceWordEntry
     public string Surface; // the actual form used (ie. dog vs dogs)
     public SentenceWordEntry owningNoun; // corresponding noun to this article
     public SentenceWordEntry article;
+    public bool isPreview; // for placeholder preview
 }
 
 public class WordBank : MonoBehaviour

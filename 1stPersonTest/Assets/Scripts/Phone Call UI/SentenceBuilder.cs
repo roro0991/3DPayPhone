@@ -22,22 +22,18 @@ public class SentenceBuilder : MonoBehaviour
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
 
-    private RectTransform placeholderWord;
-    private RectTransform placeholderArticle;
-    private RectTransform placeholderTrailingPunctuation;
-
-    public event Action OnSentenceMutated;
-
     private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
 
     private void Start()
     {
         wordBank = FindAnyObjectByType<WordBank>();
-        OnSentenceMutated += NormalizationPass; 
     }
 
     public void HandleHoveringWord(DraggableWord word, PointerEventData eventData)
     {
+        // Remove any existing preview words
+        sentenceModel.RemoveAll(entry => entry.isPreview);
+
         // Convert pointer to localX
         Vector2 localPoint;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -47,40 +43,34 @@ public class SentenceBuilder : MonoBehaviour
             out localPoint
         );
 
-        if (placeholderWord != null)
-        {
-            float delta = Mathf.Abs(localPoint.x - placeholderWord.anchoredPosition.x);
-            if (delta < 2f) return; // tiny dead zone
-        }        
-
+        // Calculate insertion index
         int insertIndex = GetInsertionIndex(localPoint.x);
 
-        if (placeholderWord == null)
-            placeholderWord = CreatePlaceHolder(word.GetComponent<RectTransform>());
-        
-        if (placeholderArticle != null)
-        {
-            ShowPlaceholderAt(insertIndex, placeholderArticle);
-            ShowPlaceholderAt(insertIndex + 1, placeholderWord);
-        }
-        else
-        {
-            ShowPlaceholderAt(insertIndex, placeholderWord);
-        }
+        // Clamp to valid range
+        insertIndex = Mathf.Clamp(insertIndex, 0, sentenceModel.Count);
 
-        if (placeholderTrailingPunctuation == null)
+        // Create a preview entry
+        SentenceWordEntry previewEntry = new SentenceWordEntry
         {
-            placeholderTrailingPunctuation = CreatePlaceholderTrailingPunctuation();
-        }
-        UpdatePlaceholderTrailingPunctuation();
+            Word = word.sentenceWordEntry.Word,
+            Surface = word.sentenceWordEntry.Surface,
+            isPreview = true
+        };
+
+        // Insert preview into model
+        sentenceModel.Insert(insertIndex, previewEntry);
+
+        // Normalize the sentenceModel (includes preview)
+        List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
+
+        // Apply normalization/UI updates
+        ApplyNormalizationResults(normalizedModel);
     }
 
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
     {
-        RemovePlaceholderTrailingPunctuation();
-
-        if (placeholderWord != null || placeholderArticle != null)
-            RemovePlaceholder();
+        // Remove previews
+        sentenceModel.RemoveAll(entry => entry.isPreview);
 
         GameObject dropTarget = eventData.pointerEnter;
         RectTransform draggableWord = word.GetComponent<RectTransform>();
@@ -91,7 +81,7 @@ public class SentenceBuilder : MonoBehaviour
         if (dropTarget.CompareTag("SentencePanel"))
         {
             draggableWord.transform.SetParent(transform, false);
-            // Convert pointer to localX
+
             Vector2 localPoint;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 transform as RectTransform,
@@ -100,15 +90,12 @@ public class SentenceBuilder : MonoBehaviour
                 out localPoint
             );
 
-            float pointerX = localPoint.x;
-
-            int insertIndex = GetInsertionIndex(pointerX);
-
+            int insertIndex = GetInsertionIndex(localPoint.x);
             var entryData = draggableWord.GetComponent<DraggableWord>().sentenceWordEntry;
 
             ModelRects[entryData] = draggableWord;
             InsertWordEntryAt(entryData, insertIndex);
-            word.isInSentencePanel = true;            
+            word.isInSentencePanel = true;
         }
         else
         {
@@ -118,7 +105,6 @@ public class SentenceBuilder : MonoBehaviour
 
             if (wb != null)
             {
-                // Convert screen position ? WordBank local space
                 Vector2 localPoint;
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     wb.GetComponent<RectTransform>(),
@@ -127,31 +113,24 @@ public class SentenceBuilder : MonoBehaviour
                     out localPoint
                 );
 
-                // Reparent wihout changing world position
                 draggableWord.transform.SetParent(wb.transform, false);
-
-                // Place word exactly where it was dropped
                 draggableWord.anchoredPosition = localPoint;
-
-                // Ensure pivot consistency
                 draggableWord.pivot = new Vector2(0.5f, 0.5f);
             }
 
-            // Remove from model first
+            // Remove word from sentenceModel
             sentenceModel.Remove(word.sentenceWordEntry);
-
-            // Trigger the normalization/UI Update
-            NotifySentenceMutated();
-
             word.isInSentencePanel = false;
         }
     }
 
+
     // ---------------- Sentence management ----------------
 
-    public void NotifySentenceMutated()
+    public void CommitModelChange()
     {
-        OnSentenceMutated?.Invoke();
+        sentenceModel = Normalize(sentenceModel);
+        ApplyNormalizationResults(sentenceModel);
     }
 
     // Helper class for article insertion.
@@ -161,44 +140,45 @@ public class SentenceBuilder : MonoBehaviour
         public int nounIndex;
     }
 
-    private void NormalizationPass()
+    private List<SentenceWordEntry> Normalize(List<SentenceWordEntry> rawModel)
     {
+        var workingModel = new List<SentenceWordEntry>(rawModel);
         
         // Collect loose articles for removal.
         List<SentenceWordEntry> articleEntriesToRemove = new List<SentenceWordEntry>();
 
-        for (int i = sentenceModel.Count - 1; i >= 0; i--)
+        for (int i = workingModel.Count - 1; i >= 0; i--)
         {
-            SentenceWordEntry wordData = sentenceModel[i];
+            SentenceWordEntry wordData = workingModel[i];
 
             if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Article))
                 continue;
 
-            bool hasNextWord = i + 1 < sentenceModel.Count;
+            bool hasNextWord = i + 1 < workingModel.Count;
 
             if (!hasNextWord)
             {
-                articleEntriesToRemove.Add(sentenceModel[i]);
+                articleEntriesToRemove.Add(workingModel[i]);
             }
             else
             {
                 
                 if (wordData.owningNoun == null)
                 {
-                    articleEntriesToRemove.Add(sentenceModel[i]);
+                    articleEntriesToRemove.Add(workingModel[i]);
                 }
             }
         }
 
         Debug.Log("articles to remove: " + articleEntriesToRemove.Count);
-        RemoveArticles(articleEntriesToRemove);
+        RemoveArticles(workingModel, articleEntriesToRemove);
 
         // Collect nouns that need articles.
         List<PendingArticleInsertion> articleEntriesToInsert = new List<PendingArticleInsertion>(); 
 
-        for (int i = sentenceModel.Count - 1; i >= 0; i--)
+        for (int i = workingModel.Count - 1; i >= 0; i--)
         {
-            SentenceWordEntry wordData = sentenceModel[i];
+            SentenceWordEntry wordData = workingModel[i];
 
             if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                 continue;
@@ -215,10 +195,11 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         Debug.Log("missing articles: " + articleEntriesToInsert.Count);
-        InsertArticles(articleEntriesToInsert);
+        InsertArticles(workingModel,articleEntriesToInsert);
 
-        NormalizeTrailingPunctuation();
-        ApplyNormalizationResults();          
+        NormalizeTrailingPunctuation(workingModel);
+
+        return workingModel;
     }
 
     private void UpdateModelDictionary()
@@ -245,7 +226,7 @@ public class SentenceBuilder : MonoBehaviour
         return null;
     }
 
-    private void ApplyNormalizationResults()
+    private void ApplyNormalizationResults(List<SentenceWordEntry> workingModel)
     {
         // Collect UI rects to remove
         List<RectTransform> uiRectsToRemove = new List<RectTransform>();
@@ -256,7 +237,7 @@ public class SentenceBuilder : MonoBehaviour
                 SentenceWordEntry uiEntry = uiRect.GetComponent<DraggableWord>().sentenceWordEntry;
                 if (uiEntry != null)
                 {
-                    if (!sentenceModel.Contains(uiEntry))
+                    if (!workingModel.Contains(uiEntry))
                     {
                         uiRectsToRemove.Add(uiRect);
                     }
@@ -271,7 +252,7 @@ public class SentenceBuilder : MonoBehaviour
         }
 
 
-        foreach (SentenceWordEntry entry in sentenceModel)
+        foreach (SentenceWordEntry entry in workingModel)
         {    
             // Add sentenceModel rects not present in wordList.
             if (ModelRects.TryGetValue(entry, out RectTransform existingRect))
@@ -305,7 +286,7 @@ public class SentenceBuilder : MonoBehaviour
 
         List<RectTransform> reorderedRects = new List<RectTransform>();
 
-        foreach (SentenceWordEntry entry in sentenceModel)
+        foreach (SentenceWordEntry entry in workingModel)
         {
             if (ModelRects.ContainsKey(entry))
             {
@@ -319,17 +300,24 @@ public class SentenceBuilder : MonoBehaviour
         UpdateWordPositions();
     }
 
-    private void RemoveArticles(List<SentenceWordEntry> articlesToRemove)
+    private void RemoveArticles(List<SentenceWordEntry> workingModel, List<SentenceWordEntry> articlesToRemove)
     {
         foreach (SentenceWordEntry articleEntry in articlesToRemove)
         {
-            sentenceModel.Remove(articleEntry);
+            workingModel.Remove(articleEntry);
+
+            if (articleEntry.owningNoun != null)
+            {
+                articleEntry.owningNoun.article = null;
+                articleEntry.owningNoun = null;
+            }
         }
 
     }
 
-    private void InsertArticles(List<PendingArticleInsertion> articlesToInsert)
+    private void InsertArticles(List<SentenceWordEntry> workingModel, List<PendingArticleInsertion> articlesToInsert)
     {
+
         foreach (var pending in articlesToInsert)
         {
             int nounIndex = pending.nounIndex;
@@ -340,7 +328,7 @@ public class SentenceBuilder : MonoBehaviour
             SentenceWordEntry articleEntry =
                 CreateArticleForNoun(pending.nounData);
 
-            sentenceModel.Insert(nounIndex, articleEntry);
+            workingModel.Insert(nounIndex, articleEntry);
         }
     }
 
@@ -349,7 +337,7 @@ public class SentenceBuilder : MonoBehaviour
         sentenceModel.Insert(index, entry);
         storedWordList.Add(entry); // Add to backup list
 
-        NotifySentenceMutated();
+        CommitModelChange();
     }
 
     
@@ -359,12 +347,6 @@ public class SentenceBuilder : MonoBehaviour
         if (idx >= 0)
             sentenceModel.RemoveAt(idx);
 
-        // remove rect to prevent destruction by normalization
-        ModelRects.TryGetValue(draggableEntry, out RectTransform draggableRect);
-        if (draggableRect != null && wordList.Contains(draggableRect))
-        {
-            wordList.Remove(draggableRect);
-        }
 
         // sever grammatical connections
         if (draggableEntry.article != null)
@@ -373,6 +355,19 @@ public class SentenceBuilder : MonoBehaviour
 
             articleEntry.owningNoun = null;
             draggableEntry.article = null;
+
+            // Remove article from sentenceModel if it exists
+            sentenceModel.Remove(articleEntry);
+        }
+
+        sentenceModel.Remove(draggableEntry);
+
+        // remove rect to prevent destruction by normalization
+        
+        if (ModelRects.TryGetValue(draggableEntry, out RectTransform draggableRect) 
+            && wordList.Contains(draggableRect))
+        {
+            wordList.Remove(draggableRect);
         }
     }
 
@@ -398,18 +393,18 @@ public class SentenceBuilder : MonoBehaviour
         return articleEntry;
     }
 
-    private void NormalizeTrailingPunctuation()
+    private void NormalizeTrailingPunctuation(List<SentenceWordEntry> rawModel)
     {
         // Remove any existing punctuation entries
-        sentenceModel.RemoveAll(entry =>
+        rawModel.RemoveAll(entry =>
         entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation));
 
         // if no content words, do nothing
-        if (!sentenceModel.Any(entry =>
+        if (!rawModel.Any(entry =>
             !entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation)))
             return;
 
-        var firstWord = sentenceModel[0];
+        var firstWord = rawModel[0];
 
         string punctuation =
             firstWord.Word.PartOfSpeech == PartsOfSpeech.Interrogative
@@ -422,7 +417,7 @@ public class SentenceBuilder : MonoBehaviour
             Surface = punctuation
         };
 
-        sentenceModel.Add(punctuationEntry);
+        rawModel.Add(punctuationEntry);
     }
     
 
@@ -541,256 +536,6 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         return modelIndex;
-    }
-
-
-    // ---------------- Placeholder Methods ----------------
-        
-    private RectTransform CreatePlaceHolder(RectTransform originalRect)
-    {
-        if (originalRect == null) return null;
-
-        var originalScript = originalRect.GetComponent<DraggableWord>();
-
-        // Instantiate a new placeholder from the prefab
-        placeholderWord = Instantiate(draggableWordPrefab, transform).GetComponent<RectTransform>();
-        placeholderWord.name = "PlaceholderWord";
-
-        // --- Only modify the placeholder's components ---
-        CanvasGroup cg = placeholderWord.GetComponent<CanvasGroup>();
-        if (cg == null)
-            cg = placeholderWord.gameObject.AddComponent<CanvasGroup>();
-        cg.blocksRaycasts = false;   // placeholder doesn't block raycasts
-
-        TMP_Text tmp = placeholderWord.GetComponent<TMP_Text>();
-        if (tmp != null)
-            tmp.raycastTarget = false;
-
-        Image img = placeholderWord.GetComponent<Image>();
-        if (img != null)
-            img.raycastTarget = false;
-
-        // Copy word data from original
-        var placeholderWordDraggable = placeholderWord.GetComponent<DraggableWord>();
-        placeholderWordDraggable.sentenceWordEntry = new SentenceWordEntry
-        {
-            Surface = originalScript.sentenceWordEntry.Surface,
-            Word = originalScript.sentenceWordEntry.Word,
-            article = originalScript.sentenceWordEntry.article
-        };
-
-        placeholderWordDraggable.isPlaceholder = true;
-        placeholderWordDraggable.isDraggable = false;
-        placeholderWordDraggable.isInSentencePanel = true;
-
-        // Article logic for singular nouns
-        SentenceWordEntry swe = originalScript.sentenceWordEntry;
-        if (swe.Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
-            swe.Word.IsSingular(swe.Surface))
-        {
-            placeholderArticle = Instantiate(draggableWordPrefab, transform).GetComponent<RectTransform>();
-            placeholderArticle.name = "PlaceholderArticle";
-
-            CanvasGroup articleCG = placeholderArticle.GetComponent<CanvasGroup>();
-            if (articleCG == null)            
-                articleCG = placeholderArticle.gameObject.AddComponent<CanvasGroup>();
-            articleCG.blocksRaycasts = false; // placeholder doesn't block raycasts
-
-            TMP_Text articleText = placeholderArticle.GetComponent<TMP_Text>();
-            if (articleText != null)
-                articleText.raycastTarget = false;
-
-            Image articleIMG = placeholderArticle.GetComponent<Image>();
-            if (articleIMG != null)
-                articleIMG.raycastTarget = false;
-
-            // Determine article
-            string firstLetter = swe.Surface.ToLower();
-            bool startswithVowel = "aeiou".Contains(firstLetter[0]);
-            string article = startswithVowel ? "an" : "a";
-
-            // Set article word data
-            var draggableScript = placeholderArticle.GetComponent<DraggableWord>();
-            draggableScript.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(article);
-            draggableScript.sentenceWordEntry.Surface = article;
-            draggableScript.isDraggable = false;
-            draggableScript.isInSentencePanel = true;
-                        
-            // Set visual text
-            articleText.text = article;
-            articleText.color = Color.gray;
-
-            // Update TMP mesh immediately
-            articleText.ForceMeshUpdate();
-            LayoutRebuilder.ForceRebuildLayoutImmediate(placeholderArticle.GetComponent<RectTransform>());
-        }
-
-        // Set visual text
-        TMP_Text text = placeholderWord.GetComponent<TMP_Text>();
-        text.color = Color.gray;
-
-        text.text = placeholderWordDraggable.sentenceWordEntry.Surface;
-        text.ForceMeshUpdate();
-        LayoutRebuilder.ForceRebuildLayoutImmediate(placeholderWord);
-
-        Debug.Log("Placeholder has been created.");
-        Debug.Log("Placeholder name is: " + placeholderWord.name);
-        Debug.Log("Placeholder word is: " + placeholderWordDraggable.sentenceWordEntry.Surface);
-
-        return placeholderWord;
-    }
-    
-    private void ShowPlaceholderAt(int index, RectTransform placeholder)
-    {
-        if (placeholder == null)
-            return;
-
-        // If placeholder is already in the list, just move it
-        int existingIndex = wordList.IndexOf(placeholder);
-        if (existingIndex != -1)
-        {
-            wordList.RemoveAt(existingIndex);
-        }
-
-        index = Mathf.Clamp(index, 0, wordList.Count);
-
-        if (index == wordList.Count)
-        {
-            var lastRect = wordList.LastOrDefault();
-            if (lastRect != null)
-            {
-                var entry = lastRect
-                    .GetComponent<DraggableWord>()
-                    ?.sentenceWordEntry;
-
-                if (entry != null &&
-                    entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
-                {
-                    index = wordList.Count - 1;
-                }
-            }
-        }
-
-        wordList.Insert(index, placeholder);
-
-        UpdateWordPositions();
-    }
-
-
-    public void RemovePlaceholder()
-    {
-        if (placeholderWord != null && wordList.Contains(placeholderWord))
-        {
-            wordList.Remove(placeholderWord);
-            Destroy(placeholderWord.gameObject);
-            UpdateWordPositions();
-            placeholderWord = null;
-        }
-
-        if (placeholderArticle != null && wordList.Contains(placeholderArticle))
-        {
-            wordList.Remove(placeholderArticle);
-            Destroy(placeholderArticle.gameObject);
-            UpdateWordPositions();
-            placeholderArticle = null;
-        }
-    }
-
-    // ---------------- Placeholder Trailing Punctuation ----------------    
-
-    // NOTE: Placeholder punctuation is intentionally separate from real punctuation.
-    // Do not unify unless preview + commit lifecycles truly converge.
-
-    // Creates the placeholder punctuation object
-    public RectTransform CreatePlaceholderTrailingPunctuation()
-    {
-        if (!HasContentWords() && placeholderWord == null)
-            return null;
-
-        RectTransform rt = Instantiate(draggableWordPrefab, transform).GetComponent<RectTransform>();
-        rt.name = "PlaceholderTrailingPunctuation";
-
-        CanvasGroup cg = rt.GetComponent<CanvasGroup>() ?? rt.gameObject.AddComponent<CanvasGroup>();
-        cg.blocksRaycasts = false;
-
-        TMP_Text tmp = rt.GetComponent<TMP_Text>();
-        tmp.raycastTarget = false;
-        tmp.color = Color.gray;
-
-        Image img = rt.GetComponent<Image>();
-        if (img != null)
-            img.raycastTarget = false;
-
-        var dw = rt.GetComponent<DraggableWord>();
-        dw.isPlaceholder = true;
-        dw.isDraggable = false;
-        dw.isInSentencePanel = true;
-
-        return rt;
-    }
-
-    private string DetermineTrailingPunctuationForPreview()
-    {
-        // Determine the preview "first word"
-        RectTransform first = null;
-
-        if (wordList.Count > 0)
-            first = wordList[0];
-        else if (placeholderWord != null)
-            first = placeholderWord;
-
-        if (first == null)
-            return ".";
-
-        var entry = first.GetComponent<DraggableWord>()?.sentenceWordEntry;
-        if (entry?.Word == null)
-            return ".";
-
-        return entry.Word.PartOfSpeech == PartsOfSpeech.Interrogative ? "?" : ".";
-    }
-
-    // Inserts or updates the trailing punctuation at the end of the sentence
-    public void UpdatePlaceholderTrailingPunctuation()
-    {
-        if (placeholderTrailingPunctuation == null)
-        {
-            placeholderTrailingPunctuation = CreatePlaceholderTrailingPunctuation();
-            if (placeholderTrailingPunctuation == null) return;
-        }
-
-        if (wordList.Contains(placeholderTrailingPunctuation))
-            wordList.Remove(placeholderTrailingPunctuation);
-
-        // Always recompute punctuation based on preview state
-        string punctuation = DetermineTrailingPunctuationForPreview();
-
-        var draggable = placeholderTrailingPunctuation.GetComponent<DraggableWord>();
-        draggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(punctuation);
-        draggable.sentenceWordEntry.Surface = punctuation;
-
-        TMP_Text text = placeholderTrailingPunctuation.GetComponent<TMP_Text>();
-        text.text = punctuation;
-        text.ForceMeshUpdate();
-
-        // Add placeholder back to the end of the wordlist
-        wordList.Add(placeholderTrailingPunctuation);
-        UpdateWordPositions();
-    }
-
-
-    // Removes the placeholder trailing punctuation
-    public void RemovePlaceholderTrailingPunctuation()
-    {
-
-        if (placeholderTrailingPunctuation != null && wordList.Contains(placeholderTrailingPunctuation))
-        {
-            wordList.Remove(placeholderTrailingPunctuation);
-            Destroy(placeholderTrailingPunctuation.gameObject);
-            placeholderTrailingPunctuation = null;
-            UpdateWordPositions();
-        }
-        
-        UpdateWordPositions();
     }
 }
 
