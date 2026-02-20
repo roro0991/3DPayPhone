@@ -64,7 +64,8 @@ public class SentenceBuilder : MonoBehaviour
         List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
 
         // Apply normalization/UI updates
-        ApplyNormalizationResults(normalizedModel);
+        ApplyNormalizationResults(normalizedModel, true);
+        Debug.Log("preview generated");
     }
 
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
@@ -226,7 +227,7 @@ public class SentenceBuilder : MonoBehaviour
         return null;
     }
 
-    private void ApplyNormalizationResults(List<SentenceWordEntry> workingModel)
+    private void ApplyNormalizationResults(List<SentenceWordEntry> workingModel, bool isPreviewMode = false)
     {
         // Collect UI rects to remove
         List<RectTransform> uiRectsToRemove = new List<RectTransform>();
@@ -271,6 +272,12 @@ public class SentenceBuilder : MonoBehaviour
             draggable.isDraggable = false;
             draggable.sentenceWordEntry = entry;
 
+            if (isPreviewMode)
+            {
+                draggable.sentenceWordEntry.isPreview = true;
+            }
+
+
             TMP_Text wordText = word.GetComponent<TMP_Text>();
             wordText.text = entry.Surface;
 
@@ -291,6 +298,16 @@ public class SentenceBuilder : MonoBehaviour
             if (ModelRects.ContainsKey(entry))
             {
                 reorderedRects.Add(ModelRects[entry]);
+            }
+        }
+
+        foreach (SentenceWordEntry entry in workingModel)
+        {
+            if (ModelRects.TryGetValue(entry, out RectTransform rect))
+            {
+                var text = rect.GetComponent<TMP_Text>();
+                if (entry.isPreview)
+                    text.color = Color.gray;                
             }
         }
 
@@ -508,31 +525,24 @@ public class SentenceBuilder : MonoBehaviour
         }
     }
 
-    private int GetInsertionIndex(float localX)
+    private int GetInsertionIndex(float draggableMidX, float margin = 10f)
     {
         int modelIndex = sentenceModel.Count; // default to end
 
         for (int i = 0; i < sentenceModel.Count; i++)
         {
             var entry = sentenceModel[i];
+
             if (!ModelRects.TryGetValue(entry, out RectTransform rect))
-                continue;            
+                continue; // skip entries without rect
 
-            // Include placeholder in the position calculation, but treat it as zero-width if you want
-            float leftEdge = rect.anchoredPosition.x;
-            float rightEdge = rect.anchoredPosition.x + rect.rect.width * rect.localScale.x;
+            float wordLeft = rect.localPosition.x - margin;
+            float wordRight = rect.localPosition.x + rect.rect.width + margin;
+            float wordMidX = rect.localPosition.x + rect.rect.width / 2f;
 
-            float mid = (leftEdge + rightEdge) / 2f;
-
-            // Margin proportional to word width (e.g., 10% of width)
-            float margin = rect.rect.width * rect.localScale.x * 0.1f;
-
-            // Insert before this word if pointer is left of mid + margin
-            if (localX < mid + margin)
-            {
-                modelIndex = i;
-                break;
-            }               
+            // If draggableMidX is within the "margin zone" to the left of the midpoint, insert here
+            if (draggableMidX < wordMidX + margin)
+                return i;
         }
 
         return modelIndex;
