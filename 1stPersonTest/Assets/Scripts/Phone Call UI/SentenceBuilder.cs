@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 using UnityEditor.Rendering;
 using NUnit.Framework.Constraints;
 using System.Linq;
+using UnityEngine.Rendering;
 
 public class SentenceBuilder : MonoBehaviour 
 {
@@ -21,6 +22,8 @@ public class SentenceBuilder : MonoBehaviour
     public List<SentenceWordEntry> storedWordList = new List<SentenceWordEntry>(); // for wordbank repopulation
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
+
+    private int currentPreviewIndex = -1;
 
     private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
 
@@ -49,6 +52,15 @@ public class SentenceBuilder : MonoBehaviour
         // Clamp to valid range
         insertIndex = Mathf.Clamp(insertIndex, 0, sentenceModel.Count);
 
+        // Prevent rebuild spam
+        if (insertIndex == currentPreviewIndex)
+            return;
+
+        currentPreviewIndex = insertIndex;
+
+        // Remove old preview
+        sentenceModel.RemoveAll(entry => entry.isPreview);
+
         // Create a preview entry
         SentenceWordEntry previewEntry = new SentenceWordEntry
         {
@@ -63,7 +75,7 @@ public class SentenceBuilder : MonoBehaviour
         // Normalize the sentenceModel (includes preview)
         List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
 
-        // Apply normalization/UI updates
+        // Apply normalization/UI updates        
         ApplyNormalizationResults(normalizedModel, true);
         Debug.Log("preview generated");
     }
@@ -71,7 +83,7 @@ public class SentenceBuilder : MonoBehaviour
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
     {
         // Remove previews
-        sentenceModel.RemoveAll(entry => entry.isPreview);
+        ClearPreviewOnly();
 
         GameObject dropTarget = eventData.pointerEnter;
         RectTransform draggableWord = word.GetComponent<RectTransform>();
@@ -132,6 +144,34 @@ public class SentenceBuilder : MonoBehaviour
     {
         sentenceModel = Normalize(sentenceModel);
         ApplyNormalizationResults(sentenceModel);
+    }
+
+    public void ClearPreviewOnly()
+    {
+        // Remove preview entries from the sentence model
+        sentenceModel.RemoveAll(entry => entry.isPreview);
+
+        // Remove preview RectTransforms from the UI and dictionary
+        foreach (var kvp in ModelRects.Where(kvp => kvp.Key.isPreview).ToList())
+        {
+            RectTransform rect = kvp.Value;
+
+            // Remove from wordList to prevent it from being rebuilt
+            if (wordList.Contains(rect))
+                wordList.Remove(rect);
+
+            // Destroy the UI element
+            Destroy(rect.gameObject);
+
+            // Remove from ModelRects
+            ModelRects.Remove(kvp.Key);
+        }
+
+        // Rebuild UI for remaining sentenceModel entries
+        ApplyNormalizationResults(sentenceModel, true);
+
+        // Reset preview tracking
+        currentPreviewIndex = -1;
     }
 
     // Helper class for article insertion.
@@ -198,9 +238,52 @@ public class SentenceBuilder : MonoBehaviour
         Debug.Log("missing articles: " + articleEntriesToInsert.Count);
         InsertArticles(workingModel,articleEntriesToInsert);
 
+        // Prevent article & noun splitting
+
+        for (int i = 0; i < workingModel.Count; i++)
+        {
+            var entry = workingModel[i];
+
+            if (!entry.Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                continue;
+
+            var noun = entry.owningNoun;
+            if (noun == null)
+                continue;
+
+            int articleIndex = i;
+            int nounIndex = workingModel.IndexOf(noun);
+
+            if (nounIndex == -1)
+                continue;
+
+            // If noun is not immediately after article, something is between them
+            if (nounIndex != articleIndex + 1)
+            {
+                int moveIndex = articleIndex + 1;
+
+                while (moveIndex < nounIndex)
+                {
+                    MoveWord(workingModel, moveIndex, nounIndex);
+                    nounIndex--; // adjust because list shifted
+                }
+            }
+        }
+
         NormalizeTrailingPunctuation(workingModel);
 
         return workingModel;
+    }
+
+    private void MoveWord(List<SentenceWordEntry> list, int oldIndex, int newIndex)
+    {
+        if (oldIndex >= 0 && oldIndex < list.Count &&
+            newIndex >= 0 && newIndex <= list.Count)
+        {
+            SentenceWordEntry entry = list[oldIndex];
+            list.RemoveAt(oldIndex);
+            list.Insert(newIndex, entry);
+        }
     }
 
     private void UpdateModelDictionary()
@@ -275,6 +358,11 @@ public class SentenceBuilder : MonoBehaviour
             if (isPreviewMode)
             {
                 draggable.sentenceWordEntry.isPreview = true;
+
+                // Make sure preview does not block pointer events
+                CanvasGroup cg = word.GetComponent<CanvasGroup>();
+                if (cg == null) cg = word.gameObject.AddComponent<CanvasGroup>();
+                cg.blocksRaycasts = false;
             }
 
 

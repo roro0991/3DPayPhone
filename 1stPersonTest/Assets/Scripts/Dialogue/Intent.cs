@@ -5,6 +5,6 @@ namespace Dialogue.Core
     {
         None,
         ASK_ABOUT_IDENTITY,
-        ASK_ABOUT_LOCATION,
+        ASK_ABOUT_LOCATION,        
     }
 }

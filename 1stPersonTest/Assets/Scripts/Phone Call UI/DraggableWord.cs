@@ -70,11 +70,12 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         if (overSentence)
         {
             sentenceBuilder.HandleHoveringWord(this, eventData);
+            Debug.Log("pointer is over sentencepanel");
         }
         else
         {
-            sentenceBuilder.sentenceModel.RemoveAll(entry => entry.isPreview);
-            sentenceBuilder.CommitModelChange();
+            sentenceBuilder.ClearPreviewOnly();
+            Debug.Log("pointer is NOT over sentencepanel");
         }
     }
 

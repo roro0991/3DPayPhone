@@ -1,4 +1,5 @@
 using System;
+using System.Security;
 using UnityEngine;
 
 namespace Dialogue.Core
