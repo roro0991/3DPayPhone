@@ -1,14 +1,16 @@
-using UnityEngine;
-using System.Collections.Generic;
-using TMPro;
-using UnityEngine.UI;
-using System;
-using Unity.VisualScripting;
-using UnityEngine.EventSystems;
-using UnityEditor.Rendering;
 using NUnit.Framework.Constraints;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using TMPro;
+using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
+using UnityEditor.Rendering;
+using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
 
 public class SentenceBuilder : MonoBehaviour 
 {
@@ -69,29 +71,33 @@ public class SentenceBuilder : MonoBehaviour
             isPreview = true
         };
 
-        // Insert preview into model
-        sentenceModel.Insert(insertIndex, previewEntry);
+        if (CanInsertAt(sentenceModel, insertIndex, previewEntry))
+        {
+            // Insert preview into model
+            sentenceModel.Insert(insertIndex, previewEntry);
 
-        // Normalize the sentenceModel (includes preview)
-        List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
+            // Normalize the sentenceModel (includes preview)
+            List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
 
-        // Apply normalization/UI updates        
-        ApplyNormalizationResults(normalizedModel, true);
-        Debug.Log("preview generated");
+            // Apply normalization/UI updates        
+            ApplyNormalizationResults(normalizedModel, true);
+            Debug.Log("preview generated");
+        }
     }
 
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
     {
-        // Remove previews
-        ClearPreviewOnly();
-
-        GameObject dropTarget = eventData.pointerEnter;
-        RectTransform draggableWord = word.GetComponent<RectTransform>();
-
-        if (dropTarget == null)
+        if (word == null)
             return;
 
-        if (dropTarget.CompareTag("SentencePanel"))
+        ClearPreviewOnly();
+
+        RectTransform draggableWord = word.GetComponent<RectTransform>();
+        var entryData = word.sentenceWordEntry;
+
+        GameObject dropTarget = eventData.pointerEnter;
+
+        if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
         {
             draggableWord.transform.SetParent(transform, false);
 
@@ -104,41 +110,80 @@ public class SentenceBuilder : MonoBehaviour
             );
 
             int insertIndex = GetInsertionIndex(localPoint.x);
-            var entryData = draggableWord.GetComponent<DraggableWord>().sentenceWordEntry;
+
+            // ? CRITICAL: Validate drop commit
+            if (!CanInsertAt(sentenceModel, insertIndex, entryData))
+            {
+                Debug.Log("Drop rejected by grammar validation");
+
+                ReturnWordToBank(draggableWord, word);
+                ClearPreviewOnly();
+                return;
+            }
 
             ModelRects[entryData] = draggableWord;
+
             InsertWordEntryAt(entryData, insertIndex);
+
             word.isInSentencePanel = true;
         }
         else
         {
-            WordBank wb = dropTarget != null
-                ? dropTarget.GetComponent<WordBank>()
-                : wordBank;
+            ReturnWordToBank(draggableWord, word);
 
-            if (wb != null)
-            {
-                Vector2 localPoint;
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    wb.GetComponent<RectTransform>(),
-                    eventData.position,
-                    eventData.pressEventCamera,
-                    out localPoint
-                );
-
-                draggableWord.transform.SetParent(wb.transform, false);
-                draggableWord.anchoredPosition = localPoint;
-                draggableWord.pivot = new Vector2(0.5f, 0.5f);
-            }
-
-            // Remove word from sentenceModel
-            sentenceModel.Remove(word.sentenceWordEntry);
+            sentenceModel.Remove(entryData);
             word.isInSentencePanel = false;
         }
+
+        CommitModelChange();
     }
 
+    private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word)
+{
+    WordBank wb = wordBank;
 
-    // ---------------- Sentence management ----------------
+    if (wb == null)
+        return;
+
+    draggableWord.transform.SetParent(wb.transform, false);
+    draggableWord.anchoredPosition = Vector2.zero;
+    draggableWord.pivot = new Vector2(0.5f, 0.5f);
+}
+
+
+    // ---------------- Sentence management ----------------    
+
+    private bool CanInsertAt(List<SentenceWordEntry> model, int insertIndex, SentenceWordEntry entry)
+    {
+        if (model == null)
+            return false;
+
+        if (insertIndex < 0 || insertIndex > model.Count)
+            return false;
+
+        if (model.Count == 0)
+            return true;
+
+        bool isArticle = entry.Word.HasPartOfSpeech(PartsOfSpeech.Article);
+
+        if (!isArticle)
+        {
+            if (insertIndex > 0)
+            {
+                var left = model[insertIndex - 1];
+
+                if (left.Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                {
+                    if (insertIndex < model.Count &&
+                        model[insertIndex] == left.owningNoun)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 
     public void CommitModelChange()
     {
@@ -238,6 +283,7 @@ public class SentenceBuilder : MonoBehaviour
         Debug.Log("missing articles: " + articleEntriesToInsert.Count);
         InsertArticles(workingModel,articleEntriesToInsert);
 
+        /*
         // Prevent article & noun splitting
 
         for (int i = 0; i < workingModel.Count; i++)
@@ -269,7 +315,7 @@ public class SentenceBuilder : MonoBehaviour
                 }
             }
         }
-
+        */
         NormalizeTrailingPunctuation(workingModel);
 
         return workingModel;
