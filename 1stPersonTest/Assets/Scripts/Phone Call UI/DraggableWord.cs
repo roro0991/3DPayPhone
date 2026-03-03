@@ -13,7 +13,6 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private Canvas canvas;
     private CanvasGroup canvasGroup;
 
-    public bool isPlaceholder = false;
     public bool isDraggable = true;
     public bool isBeingDragged = false;
     public bool isInSentencePanel = false;
