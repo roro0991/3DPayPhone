@@ -10,6 +10,7 @@ using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.UI;
 using UnityEngine.UI;
 
 public class SentenceBuilder : MonoBehaviour 
@@ -19,9 +20,8 @@ public class SentenceBuilder : MonoBehaviour
     public Vector2 startPosition = Vector2.zero;
     public float spacing = 10f;
 
-    public List<RectTransform> wordList = new List<RectTransform>(); // sentence word gameobjects
-    public List<SentenceWordEntry> sentenceModel = new List<SentenceWordEntry>(); // sentence word data
-    private List<SentenceWordEntry> previewModel = new List<SentenceWordEntry>(); // preview generation and normalization
+    public List<RectTransform> wordList = new List<RectTransform>(); // sentence word gameobjects    
+    public List<SentenceWordEntry> committedModel = new List<SentenceWordEntry>();
     public List<SentenceWordEntry> storedWordList = new List<SentenceWordEntry>(); // for wordbank repopulation
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
@@ -35,7 +35,8 @@ public class SentenceBuilder : MonoBehaviour
 
     public void HandleHoveringWord(DraggableWord word, PointerEventData eventData)
     {
-        previewModel = new List<SentenceWordEntry>(sentenceModel);
+        currentPreviewIndex = -1;
+        var previewModel = new List<SentenceWordEntry>(committedModel);
 
         // Convert pointer to localX
         Vector2 localPoint;
@@ -50,7 +51,8 @@ public class SentenceBuilder : MonoBehaviour
         int insertIndex = GetInsertionIndex(localPoint.x);
 
         // Clamp to valid range
-        insertIndex = Mathf.Clamp(insertIndex, 0, sentenceModel.Count);
+        insertIndex = Mathf.Clamp(insertIndex, 0, wordList.Count);
+        Debug.Log("insert index is: " + insertIndex);
 
         // Prevent rebuild spam
         if (insertIndex == currentPreviewIndex)
@@ -62,8 +64,7 @@ public class SentenceBuilder : MonoBehaviour
         SentenceWordEntry previewEntry = new SentenceWordEntry
         {
             Word = word.sentenceWordEntry.Word,
-            Surface = word.sentenceWordEntry.Surface,
-            isPreview = true
+            Surface = word.sentenceWordEntry.Surface
         };        
 
         if (CanInsertAt(previewModel, insertIndex, previewEntry))
@@ -71,11 +72,11 @@ public class SentenceBuilder : MonoBehaviour
             // Insert preview into model
             previewModel.Insert(insertIndex, previewEntry);
 
-            // Normalize the sentenceModel (includes preview)
-            var normalizedModel = Normalize(previewModel);
+            // Normalize the previewModel
+            previewModel = Normalize(previewModel);
 
             // Apply normalization/UI updates        
-            ApplyNormalizationResults(normalizedModel, true);
+            ApplyNormalizationResults(previewModel, true);
             Debug.Log("preview generated");
         }
     }
@@ -85,18 +86,35 @@ public class SentenceBuilder : MonoBehaviour
         if (word == null)
             return;
 
-
         RectTransform draggableWord = word.GetComponent<RectTransform>();
         GameObject dropTarget = eventData.pointerEnter;
 
         if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
         {
-            Destroy(word.gameObject);
-            if (previewModel.Count > 0)
+            ClearSentence();
+
+            // Create a commit entry
+            SentenceWordEntry commitEntry = new SentenceWordEntry
             {
-                sentenceModel = new List<SentenceWordEntry>(previewModel);
-                previewModel.Clear();
-                ApplyNormalizationResults(sentenceModel, false);
+                Word = word.sentenceWordEntry.Word,
+                Surface = word.sentenceWordEntry.Surface
+            };
+
+            if (CanInsertAt(committedModel, currentPreviewIndex, commitEntry))
+            {
+                Destroy(word.gameObject);
+                committedModel.Insert(currentPreviewIndex, commitEntry);
+
+                committedModel = Normalize(committedModel);
+                
+                ApplyNormalizationResults(committedModel, false);
+                Debug.Log("HANDLE WORD DROPPED EXECUTING");
+            }            
+            else
+            {
+                ReturnWordToBank(draggableWord, word);
+                word.isInSentencePanel = false;
+
             }
         }
         else
@@ -105,21 +123,20 @@ public class SentenceBuilder : MonoBehaviour
             word.isInSentencePanel = false;
         }
 
-        CommitModelChange();
-
+        currentPreviewIndex = -1;
     }
 
     private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word)
-{
-    WordBank wb = wordBank;
+    {
+        WordBank wb = wordBank;
 
-    if (wb == null)
-        return;
+        if (wb == null)
+            return;
 
-    draggableWord.transform.SetParent(wb.transform, false);
-    draggableWord.anchoredPosition = Vector2.zero;
-    draggableWord.pivot = new Vector2(0.5f, 0.5f);
-}
+        draggableWord.transform.SetParent(wb.transform, false);
+        draggableWord.anchoredPosition = Vector2.zero;
+        draggableWord.pivot = new Vector2(0.5f, 0.5f);
+    }
 
 
     // ---------------- Sentence management ----------------    
@@ -158,19 +175,20 @@ public class SentenceBuilder : MonoBehaviour
 
     public void CommitModelChange()
     {
-        sentenceModel = Normalize(sentenceModel);
-        ApplyNormalizationResults(sentenceModel);
+        committedModel = Normalize(committedModel);
+        ApplyNormalizationResults(committedModel, false);
     }
 
     public void ClearPreviewOnly()
     {
-        if (previewModel.Count > 0)
-            previewModel.Clear();
+        bool hasPreview = wordList.Any(w => w.GetComponent<DraggableWord>().isPreview);
 
-        if (sentenceModel.Count > 0)
-        {
-            ApplyNormalizationResults(Normalize(sentenceModel));
-        }
+        if (!hasPreview)
+            return;
+        
+        ApplyNormalizationResults(committedModel, false);
+
+        currentPreviewIndex = -1;
     }
 
     // Helper class for article insertion.
@@ -242,20 +260,9 @@ public class SentenceBuilder : MonoBehaviour
         return workingModel;
     }
 
-    private void MoveWord(List<SentenceWordEntry> list, int oldIndex, int newIndex)
-    {
-        if (oldIndex >= 0 && oldIndex < list.Count &&
-            newIndex >= 0 && newIndex <= list.Count)
-        {
-            SentenceWordEntry entry = list[oldIndex];
-            list.RemoveAt(oldIndex);
-            list.Insert(newIndex, entry);
-        }
-    }
-
     private void ApplyNormalizationResults(List<SentenceWordEntry> workingModel, bool isPreviewMode = false)
     {
-        wordList.Clear();
+        ClearSentence();
 
         foreach (var entry in workingModel)
         {
@@ -265,19 +272,26 @@ public class SentenceBuilder : MonoBehaviour
             // Set word data to model data
             var draggable = word.GetComponent<DraggableWord>();
             draggable.isInSentencePanel = true;
-            draggable.isDraggable = false;
             draggable.sentenceWordEntry = entry;
+            var text = word.GetComponent<TMP_Text>();
 
             if (isPreviewMode)
             {
-                draggable.sentenceWordEntry.isPreview = true;
-
+                draggable.isPreview = true;
+                text.color = Color.gray;
                 // Make sure preview does not block pointer events
                 CanvasGroup cg = word.GetComponent<CanvasGroup>();
                 if (cg == null) cg = word.gameObject.AddComponent<CanvasGroup>();
                 cg.blocksRaycasts = false;
-            }
 
+                Debug.Log("normalization applied in preview");
+                
+            }
+            else
+            {
+                draggable.isPreview = false;
+                Debug.Log("normalization applied NOT in preview");
+            }
 
             TMP_Text wordText = word.GetComponent<TMP_Text>();
             wordText.text = entry.Surface;
@@ -326,7 +340,7 @@ public class SentenceBuilder : MonoBehaviour
 
     public void InsertWordEntryAt(SentenceWordEntry entry, int index)
     {
-        sentenceModel.Insert(index, entry);
+        committedModel.Insert(index, entry);
         storedWordList.Add(entry); // Add to backup list
 
         CommitModelChange();
@@ -335,9 +349,9 @@ public class SentenceBuilder : MonoBehaviour
     
     public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry)
     {
-        int idx = sentenceModel.IndexOf(draggableEntry);
+        int idx = committedModel.IndexOf(draggableEntry);
         if (idx >= 0)
-            sentenceModel.RemoveAt(idx);
+            committedModel.RemoveAt(idx);
 
 
         // sever grammatical connections
@@ -349,10 +363,10 @@ public class SentenceBuilder : MonoBehaviour
             draggableEntry.article = null;
 
             // Remove article from sentenceModel if it exists
-            sentenceModel.Remove(articleEntry);
+            committedModel.Remove(articleEntry);
         }
 
-        sentenceModel.Remove(draggableEntry);
+        committedModel.Remove(draggableEntry);
 
     }
 
@@ -405,25 +419,6 @@ public class SentenceBuilder : MonoBehaviour
         rawModel.Add(punctuationEntry);
     }
     
-
-    private bool HasContentWords()
-    {
-        foreach (var rect in wordList)
-        {
-            var dw = rect.GetComponent<DraggableWord>();
-            if (dw == null) continue;
-
-            var entry = dw.sentenceWordEntry;
-
-            if (entry == null || entry.Word == null)
-                continue;
-
-            if (!entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
-                return true;
-        }
-        return false;
-    }       
-
 
     private void UpdateWordPositions()
     {
@@ -495,11 +490,12 @@ public class SentenceBuilder : MonoBehaviour
 
     private int GetInsertionIndex(float draggableMidX, float margin = 10f)
     {
-        int modelIndex = wordList.Count; // default to end
+        var committedRects = GetCommittedRects();
+        int modelIndex = committedRects.Count; // default to end        
 
-        for (int i = 0; i < wordList.Count; i++)
-        {
-            var rect = wordList[i];
+        for (int i = 0; i < committedRects.Count; i++)
+        {            
+            var rect = committedRects[i];           
 
             float wordLeft = rect.localPosition.x - margin;
             float wordRight = rect.localPosition.x + rect.rect.width + margin;
@@ -511,6 +507,14 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         return modelIndex;
+    }
+
+    private List<RectTransform> GetCommittedRects()
+    {
+        return wordList
+            .Where(w => !w.GetComponent<DraggableWord>().isPreview)
+            .Select(w => w.GetComponent<RectTransform>())
+            .ToList();
     }
 }
 
