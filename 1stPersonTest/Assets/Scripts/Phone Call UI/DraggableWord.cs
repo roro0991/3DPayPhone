@@ -17,7 +17,6 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public bool isBeingDragged = false;
     public bool isInSentencePanel = false;
     public bool isOverSentencePanel;
-    public bool isPreview = false;
 
     private SentenceBuilder sentenceBuilder;
     private WordBank wordBank;
@@ -70,10 +69,12 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         if (overSentence)
         {
             sentenceBuilder.HandleHoveringWord(this, eventData);
+            Debug.Log("pointer is over sentencepanel");
         }
         else
         {
             sentenceBuilder.ClearPreviewOnly();
+            Debug.Log("pointer is NOT over sentencepanel");
         }
     }
 
