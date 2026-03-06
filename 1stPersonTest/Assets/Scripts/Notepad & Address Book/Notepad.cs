@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class Notepad : MonoBehaviour
 {
@@ -46,9 +47,9 @@ public class Notepad : MonoBehaviour
 
     private void HandleMouseInput()
     {
-        if (Input.GetMouseButtonDown(0)) HandleLeftClick();
-        if (Input.GetMouseButtonDown(1)) HandleRightClickStart();
-        if (Input.GetMouseButtonUp(1)) FinishCurrentLine();
+        if (Mouse.current.leftButton.wasPressedThisFrame) HandleLeftClick();
+        if (Mouse.current.rightButton.wasPressedThisFrame) HandleRightClickStart();
+        if (Mouse.current.rightButton.wasReleasedThisFrame) FinishCurrentLine();
         if (currentLine != null) UpdateCurrentLine();
     }
 
@@ -58,7 +59,7 @@ public class Notepad : MonoBehaviour
     {
         if (EventSystem.current.IsPointerOverGameObject()) return;
 
-        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Input.mousePosition), out RaycastHit hit))
+        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Mouse.current.position.value), out RaycastHit hit))
         {
             if (hit.collider.CompareTag("buttons")) return;
             if (hit.collider.CompareTag("pages"))
@@ -101,7 +102,7 @@ public class Notepad : MonoBehaviour
     {
         if (EventSystem.current.IsPointerOverGameObject()) return;
 
-        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Input.mousePosition), out RaycastHit hit))
+        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Mouse.current.position.value), out RaycastHit hit))
         {
             if (hit.collider.CompareTag("buttons")) return;
             if (hit.collider.CompareTag("pages"))
@@ -116,7 +117,7 @@ public class Notepad : MonoBehaviour
 
     private void UpdateCurrentLine()
     {
-        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Input.mousePosition), out RaycastHit hit))
+        if (Physics.Raycast(equiprenderCam.ScreenPointToRay(Mouse.current.position.value), out RaycastHit hit))
         {
             if (hit.collider.CompareTag("buttons") || !hit.collider.CompareTag("pages"))
             {

@@ -25,6 +25,7 @@ public class SentenceBuilder : MonoBehaviour
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
 
+    private bool sentenceHasPreviews;
     private int currentPreviewIndex = -1;
 
     private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
@@ -35,9 +36,9 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     public void HandleHoveringWord(DraggableWord word, PointerEventData eventData)
-    {
-        // Remove any existing preview words
-        sentenceModel.RemoveAll(entry => entry.isPreview);
+    {        
+        // Remove any existing preview words        
+        sentenceModel.RemoveAll(entry => entry.isPreview);        
 
         // Convert pointer to localX
         Vector2 localPoint;
@@ -59,10 +60,7 @@ public class SentenceBuilder : MonoBehaviour
             return;
 
         currentPreviewIndex = insertIndex;
-
-        // Remove old preview
-        sentenceModel.RemoveAll(entry => entry.isPreview);
-
+        
         // Create a preview entry
         SentenceWordEntry previewEntry = new SentenceWordEntry
         {
@@ -81,6 +79,7 @@ public class SentenceBuilder : MonoBehaviour
 
             // Apply normalization/UI updates        
             ApplyNormalizationResults(normalizedModel, true);
+            sentenceHasPreviews = true;
             Debug.Log("preview generated");
         }
     }
@@ -97,8 +96,7 @@ public class SentenceBuilder : MonoBehaviour
 
         if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
         {
-            draggableWord.transform.SetParent(transform, false);
-            
+            draggableWord.transform.SetParent(transform, false);            
             
             // ? CRITICAL: Validate drop commit
             if (!CanInsertAt(sentenceModel, currentPreviewIndex, entryData))
@@ -155,7 +153,7 @@ public class SentenceBuilder : MonoBehaviour
             return true;
 
         bool isArticle = entry.Word.HasPartOfSpeech(PartsOfSpeech.Article);
-
+       
         if (!isArticle)
         {
             if (insertIndex > 0)
@@ -183,8 +181,11 @@ public class SentenceBuilder : MonoBehaviour
 
     public void ClearPreviewOnly()
     {
-        // Remove preview entries from the sentence model
+        if (!sentenceHasPreviews)
+            return;
+        
         sentenceModel.RemoveAll(entry => entry.isPreview);
+        sentenceHasPreviews = false;
 
         // Remove preview RectTransforms from the UI and dictionary
         foreach (var kvp in ModelRects.Where(kvp => kvp.Key.isPreview).ToList())
@@ -198,15 +199,18 @@ public class SentenceBuilder : MonoBehaviour
             // Destroy the UI element
             Destroy(rect.gameObject);
 
-            // Remove from ModelRects
+            // Remove from ModelRects 
             ModelRects.Remove(kvp.Key);
         }
 
-        // Rebuild UI for remaining sentenceModel entries
-        ApplyNormalizationResults(sentenceModel, true);
-
         // Reset preview tracking
         currentPreviewIndex = -1;
+
+        sentenceModel = Normalize(sentenceModel);
+
+        // Rebuild UI for remaining sentenceModel entries
+        ApplyNormalizationResults(sentenceModel, true);
+        Debug.Log("Previews removed");
     }
 
     // Helper class for article insertion.
@@ -272,40 +276,7 @@ public class SentenceBuilder : MonoBehaviour
 
         Debug.Log("missing articles: " + articleEntriesToInsert.Count);
         InsertArticles(workingModel, articleEntriesToInsert);
-
-        /*
-        // Prevent article & noun splitting
-
-        for (int i = 0; i < workingModel.Count; i++)
-        {
-            var entry = workingModel[i];
-
-            if (!entry.Word.HasPartOfSpeech(PartsOfSpeech.Article))
-                continue;
-
-            var noun = entry.owningNoun;
-            if (noun == null)
-                continue;
-
-            int articleIndex = i;
-            int nounIndex = workingModel.IndexOf(noun);
-
-            if (nounIndex == -1)
-                continue;
-
-            // If noun is not immediately after article, something is between them
-            if (nounIndex != articleIndex + 1)
-            {
-                int moveIndex = articleIndex + 1;
-
-                while (moveIndex < nounIndex)
-                {
-                    MoveWord(workingModel, moveIndex, nounIndex);
-                    nounIndex--; // adjust because list shifted
-                }
-            }
-        }
-        */
+        
         NormalizeTrailingPunctuation(workingModel);
 
         return workingModel;
@@ -640,8 +611,6 @@ public class SentenceBuilder : MonoBehaviour
             if (!ModelRects.TryGetValue(entry, out RectTransform rect))
                 continue; // skip entries without rect
 
-            float wordLeft = rect.localPosition.x - margin;
-            float wordRight = rect.localPosition.x + rect.rect.width + margin;
             float wordMidX = rect.localPosition.x + rect.rect.width / 2f;
 
             // If draggableMidX is within the "margin zone" to the left of the midpoint, insert here

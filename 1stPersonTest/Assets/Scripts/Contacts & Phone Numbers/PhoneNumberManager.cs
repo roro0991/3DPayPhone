@@ -80,7 +80,7 @@ public class PhoneNumberManager : MonoBehaviour
     public void DiscoverContact(Contact contact)
     {
         string assignedNumber = GetOrGenerateNumber(contact);
-        Debug.Log($"Contact '{contact.ContactName}' discovered! Number assigned: {assignedNumber}");
+        //Debug.Log($"Contact '{contact.ContactName}' discovered! Number assigned: {assignedNumber}");
     }
 }
 

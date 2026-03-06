@@ -24,7 +24,7 @@ public abstract class Contact : MonoBehaviour
     {
         if (addressBook == null)
         {
-            Debug.LogWarning($"Contact '{ContactName}' has no AddressBook assigned in Inspector.");
+            //Debug.LogWarning($"Contact '{ContactName}' has no AddressBook assigned in Inspector.");
         }
     }
 
@@ -41,7 +41,7 @@ public abstract class Contact : MonoBehaviour
         {
             ContactNumber = phoneNumberManager.GetOrGenerateNumber(this);
             numberKnown = true;
-            Debug.Log($"{ContactName} number discovered: {ContactNumber}");
+            //Debug.Log($"{ContactName} number discovered: {ContactNumber}");
         }
 
         NotifyAddressBook();
@@ -56,7 +56,7 @@ public abstract class Contact : MonoBehaviour
                 numberKnown ? ContactNumber : ""
             );
 
-            Debug.Log($"Notifying AddressBook with: {data.Name}, {data.PhoneNumber}");
+            //Debug.Log($"Notifying AddressBook with: {data.Name}, {data.PhoneNumber}");
             addressBook.UpdateContact(data);
         }
     }

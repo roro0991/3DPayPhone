@@ -11,7 +11,6 @@ public class SentenceWordEntry
     public SentenceWordEntry owningNoun; // corresponding noun to this article
     public SentenceWordEntry article;
     public bool isPreview = false;
-
 }
 
 public class WordBank : MonoBehaviour
@@ -92,7 +91,7 @@ public class WordBank : MonoBehaviour
             CreateWordUI(word);
         }
 
-        Debug.Log("GenerateWords called. Words in queue: " + wordsInQueue.Count);
+        //Debug.Log("GenerateWords called. Words in queue: " + wordsInQueue.Count);
     }
 
     public void AddWordsToWordBank(List<SentenceWordEntry> words)

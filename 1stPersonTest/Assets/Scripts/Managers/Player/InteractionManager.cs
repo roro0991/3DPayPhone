@@ -1,6 +1,7 @@
 
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 interface IInteractable
 {
@@ -21,7 +22,7 @@ public class InteractionManager : MonoBehaviour
     }
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))//Check if player left clicked on mouse
+        if (Mouse.current.leftButton.wasPressedThisFrame)//Check if player left clicked on mouse
         {
             if (EventSystem.current.IsPointerOverGameObject())//Check if player clicked on canvas UI element
             {
@@ -29,11 +30,11 @@ public class InteractionManager : MonoBehaviour
             }
 
             //Raycast originating from main camera.
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.value);
             RaycastHit hit;
             
             //Raycast originating equiped item render camera (upReceiver & notebook)
-            Ray ray2 = equiprenderCam.ScreenPointToRay(Input.mousePosition);
+            Ray ray2 = equiprenderCam.ScreenPointToRay(Mouse.current.position.value);
             RaycastHit hit2;
                      
             //check if raycast hit equiprenderObj

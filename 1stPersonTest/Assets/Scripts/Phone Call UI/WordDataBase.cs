@@ -24,7 +24,7 @@ public class WordDataBase : MonoBehaviour
             DontDestroyOnLoad(gameObject);
 
         PopulateDictionary();
-        Debug.Log($"WordDatabase initialized. Total words: {_words.Count}");
+        //Debug.Log($"WordDatabase initialized. Total words: {_words.Count}");
     }
 
 
