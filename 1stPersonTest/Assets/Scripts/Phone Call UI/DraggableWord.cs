@@ -1,9 +1,6 @@
-using System.Collections;
 using TMPro;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -18,15 +15,11 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public bool isInSentencePanel = false;
     public bool isOverSentencePanel;
 
-    private SentenceBuilder sentenceBuilder;
-    private WordBank wordBank;
-    private CallManager callManager;
+    private SentenceBuilder sentenceBuilder;    
 
     private void Awake()
     {
-        wordBank = FindFirstObjectByType<WordBank>();
         sentenceBuilder = FindFirstObjectByType<SentenceBuilder>();
-        callManager = FindFirstObjectByType<CallManager>();
 
         rectTransform = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
@@ -47,9 +40,10 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         if (isInSentencePanel)
         {
             // Remove from the sentence model first
-            sentenceBuilder.RemoveDraggableFromSentence(sentenceWordEntry);
+            sentenceBuilder.RemoveDraggableFromSentence(sentenceWordEntry, eventData);
         }
 
+        this.GetComponent<RectTransform>().position = eventData.position;
         isBeingDragged = true;
         canvasGroup.blocksRaycasts = false;
     }

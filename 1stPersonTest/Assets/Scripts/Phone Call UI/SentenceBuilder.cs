@@ -4,7 +4,6 @@ using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class SentenceBuilder : MonoBehaviour
@@ -37,8 +36,16 @@ public class SentenceBuilder : MonoBehaviour
 
         if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
         {
-            // Remove any existing preview words        
-            ClearPreview();        
+            // Edge case: dragging the very first word into an empty sentence panel.
+            // No need to process hover because there's no insertion point.
+            if (sentenceModel.Count == 1 && sentenceModel[0].isPreview)
+            {
+                Debug.Log("***HOVER LOGIC CANCELLED!***");
+                return;
+            }
+
+            //Remove any existing preview words
+            sentenceModel.RemoveAll(entry => entry.isPreview);
 
             // Convert pointer to localX
             Vector2 localPoint;
@@ -57,9 +64,12 @@ public class SentenceBuilder : MonoBehaviour
 
             // Prevent rebuild spam
             if (insertIndex == currentPreviewIndex)
+            {
+                Debug.Log("***REBUILD SPAM PREVENTED***");
                 return;
+            }            
 
-            currentPreviewIndex = insertIndex;
+            currentPreviewIndex = insertIndex;            
         
             // Create a preview entry
             SentenceWordEntry previewEntry = new SentenceWordEntry
@@ -73,27 +83,30 @@ public class SentenceBuilder : MonoBehaviour
             {
                 // Insert preview into model
                 sentenceModel.Insert(insertIndex, previewEntry);
-
-                // Normalize the sentenceModel (includes preview)
-                List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
-
-                // Apply normalization/UI updates        
-                ApplyNormalizationResults(normalizedModel, true);
+                ApplyNormalizedPreview(sentenceModel, true);
                 sentenceHasPreviews = true;
-                Debug.Log("preview generated");
+                Debug.Log("preview generated");                
+            }
+            else
+            {
+                Debug.Log("***CAN INSERT CHECK FAILED***");
             }
         }
         else
-        {
-            bool hadPreviews = sentenceHasPreviews;
-            ClearPreview();
-            if (hadPreviews)
+        {            
+            if (sentenceHasPreviews)
             {
-                List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
-                ApplyNormalizationResults(normalizedModel, false);
-            }
-            
+                ClearPreview();
+                ApplyNormalizedPreview(sentenceModel, false);
+            }            
         }
+    }
+
+    // Helper method to normalize & apply UI results
+    private void ApplyNormalizedPreview(List<SentenceWordEntry> model, bool isPreview)
+    {
+        List<SentenceWordEntry> normalizedModel = Normalize(model);
+        ApplyNormalizationResults(normalizedModel, isPreview);
     }
 
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
@@ -223,7 +236,7 @@ public class SentenceBuilder : MonoBehaviour
     {
         if (!sentenceHasPreviews)
             return;
-        
+
         sentenceModel.RemoveAll(entry => entry.isPreview);
         sentenceHasPreviews = false;
 
@@ -488,7 +501,7 @@ public class SentenceBuilder : MonoBehaviour
     }
 
 
-    public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry)
+    public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry, PointerEventData eventData)
     {
         int idx = sentenceModel.IndexOf(draggableEntry);
         if (idx >= 0)
@@ -517,6 +530,8 @@ public class SentenceBuilder : MonoBehaviour
             wordList.Remove(draggableRect);
         }
 
+        draggableRect.pivot = new Vector2(0.5f, 0.5f);
+        draggableRect.position = eventData.position;
         sentenceMutated = true;
         CommitModelChange();
     }
@@ -632,7 +647,7 @@ public class SentenceBuilder : MonoBehaviour
         for (int i = 0; i < sentenceModel.Count; i++)
         {
             var entry = sentenceModel[i];
-
+            
             if (!ModelRects.TryGetValue(entry, out RectTransform rect))
                 continue; // skip entries without rect
 
