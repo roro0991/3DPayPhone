@@ -48,9 +48,6 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         {
             // Remove from the sentence model first
             sentenceBuilder.RemoveDraggableFromSentence(sentenceWordEntry);
-
-            // Trigger normalization to update UI
-            sentenceBuilder.CommitModelChange();
         }
 
         isBeingDragged = true;
@@ -64,18 +61,8 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
 
         GameObject hover = eventData.pointerEnter;
-        bool overSentence = hover != null && hover.CompareTag("SentencePanel");
 
-        if (overSentence)
-        {
-            sentenceBuilder.HandleHoveringWord(this, eventData);
-            //Debug.Log("pointer is over sentencepanel");
-        }
-        else
-        {
-            sentenceBuilder.ClearPreviewOnly();
-            //Debug.Log("pointer is NOT over sentencepanel");
-        }
+        sentenceBuilder.HandleHoveringWord(this, eventData);        
     }
 
     public void OnEndDrag(PointerEventData eventData)

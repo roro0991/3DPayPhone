@@ -1,15 +1,10 @@
-using NUnit.Framework.Constraints;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using TMPro;
 using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
-using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.Rendering;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class SentenceBuilder : MonoBehaviour
@@ -26,6 +21,7 @@ public class SentenceBuilder : MonoBehaviour
     public GameObject draggableWordPrefab;
 
     private bool sentenceHasPreviews;
+    private bool sentenceMutated;
     private int currentPreviewIndex = -1;
 
     private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
@@ -36,51 +32,67 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     public void HandleHoveringWord(DraggableWord word, PointerEventData eventData)
-    {        
-        // Remove any existing preview words        
-        sentenceModel.RemoveAll(entry => entry.isPreview);        
+    {
+        GameObject dropTarget = eventData.pointerEnter;
 
-        // Convert pointer to localX
-        Vector2 localPoint;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            transform as RectTransform,
-            eventData.position,
-            eventData.pressEventCamera,
-            out localPoint
-        );
+        if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
+        {
+            // Remove any existing preview words        
+            ClearPreview();        
 
-        // Calculate insertion index
-        int insertIndex = GetInsertionIndex(localPoint.x);
+            // Convert pointer to localX
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                transform as RectTransform,
+                eventData.position,
+                eventData.pressEventCamera,
+                out localPoint
+            );
 
-        // Clamp to valid range
-        insertIndex = Mathf.Clamp(insertIndex, 0, sentenceModel.Count);
+            // Calculate insertion index
+            int insertIndex = GetInsertionIndex(localPoint.x);
 
-        // Prevent rebuild spam
-        if (insertIndex == currentPreviewIndex)
-            return;
+            // Clamp to valid range
+            insertIndex = Mathf.Clamp(insertIndex, 0, sentenceModel.Count);
 
-        currentPreviewIndex = insertIndex;
+            // Prevent rebuild spam
+            if (insertIndex == currentPreviewIndex)
+                return;
+
+            currentPreviewIndex = insertIndex;
         
-        // Create a preview entry
-        SentenceWordEntry previewEntry = new SentenceWordEntry
+            // Create a preview entry
+            SentenceWordEntry previewEntry = new SentenceWordEntry
+            {
+                Word = word.sentenceWordEntry.Word,
+                Surface = word.sentenceWordEntry.Surface,
+                isPreview = true
+            };
+
+            if (CanInsertAt(sentenceModel, insertIndex, previewEntry))
+            {
+                // Insert preview into model
+                sentenceModel.Insert(insertIndex, previewEntry);
+
+                // Normalize the sentenceModel (includes preview)
+                List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
+
+                // Apply normalization/UI updates        
+                ApplyNormalizationResults(normalizedModel, true);
+                sentenceHasPreviews = true;
+                Debug.Log("preview generated");
+            }
+        }
+        else
         {
-            Word = word.sentenceWordEntry.Word,
-            Surface = word.sentenceWordEntry.Surface,
-            isPreview = true
-        };
-
-        if (CanInsertAt(sentenceModel, insertIndex, previewEntry))
-        {
-            // Insert preview into model
-            sentenceModel.Insert(insertIndex, previewEntry);
-
-            // Normalize the sentenceModel (includes preview)
-            List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
-
-            // Apply normalization/UI updates        
-            ApplyNormalizationResults(normalizedModel, true);
-            sentenceHasPreviews = true;
-            Debug.Log("preview generated");
+            bool hadPreviews = sentenceHasPreviews;
+            ClearPreview();
+            if (hadPreviews)
+            {
+                List<SentenceWordEntry> normalizedModel = Normalize(sentenceModel);
+                ApplyNormalizationResults(normalizedModel, false);
+            }
+            
         }
     }
 
@@ -103,21 +115,28 @@ public class SentenceBuilder : MonoBehaviour
             {
                 Debug.Log("Drop rejected by grammar validation");
 
-                ReturnWordToBank(draggableWord, word);
-                ClearPreviewOnly();
+                ReturnWordToBank(draggableWord, word, false, eventData);
+                ClearPreview();
                 return;
             }
 
             ModelRects[entryData] = draggableWord;
 
             InsertWordEntryAt(entryData, currentPreviewIndex);
-            ClearPreviewOnly();
+            ClearPreview();
 
             word.isInSentencePanel = true;
+
+            sentenceMutated = true;
+        }
+        else if (dropTarget != null && dropTarget.CompareTag("WordBankPanel"))
+        {
+            ReturnWordToBank(draggableWord, word, true, eventData);
+            word.isInSentencePanel = false;
         }
         else
         {
-            ReturnWordToBank(draggableWord, word);
+            ReturnWordToBank(draggableWord, word, false, eventData);
 
             sentenceModel.Remove(entryData);
             word.isInSentencePanel = false;
@@ -126,7 +145,7 @@ public class SentenceBuilder : MonoBehaviour
         CommitModelChange();
     }
 
-    private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word)
+    private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData)
     {
         WordBank wb = wordBank;
 
@@ -134,8 +153,26 @@ public class SentenceBuilder : MonoBehaviour
             return;
 
         draggableWord.transform.SetParent(wb.transform, false);
-        draggableWord.anchoredPosition = Vector2.zero;
         draggableWord.pivot = new Vector2(0.5f, 0.5f);
+
+        if (droppedInWB == false)
+        {
+            draggableWord.anchoredPosition = Vector2.zero;
+        }
+
+        if (droppedInWB == true)
+        {
+            RectTransform bankRect = wb.GetComponent<RectTransform>();
+
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                bankRect,
+                eventData.position,
+                eventData.pressEventCamera,
+                out localPoint);
+
+            draggableWord.anchoredPosition = localPoint;
+        }
     }
 
 
@@ -175,11 +212,14 @@ public class SentenceBuilder : MonoBehaviour
 
     public void CommitModelChange()
     {
+        if (!sentenceMutated)
+            return;
         sentenceModel = Normalize(sentenceModel);
         ApplyNormalizationResults(sentenceModel);
+        sentenceMutated = false;
     }
 
-    public void ClearPreviewOnly()
+    public void ClearPreview()
     {
         if (!sentenceHasPreviews)
             return;
@@ -205,11 +245,6 @@ public class SentenceBuilder : MonoBehaviour
 
         // Reset preview tracking
         currentPreviewIndex = -1;
-
-        sentenceModel = Normalize(sentenceModel);
-
-        // Rebuild UI for remaining sentenceModel entries
-        ApplyNormalizationResults(sentenceModel, true);
         Debug.Log("Previews removed");
     }
 
@@ -481,6 +516,9 @@ public class SentenceBuilder : MonoBehaviour
         {
             wordList.Remove(draggableRect);
         }
+
+        sentenceMutated = true;
+        CommitModelChange();
     }
 
     private SentenceWordEntry CreateArticleForNoun(SentenceWordEntry wordData)
@@ -585,19 +623,6 @@ public class SentenceBuilder : MonoBehaviour
     public void ClearStoredWords()
     {
         storedWordList.Clear();
-    }
-
-    public void TestSingularOrPlural(SentenceWordEntry word)
-    {
-        if (word == null || word.Word == null) return;
-
-        if (word.Word.PartOfSpeech == PartsOfSpeech.Noun)
-        {
-            if (word.Word.IsSingular(word.Surface))
-                Debug.Log("This word is singular");
-            else if (word.Word.IsPlural(word.Surface))
-                Debug.Log("This word is plural");
-        }
     }
 
     private int GetInsertionIndex(float draggableMidX, float margin = 10f)
