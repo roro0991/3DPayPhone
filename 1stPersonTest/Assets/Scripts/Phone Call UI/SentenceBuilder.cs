@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using static UnityEditor.PlayerSettings.SplashScreen;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -30,10 +32,11 @@ public class SentenceBuilder : MonoBehaviour
         wordBank = FindAnyObjectByType<WordBank>();
     }
 
-    public void HandleHoveringWord(DraggableWord word, PointerEventData eventData)
+    // ---------------- Hover & Drop Management ------------
+    public void HandleHoveringWord(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
     {
         GameObject dropTarget = eventData.pointerEnter;
-
+        
         if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
         {
             // Edge case: dragging the very first word into an empty sentence panel.
@@ -58,6 +61,10 @@ public class SentenceBuilder : MonoBehaviour
 
             // Calculate insertion index
             int insertIndex = GetInsertionIndex(localPoint.x);
+
+            // Check for interrogative
+            if (word.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+                insertIndex = 0;
 
             // Clamp to valid range
             insertIndex = Mathf.Clamp(insertIndex, 0, sentenceModel.Count);
@@ -85,7 +92,7 @@ public class SentenceBuilder : MonoBehaviour
                 sentenceModel.Insert(insertIndex, previewEntry);
                 ApplyNormalizedPreview(sentenceModel, true);
                 sentenceHasPreviews = true;
-                Debug.Log("preview generated");                
+                Debug.Log("***PREVIEW GENERATED***");                
             }
             else
             {
@@ -101,15 +108,7 @@ public class SentenceBuilder : MonoBehaviour
             }            
         }
     }
-
-    // Helper method to normalize & apply UI results
-    private void ApplyNormalizedPreview(List<SentenceWordEntry> model, bool isPreview)
-    {
-        List<SentenceWordEntry> normalizedModel = Normalize(model);
-        ApplyNormalizationResults(normalizedModel, isPreview);
-    }
-
-    public void HandleWordDropped(DraggableWord word, PointerEventData eventData)
+    public void HandleWordDropped(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
     {
         if (word == null)
             return;        
@@ -157,81 +156,70 @@ public class SentenceBuilder : MonoBehaviour
 
         CommitModelChange();
     }
-
-    private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData)
+    private int GetInsertionIndex(float draggableMidX, float margin = 10f)
     {
-        WordBank wb = wordBank;
+        int modelIndex = sentenceModel.Count; // default to end
 
-        if (wb == null)
-            return;
-
-        draggableWord.transform.SetParent(wb.transform, false);
-        draggableWord.pivot = new Vector2(0.5f, 0.5f);
-
-        if (droppedInWB == false)
+        for (int i = 0; i < sentenceModel.Count; i++)
         {
-            draggableWord.anchoredPosition = Vector2.zero;
+            var entry = sentenceModel[i];
+            
+            if (!ModelRects.TryGetValue(entry, out RectTransform rect))
+                continue; // skip entries without rect
+
+            float wordMidX = rect.localPosition.x + rect.rect.width / 2f;
+
+            // If draggableMidX is within the "margin zone" to the left of the midpoint, insert here
+            if (draggableMidX < wordMidX + margin)
+                return i;
         }
 
-        if (droppedInWB == true)
-        {
-            RectTransform bankRect = wb.GetComponent<RectTransform>();
-
-            Vector2 localPoint;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                bankRect,
-                eventData.position,
-                eventData.pressEventCamera,
-                out localPoint);
-
-            draggableWord.anchoredPosition = localPoint;
-        }
+        return modelIndex;
     }
+    public void InsertWordEntryAt(SentenceWordEntry entry, int index)
+    {
+        sentenceModel.Insert(index, entry);
+        storedWordList.Add(entry); // Add to backup list
 
+        CommitModelChange();
+    }    
+    public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry, PointerEventData eventData) // Called from DraggableWord.cs
+    {
+        int idx = sentenceModel.IndexOf(draggableEntry);
+        if (idx >= 0)
+            sentenceModel.RemoveAt(idx);
+
+
+        // sever grammatical connections
+        if (draggableEntry.article != null)
+        {
+            var articleEntry = draggableEntry.article;
+
+            articleEntry.owningNoun = null;
+            draggableEntry.article = null;
+
+            // Remove article from sentenceModel if it exists
+            sentenceModel.Remove(articleEntry);
+        }
+
+        sentenceModel.Remove(draggableEntry);
+
+        // remove rect to prevent destruction by normalization
+
+        if (ModelRects.TryGetValue(draggableEntry, out RectTransform draggableRect)
+            && wordList.Contains(draggableRect))
+        {
+            wordList.Remove(draggableRect);
+        }
+
+        draggableRect.pivot = new Vector2(0.5f, 0.5f);
+        draggableRect.position = eventData.position;
+        sentenceMutated = true;
+        CommitModelChange();
+    }    
 
     // ---------------- Sentence management ----------------    
-
-    private bool CanInsertAt(List<SentenceWordEntry> model, int insertIndex, SentenceWordEntry entry)
-    {
-        if (model == null)
-            return false;
-
-        if (insertIndex < 0 || insertIndex > model.Count)
-            return false;
-
-        if (model.Count == 0)
-            return true;
-
-        bool isArticle = entry.Word.HasPartOfSpeech(PartsOfSpeech.Article);
-       
-        if (!isArticle)
-        {
-            if (insertIndex > 0)
-            {
-                var left = model[insertIndex - 1];
-
-                if (left.Word.HasPartOfSpeech(PartsOfSpeech.Article))
-                {
-                    if (insertIndex < model.Count &&
-                        model[insertIndex] == left.owningNoun)
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    public void CommitModelChange()
-    {
-        if (!sentenceMutated)
-            return;
-        sentenceModel = Normalize(sentenceModel);
-        ApplyNormalizationResults(sentenceModel);
-        sentenceMutated = false;
-    }
-
+        // Preview Methods
     public void ClearPreview()
     {
         if (!sentenceHasPreviews)
@@ -260,15 +248,98 @@ public class SentenceBuilder : MonoBehaviour
         currentPreviewIndex = -1;
         Debug.Log("Previews removed");
     }
-
-    // Helper class for article insertion.
-    private class PendingArticleInsertion
+    private void ApplyNormalizedPreview(List<SentenceWordEntry> model, bool isPreview) // Helper method to normalize & apply UI results
     {
-        public SentenceWordEntry nounData;
-        public int nounIndex;
-    }
+        List<SentenceWordEntry> normalizedModel = Normalize(model);
+        ApplyNormalizationResults(normalizedModel, isPreview);
+    }    
+        
+        // Drop Methods
+    private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData)
+    {
+        WordBank wb = wordBank;
 
-    private List<SentenceWordEntry> Normalize(List<SentenceWordEntry> rawModel)
+        if (wb == null)
+            return;
+
+        draggableWord.transform.SetParent(wb.transform, false);
+        draggableWord.pivot = new Vector2(0.5f, 0.5f);
+
+        if (droppedInWB == false)
+        {
+            draggableWord.anchoredPosition = Vector2.zero;
+        }
+
+        if (droppedInWB == true)
+        {
+            RectTransform bankRect = wb.GetComponent<RectTransform>();
+
+            Vector2 localPoint;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                bankRect,
+                eventData.position,
+                eventData.pressEventCamera,
+                out localPoint);
+
+            draggableWord.anchoredPosition = localPoint;
+        }
+
+        word.isInSentencePanel = false;
+    }     
+    
+        // Normalization Methods
+    private bool CanInsertAt(List<SentenceWordEntry> model, int insertIndex, SentenceWordEntry entry) // Initial grammar gate for insertion
+    {
+        // Initial defensive checks
+        if (model == null)
+            return false;
+        if (insertIndex < 0 || insertIndex > model.Count)
+            return false;
+        if (model.Count == 0)
+            return true;
+        // Cache words left and right of insertion for checks
+        var leftWord = insertIndex > 0 ? model[insertIndex - 1] : null;
+        var rightWord = insertIndex < model.Count ? model[insertIndex] : null;
+
+        // Rule #1: Prevent multiple interrogatives
+        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+            && sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) && !entry.isPreview))
+            {
+                Debug.Log("MultipleInterrogatives");
+                return false;
+            }
+        // Rule #1.2: Allow insertion of sole interrogative anywhere
+        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+            return true;
+        // Rule #1.3: Prevent insertion before interrogative 
+        if (rightWord != null && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) && !rightWord.isPreview)
+            {
+                Debug.Log("InsertionBeforeInterrogative");
+                return false;
+            }
+        
+        // Rule #2: Prevent article & owning noun split
+        if (leftWord != null
+            && rightWord != null
+            && leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Article)
+            && leftWord.owningNoun == rightWord)
+            {
+                Debug.Log("ArticleNounSplit");
+                return false;
+            }
+        // Rule #3: Prevent adjective placement after noun
+        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) 
+            && leftWord != null 
+            && leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            {
+                Debug.Log("AdjectiveAfterNoun");
+                return false;
+            }
+        
+
+        return true;
+    }        
+    private List<SentenceWordEntry> Normalize(List<SentenceWordEntry> rawModel) // If insertion gate passed, fixes remaining grammar
     {
         var workingModel = new List<SentenceWordEntry>(rawModel);
 
@@ -298,7 +369,7 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
 
-        Debug.Log("articles to remove: " + articleEntriesToRemove.Count);
+        // Debug.Log("articles to remove: " + articleEntriesToRemove.Count);
         RemoveArticles(workingModel, articleEntriesToRemove);
 
         // Collect nouns that need articles.
@@ -322,12 +393,130 @@ public class SentenceBuilder : MonoBehaviour
             });
         }
 
-        Debug.Log("missing articles: " + articleEntriesToInsert.Count);
+        // Debug.Log("missing articles: " + articleEntriesToInsert.Count);
         InsertArticles(workingModel, articleEntriesToInsert);
-        
+
+        // Ensure interrogative always fist word
+        NormalizeInterrogative(workingModel);
+
+        // Generate or regenerate trailing punctuation based on mutated model
         NormalizeTrailingPunctuation(workingModel);
 
         return workingModel;
+    }
+    private void RemoveArticles(List<SentenceWordEntry> workingModel, List<SentenceWordEntry> articlesToRemove)
+    {
+        foreach (SentenceWordEntry articleEntry in articlesToRemove)
+        {
+            workingModel.Remove(articleEntry);
+
+            if (articleEntry.owningNoun != null)
+            {
+                articleEntry.owningNoun.article = null;
+                articleEntry.owningNoun = null;
+            }
+        }
+
+    }
+    private void InsertArticles(List<SentenceWordEntry> workingModel, List<PendingArticleInsertion> articlesToInsert)
+    {
+
+        foreach (var pending in articlesToInsert)
+        {
+            int nounIndex = pending.nounIndex;
+
+            if (nounIndex < 0)
+                continue; // noun no longer exists - safety check
+
+            SentenceWordEntry articleEntry =
+                CreateArticleForNoun(pending.nounData);
+
+            workingModel.Insert(nounIndex, articleEntry);
+        }
+    }
+    private SentenceWordEntry CreateArticleForNoun(SentenceWordEntry wordData)
+    {
+        SentenceWordEntry articleEntry = new SentenceWordEntry();
+
+        // Determine article
+        string firstLetter = wordData.Surface.ToLower();
+        bool startsWithVowel = "aeiou".Contains(firstLetter[0]);
+        string article = startsWithVowel ? "an" : "a";
+
+        // Set word data
+        articleEntry.Word = WordDataBase.Instance.GetWord(article);
+        articleEntry.Surface = article;
+        articleEntry.owningNoun = wordData;
+        wordData.article = articleEntry;
+
+
+        //Debug.Log("inserted article: " + article);
+        //Debug.Log("article's owning noun: " + wordData.Surface);
+
+        return articleEntry;
+    }    
+    private class PendingArticleInsertion // Helper class for article insertion
+    {
+        public SentenceWordEntry nounData;
+        public int nounIndex;
+    }
+    private void UpdateModelDictionary() // Middleman between model entries and rects
+    {
+        ModelRects.Clear();
+
+        foreach (SentenceWordEntry entry in sentenceModel)
+        {
+            RectTransform rect = FindRectForEntry(entry);
+            if (rect != null)
+                ModelRects.Add(entry, rect);
+        }
+    }
+    private RectTransform FindRectForEntry(SentenceWordEntry entry) // Helper method for ModelDictionary
+    {
+        foreach (RectTransform rect in wordList)
+        {
+            var draggable = rect.GetComponent<DraggableWord>();
+            if (draggable != null && draggable.sentenceWordEntry == entry)
+                return rect;
+        }
+
+        return null;
+    }
+    private void NormalizeTrailingPunctuation(List<SentenceWordEntry> rawModel)
+    {
+        // Remove any existing punctuation entries
+        rawModel.RemoveAll(entry =>
+        entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation));
+
+        // if no content words, do nothing
+        if (!rawModel.Any(entry =>
+            !entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation)))
+            return;
+
+        var firstWord = rawModel[0];
+
+        string punctuation =
+            firstWord.Word.PartOfSpeech == PartsOfSpeech.Interrogative
+            ? "?"
+            : ".";
+
+        var punctuationEntry = new SentenceWordEntry
+        {
+            Word = WordDataBase.Instance.GetWord(punctuation),
+            Surface = punctuation
+        };
+
+        rawModel.Add(punctuationEntry);
+    }
+    
+    private void NormalizeInterrogative(List<SentenceWordEntry> rawModel)
+    {
+        var foundInterrogative = rawModel.FirstOrDefault(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+        && !entry.isPreview);
+
+        if (foundInterrogative != null &&
+            rawModel[0] != foundInterrogative)
+            MoveWord(rawModel, rawModel.IndexOf(foundInterrogative), 0);
     }
 
     private void MoveWord(List<SentenceWordEntry> list, int oldIndex, int newIndex)
@@ -340,32 +529,17 @@ public class SentenceBuilder : MonoBehaviour
             list.Insert(newIndex, entry);
         }
     }
-
-    private void UpdateModelDictionary()
+    
+        // UI Methods
+    public void CommitModelChange() // Commit sentence mutations for UI update
     {
-        ModelRects.Clear();
-
-        foreach (SentenceWordEntry entry in sentenceModel)
-        {
-            RectTransform rect = FindRectForEntry(entry);
-            if (rect != null)
-                ModelRects.Add(entry, rect);
-        }
-    }
-
-    private RectTransform FindRectForEntry(SentenceWordEntry entry)
-    {
-        foreach (RectTransform rect in wordList)
-        {
-            var draggable = rect.GetComponent<DraggableWord>();
-            if (draggable != null && draggable.sentenceWordEntry == entry)
-                return rect;
-        }
-
-        return null;
-    }
-
-    private void ApplyNormalizationResults(List<SentenceWordEntry> workingModel, bool isPreviewMode = false)
+        if (!sentenceMutated)
+            return;
+        sentenceModel = Normalize(sentenceModel);
+        ApplyNormalizationResults(sentenceModel);
+        sentenceMutated = false;
+    } 
+    private void ApplyNormalizationResults(List<SentenceWordEntry> workingModel, bool isPreviewMode = false) // Update UI from normalized model
     {
         // Collect UI rects to remove
         List<RectTransform> uiRectsToRemove = new List<RectTransform>();
@@ -459,132 +633,6 @@ public class SentenceBuilder : MonoBehaviour
         UpdateModelDictionary();
         UpdateWordPositions();
     }
-
-    private void RemoveArticles(List<SentenceWordEntry> workingModel, List<SentenceWordEntry> articlesToRemove)
-    {
-        foreach (SentenceWordEntry articleEntry in articlesToRemove)
-        {
-            workingModel.Remove(articleEntry);
-
-            if (articleEntry.owningNoun != null)
-            {
-                articleEntry.owningNoun.article = null;
-                articleEntry.owningNoun = null;
-            }
-        }
-
-    }
-
-    private void InsertArticles(List<SentenceWordEntry> workingModel, List<PendingArticleInsertion> articlesToInsert)
-    {
-
-        foreach (var pending in articlesToInsert)
-        {
-            int nounIndex = pending.nounIndex;
-
-            if (nounIndex < 0)
-                continue; // noun no longer exists - safety check
-
-            SentenceWordEntry articleEntry =
-                CreateArticleForNoun(pending.nounData);
-
-            workingModel.Insert(nounIndex, articleEntry);
-        }
-    }
-
-    public void InsertWordEntryAt(SentenceWordEntry entry, int index)
-    {
-        sentenceModel.Insert(index, entry);
-        storedWordList.Add(entry); // Add to backup list
-
-        CommitModelChange();
-    }
-
-
-    public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry, PointerEventData eventData)
-    {
-        int idx = sentenceModel.IndexOf(draggableEntry);
-        if (idx >= 0)
-            sentenceModel.RemoveAt(idx);
-
-
-        // sever grammatical connections
-        if (draggableEntry.article != null)
-        {
-            var articleEntry = draggableEntry.article;
-
-            articleEntry.owningNoun = null;
-            draggableEntry.article = null;
-
-            // Remove article from sentenceModel if it exists
-            sentenceModel.Remove(articleEntry);
-        }
-
-        sentenceModel.Remove(draggableEntry);
-
-        // remove rect to prevent destruction by normalization
-
-        if (ModelRects.TryGetValue(draggableEntry, out RectTransform draggableRect)
-            && wordList.Contains(draggableRect))
-        {
-            wordList.Remove(draggableRect);
-        }
-
-        draggableRect.pivot = new Vector2(0.5f, 0.5f);
-        draggableRect.position = eventData.position;
-        sentenceMutated = true;
-        CommitModelChange();
-    }
-
-    private SentenceWordEntry CreateArticleForNoun(SentenceWordEntry wordData)
-    {
-        SentenceWordEntry articleEntry = new SentenceWordEntry();
-
-        // Determine article
-        string firstLetter = wordData.Surface.ToLower();
-        bool startsWithVowel = "aeiou".Contains(firstLetter[0]);
-        string article = startsWithVowel ? "an" : "a";
-
-        // Set word data
-        articleEntry.Word = WordDataBase.Instance.GetWord(article);
-        articleEntry.Surface = article;
-        articleEntry.owningNoun = wordData;
-        wordData.article = articleEntry;
-
-
-        Debug.Log("inserted article: " + article);
-        Debug.Log("article's owning noun: " + wordData.Surface);
-
-        return articleEntry;
-    }
-
-    private void NormalizeTrailingPunctuation(List<SentenceWordEntry> rawModel)
-    {
-        // Remove any existing punctuation entries
-        rawModel.RemoveAll(entry =>
-        entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation));
-
-        // if no content words, do nothing
-        if (!rawModel.Any(entry =>
-            !entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation)))
-            return;
-
-        var firstWord = rawModel[0];
-
-        string punctuation =
-            firstWord.Word.PartOfSpeech == PartsOfSpeech.Interrogative
-            ? "?"
-            : ".";
-
-        var punctuationEntry = new SentenceWordEntry
-        {
-            Word = WordDataBase.Instance.GetWord(punctuation),
-            Surface = punctuation
-        };
-
-        rawModel.Add(punctuationEntry);
-    }
-
     private void UpdateWordPositions()
     {
         if (wordList.Count == 0) return;
@@ -599,7 +647,6 @@ public class SentenceBuilder : MonoBehaviour
             currentX += rect.rect.width * rect.localScale.x + spacing;
         }
     }
-
     private void UpdateSentenceString()
     {
         List<SentenceWordEntry> wordDataList = new List<SentenceWordEntry>();
@@ -622,9 +669,7 @@ public class SentenceBuilder : MonoBehaviour
 
         currentSentenceAsString = sb.ToString().Trim();
     }
-
     public string GetSentenceAsString() => currentSentenceAsString;
-
     public void ClearSentence()
     {
         wordList.Clear();
@@ -634,31 +679,9 @@ public class SentenceBuilder : MonoBehaviour
 
         currentSentenceAsString = string.Empty;
     }
-
     public void ClearStoredWords()
     {
         storedWordList.Clear();
-    }
-
-    private int GetInsertionIndex(float draggableMidX, float margin = 10f)
-    {
-        int modelIndex = sentenceModel.Count; // default to end
-
-        for (int i = 0; i < sentenceModel.Count; i++)
-        {
-            var entry = sentenceModel[i];
-            
-            if (!ModelRects.TryGetValue(entry, out RectTransform rect))
-                continue; // skip entries without rect
-
-            float wordMidX = rect.localPosition.x + rect.rect.width / 2f;
-
-            // If draggableMidX is within the "margin zone" to the left of the midpoint, insert here
-            if (draggableMidX < wordMidX + margin)
-                return i;
-        }
-
-        return modelIndex;
     }
 }
 

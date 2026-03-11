@@ -83,6 +83,11 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word("theirs", PartsOfSpeech.PossessivePronoun));
 
         // ----------------- Nouns -----------------
+        var appleForms = new Word.NounForms { Singular = "apple", Plural = "apples" };
+        var appleWord = new Word("apple", PartsOfSpeech.Noun);
+        appleWord.AddNounForm(appleForms);
+        AddWord(appleWord);
+
         var dogForms = new Word.NounForms { Singular = "dog", Plural = "dogs" };
         var dogWord = new Word("dog", PartsOfSpeech.Noun);
         dogWord.AddNounForm(dogForms);
@@ -99,6 +104,18 @@ public class WordDataBase : MonoBehaviour
         AddWord(elephantWord);
 
         // ----------------- Verbs -----------------
+        var eatForms = new Word.VerbForms
+        {
+            Base = "eat",
+            Past = "ate",
+            PastParticiple = "eaten",
+            PresentParticiple = "eating",
+            ThirdPerson = "eats"
+        };
+        var eatWord = new Word("eat", PartsOfSpeech.Noun);
+        eatWord.AddVerbForm(eatForms);
+        AddWord(eatWord);
+
         var meetForms = new Word.VerbForms
         {
             Base = "meet",

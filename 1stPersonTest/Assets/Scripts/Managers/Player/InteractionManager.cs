@@ -44,7 +44,7 @@ public class InteractionManager : MonoBehaviour
                 {                    
                     interactObj2.Interact();
                 }
-                Debug.Log("you hit a rendercam obj");
+                //Debug.Log("you hit a rendercam obj");
             }            
             //check if raycast hit from maincam
             else if (Physics.Raycast(ray, out hit, Mathf.Infinity, ~_layerMask)) 
@@ -53,7 +53,7 @@ public class InteractionManager : MonoBehaviour
                 {
                     interactObj.Interact();
                 }
-                Debug.Log("you hit world obj"); 
+                //Debug.Log("you hit world obj"); 
             }
             else
             {
