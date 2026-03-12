@@ -11,6 +11,7 @@ using static UnityEditor.PlayerSettings.SplashScreen;
 public class SentenceBuilder : MonoBehaviour
 {
     public WordBank wordBank;
+    public RectTransform sentencePanelRect;
 
     public Vector2 startPosition = Vector2.zero;
     public float spacing = 10f;
@@ -37,7 +38,7 @@ public class SentenceBuilder : MonoBehaviour
     {
         GameObject dropTarget = eventData.pointerEnter;
         
-        if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
+        if (dropTarget != null && dropTarget.transform.IsChildOf(sentencePanelRect))
         {
             // Edge case: dragging the very first word into an empty sentence panel.
             // No need to process hover because there's no insertion point.
@@ -96,6 +97,11 @@ public class SentenceBuilder : MonoBehaviour
             }
             else
             {
+                if (sentenceHasPreviews)
+                {
+                    ClearPreview();
+                    ApplyNormalizedPreview(sentenceModel, false);
+                }
                 Debug.Log("***CAN INSERT CHECK FAILED***");
             }
         }
@@ -118,7 +124,7 @@ public class SentenceBuilder : MonoBehaviour
 
         GameObject dropTarget = eventData.pointerEnter;
 
-        if (dropTarget != null && dropTarget.CompareTag("SentencePanel"))
+        if (dropTarget != null && dropTarget.transform.IsChildOf(sentencePanelRect))
         {
             draggableWord.transform.SetParent(transform, false);            
             
@@ -129,6 +135,7 @@ public class SentenceBuilder : MonoBehaviour
 
                 ReturnWordToBank(draggableWord, word, false, eventData);
                 ClearPreview();
+                ApplyNormalizationResults(sentenceModel);
                 return;
             }
 
@@ -180,8 +187,7 @@ public class SentenceBuilder : MonoBehaviour
     {
         sentenceModel.Insert(index, entry);
         storedWordList.Add(entry); // Add to backup list
-
-        CommitModelChange();
+        sentenceMutated = true;        
     }    
     public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry, PointerEventData eventData) // Called from DraggableWord.cs
     {
@@ -201,8 +207,6 @@ public class SentenceBuilder : MonoBehaviour
             // Remove article from sentenceModel if it exists
             sentenceModel.Remove(articleEntry);
         }
-
-        sentenceModel.Remove(draggableEntry);
 
         // remove rect to prevent destruction by normalization
 
@@ -299,7 +303,34 @@ public class SentenceBuilder : MonoBehaviour
             return true;
         // Cache words left and right of insertion for checks
         var leftWord = insertIndex > 0 ? model[insertIndex - 1] : null;
+        for (int i = insertIndex - 1; i >= 0; i--)
+        {
+            var candidate = model[i];
+            if (!candidate.isPreview
+                && !candidate.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation)
+                && candidate != entry)
+            {
+                leftWord = candidate;
+                Debug.Log("Left word: " + leftWord.Surface);
+                break;
+            }
+        }
+
         var rightWord = insertIndex < model.Count ? model[insertIndex] : null;
+        for (int i = insertIndex; i < model.Count; i++)
+        {
+            var candidate = model[i];
+
+            // Skip previews, punctuation, and the word being inserted
+            if (!candidate.isPreview
+                && !candidate.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation)
+                && candidate != entry)
+            {
+                rightWord = candidate;
+                Debug.Log("Right word: " + rightWord.Surface);
+                break;
+            }
+        }
 
         // Rule #1: Prevent multiple interrogatives
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
@@ -335,8 +366,31 @@ public class SentenceBuilder : MonoBehaviour
                 Debug.Log("AdjectiveAfterNoun");
                 return false;
             }
-        
 
+        // Rule #4: Verbs only after nouns and interrogatives
+        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
+            && leftWord != null
+            && !(
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun)
+                || leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+                ))
+        {
+            Debug.Log("VerbNotAfterNounOrInt");
+            return false;
+        }
+
+        // Rule #4.1: Prevent non-verbs and non-interrogatives placed left of verbs
+        if (rightWord != null
+            && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
+            && !(
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)
+            || entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+            ))
+        {
+            Debug.Log("right word: " + rightWord.Surface);
+            Debug.Log("VerbNotAfterNounOrInt");
+            return false;
+        }        
         return true;
     }        
     private List<SentenceWordEntry> Normalize(List<SentenceWordEntry> rawModel) // If insertion gate passed, fixes remaining grammar

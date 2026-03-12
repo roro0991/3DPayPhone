@@ -112,7 +112,7 @@ public class WordDataBase : MonoBehaviour
             PresentParticiple = "eating",
             ThirdPerson = "eats"
         };
-        var eatWord = new Word("eat", PartsOfSpeech.Noun);
+        var eatWord = new Word("eat", PartsOfSpeech.Verb);
         eatWord.AddVerbForm(eatForms);
         AddWord(eatWord);
 
