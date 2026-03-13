@@ -153,6 +153,8 @@ public class WordDataBase : MonoBehaviour
         // ----------------- Adjectives -----------------
         AddWord(new Word("nice", PartsOfSpeech.Adjective));
         AddWord(new Word("big", PartsOfSpeech.Adjective));
+        AddWord(new Word("red", PartsOfSpeech.Adjective));
+        AddWord(new Word("old", PartsOfSpeech.Adjective));
 
         // ----------------- Prepositions -----------------
         AddWord(new Word("to", PartsOfSpeech.Preposition));

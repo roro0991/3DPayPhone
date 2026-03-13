@@ -26,9 +26,11 @@ public class TestContact : Contact
     {
         wordBank.AddWordToSentence("Apple");
         wordBank.AddWordToSentence("Big");
+        wordBank.AddWordToSentence("Red");
         wordBank.AddWordToSentence("Dog");
         wordBank.AddWordToSentence("Eat");
         wordBank.AddWordToSentence("What");
+        wordBank.AddWordToSentence("Old");
     }
 
     public override string GenerateResponse(ResponseKey responsekey)
