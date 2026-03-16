@@ -24,13 +24,12 @@ public class TestContact : Contact
 
     public override void PopulateWordBank()
     {
-        wordBank.AddWordToSentence("Apple");
-        wordBank.AddWordToSentence("Big");
-        wordBank.AddWordToSentence("Red");
-        wordBank.AddWordToSentence("Dog");
-        wordBank.AddWordToSentence("Eat");
         wordBank.AddWordToSentence("What");
         wordBank.AddWordToSentence("Old");
+        wordBank.AddWordToSentence("Red");
+        wordBank.AddWordToSentence("Dog");
+        wordBank.AddWordToSentence("Dogs");
+        wordBank.AddWordToSentence("Apple");        
     }
 
     public override string GenerateResponse(ResponseKey responsekey)

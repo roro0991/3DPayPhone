@@ -1,3 +1,4 @@
+using NUnit.Framework.Constraints;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -412,18 +413,137 @@ public class SentenceBuilder : MonoBehaviour
         var workingModel = new List<SentenceWordEntry>(rawModel);
 
         ClearAllArticles(workingModel);
+
         PairAdjectivesToNouns(workingModel);
 
         var articleEntriesToInsert = CollectArticlesToInsert(workingModel);
         InsertArticles(workingModel, articleEntriesToInsert);
-        
-        // Ensure interrogative always fist word
+
+        NormalizeConjunctions(workingModel);
+                
         NormalizeInterrogative(workingModel);
 
-        // Generate or regenerate trailing punctuation based on mutated model
+        NormalizeVerb(workingModel);
+        
         NormalizeTrailingPunctuation(workingModel);
 
         return workingModel;
+    }
+
+    // Early conjunction normalizer meant to add 'and' between adjacent noun phrases
+    private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
+    {
+        if (workingModel == null)
+            return;
+
+        if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
+            return;
+
+        if (workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction)))
+            workingModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction));
+
+        List<int> nounIndices = new List<int>();
+
+        for (int i = 0; i < workingModel.Count; i++)
+        {
+            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                nounIndices.Add(i);
+        }
+
+        if (nounIndices.Count < 2)
+            return;
+
+        for (int i = nounIndices.Count - 2; i >= 0; i--)
+        {
+            int firstNounIndex = nounIndices[i];
+            int secondNounIndex = nounIndices[i + 1];
+
+            int start = firstNounIndex + 1; // start after first noun
+            int end = secondNounIndex; // up to the next noun
+
+            bool verbFound = false;
+
+            for (int j = start; j < end; j++)
+            {
+                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                {
+                    verbFound = true;
+                    break;
+                }
+            }
+
+            if (verbFound)
+                continue;
+
+            // Generate conjunction between nounphrases
+            SentenceWordEntry conjunction = new SentenceWordEntry();
+            conjunction.Word = WordDataBase.Instance.GetWord("and");
+            conjunction.Surface = conjunction.Word.Text;
+
+            workingModel.Insert(firstNounIndex +1, conjunction);
+        }
+    }
+    // Early work in progress method of verb normalization
+    // designed only to autogenerate verb 'to be'
+    private void NormalizeVerb(List<SentenceWordEntry> workingModel)
+    {
+        // Remove existing instances of verb 'to be'
+        if (workingModel.Any(entry => entry.Word.Text == "be"))
+            workingModel.RemoveAll(entry => entry.Word.Text == "be");
+
+        // Defensive checks
+        if (workingModel == null) 
+            return;
+
+        if (workingModel.Count <= 1) 
+            return;
+
+        if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
+            return;
+
+        // Create verb 'to be' 
+        SentenceWordEntry verbToBe = new();
+        verbToBe.Word = WordDataBase.Instance.GetWord("be");
+        Word.VerbForms beForms = verbToBe.Word.GetVerbForm();
+
+        // Check for interrogative
+        SentenceWordEntry interrogative = null;
+        if (workingModel[0].Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+            interrogative = workingModel[0];
+
+        if (interrogative == null)
+            return;
+
+        // Check for nounAnchor
+        SentenceWordEntry anchorNoun = null;
+        for (int i = workingModel.IndexOf(interrogative); i < workingModel.Count; i++)
+        {
+            if (!workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                continue;
+
+            anchorNoun = workingModel[i];
+            break;
+        }
+
+        if (anchorNoun == null)
+        {
+            Debug.Log("No anchorNoun found for verb");
+            return;
+        }
+
+        switch (interrogative.Surface)
+        {
+            case "what":
+                if (anchorNoun.Word.IsPlural(anchorNoun.Surface))
+                    verbToBe.Surface = beForms.ThirdPersonPlural;
+                else
+                    verbToBe.Surface = beForms.ThirdPersonSingular;
+                    break;
+            default:
+                break;
+        }
+
+        workingModel.Insert(1, verbToBe);
     }
     private void ClearAllArticles(List<SentenceWordEntry> workingModel)
     {
