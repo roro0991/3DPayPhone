@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using TMPro;
+using Unity.Properties;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -433,16 +434,16 @@ public class SentenceBuilder : MonoBehaviour
     // Early conjunction normalizer meant to add 'and' between adjacent noun phrases
     private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
     {
-        if (workingModel == null)
+        workingModel.RemoveAll(entry => entry.Word.Text == "and" || entry.Surface == "and");
+
+        if (workingModel == null || workingModel.Count == 0)
             return;
 
         if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
             return;
 
-        if (workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction)))
-            workingModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction));
-
-        List<int> nounIndices = new List<int>();
+        List<int> nounIndices = new();
+        List<int> conjunctionInsertionIndices = new();
 
         for (int i = 0; i < workingModel.Count; i++)
         {
@@ -453,16 +454,16 @@ public class SentenceBuilder : MonoBehaviour
         if (nounIndices.Count < 2)
             return;
 
-        for (int i = nounIndices.Count - 2; i >= 0; i--)
+        for (int i = 0; i < nounIndices.Count - 1; i++)
         {
             int firstNounIndex = nounIndices[i];
-            int secondNounIndex = nounIndices[i + 1];
+            int secondNounindex = nounIndices[i + 1];
 
-            int start = firstNounIndex + 1; // start after first noun
-            int end = secondNounIndex; // up to the next noun
+            int start = firstNounIndex + 1; 
+            int end = secondNounindex;
 
             bool verbFound = false;
-
+                
             for (int j = start; j < end; j++)
             {
                 if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Verb))
@@ -475,21 +476,26 @@ public class SentenceBuilder : MonoBehaviour
             if (verbFound)
                 continue;
 
-            // Generate conjunction between nounphrases
-            SentenceWordEntry conjunction = new SentenceWordEntry();
+            conjunctionInsertionIndices.Add(firstNounIndex + 1);
+        }
+
+        if (conjunctionInsertionIndices.Count == 0)
+            return;
+
+        for (int i = conjunctionInsertionIndices.Count - 1; i >= 0; i --)
+        {
+            SentenceWordEntry conjunction = new();
             conjunction.Word = WordDataBase.Instance.GetWord("and");
             conjunction.Surface = conjunction.Word.Text;
 
-            workingModel.Insert(firstNounIndex +1, conjunction);
-        }
+            workingModel.Insert(conjunctionInsertionIndices[i], conjunction);
+        }        
     }
     // Early work in progress method of verb normalization
     // designed only to autogenerate verb 'to be'
     private void NormalizeVerb(List<SentenceWordEntry> workingModel)
     {
-        // Remove existing instances of verb 'to be'
-        if (workingModel.Any(entry => entry.Word.Text == "be"))
-            workingModel.RemoveAll(entry => entry.Word.Text == "be");
+        bool verbBeFound = false;
 
         // Defensive checks
         if (workingModel == null) 
@@ -501,10 +507,6 @@ public class SentenceBuilder : MonoBehaviour
         if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
             return;
 
-        // Create verb 'to be' 
-        SentenceWordEntry verbToBe = new();
-        verbToBe.Word = WordDataBase.Instance.GetWord("be");
-        Word.VerbForms beForms = verbToBe.Word.GetVerbForm();
 
         // Check for interrogative
         SentenceWordEntry interrogative = null;
@@ -513,6 +515,17 @@ public class SentenceBuilder : MonoBehaviour
 
         if (interrogative == null)
             return;
+
+        // Check for existing verb 'to be'
+        if (workingModel[1].Word.Text == "be")
+        {
+            verbBeFound = true;
+        }
+
+        // Create verb 'to be' 
+        SentenceWordEntry verbToBe = new();
+        verbToBe.Word = WordDataBase.Instance.GetWord("be");
+        Word.VerbForms beForms = verbToBe.Word.GetVerbForm();
 
         // Check for nounAnchor
         SentenceWordEntry anchorNoun = null;
@@ -543,6 +556,16 @@ public class SentenceBuilder : MonoBehaviour
                 break;
         }
 
+        // Check if new verb matches existing verb
+        if (verbBeFound)
+        {
+            if (workingModel[1].Surface == verbToBe.Surface)
+                return;
+            else
+            {
+                workingModel.RemoveAt(1);
+            }
+        }
         workingModel.Insert(1, verbToBe);
     }
     private void ClearAllArticles(List<SentenceWordEntry> workingModel)
@@ -552,15 +575,12 @@ public class SentenceBuilder : MonoBehaviour
             if (!workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
                 continue;
 
-            var articleToRemove = workingModel[i];
+            var articleEntry = workingModel[i];
 
-            workingModel.RemoveAt(i);
+            if (articleEntry.owningNoun != null)
+                continue;
 
-            if (articleToRemove.owningNoun != null)
-            {
-                articleToRemove.owningNoun.article = null;
-                articleToRemove.owningNoun = null;
-            }
+            workingModel.RemoveAt(i);        
         }
     }    
     private void PairAdjectivesToNouns(List<SentenceWordEntry> workingModel)
@@ -618,6 +638,8 @@ public class SentenceBuilder : MonoBehaviour
             if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                 continue;
             if (!wordData.Word.IsSingular(wordData.Surface))
+                continue;
+            if (wordData.article != null)
                 continue;
             
             // Set articleAnchor to noun if no adjectives present
