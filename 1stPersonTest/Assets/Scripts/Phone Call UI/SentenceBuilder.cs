@@ -418,7 +418,7 @@ public class SentenceBuilder : MonoBehaviour
         PairAdjectivesToNouns(workingModel);
 
         var articleEntriesToInsert = CollectArticlesToInsert(workingModel);
-        InsertArticles(workingModel, articleEntriesToInsert);
+        UpdateAndInsertArticles(workingModel, articleEntriesToInsert);
 
         NormalizeConjunctions(workingModel);
                 
@@ -434,14 +434,47 @@ public class SentenceBuilder : MonoBehaviour
     // Early conjunction normalizer meant to add 'and' between adjacent noun phrases
     private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
     {
-        workingModel.RemoveAll(entry => entry.Word.Text == "and" || entry.Surface == "and");
-
-        if (workingModel == null || workingModel.Count == 0)
+        if (workingModel == null || workingModel.Count == 0) //Defensive check
             return;
 
-        if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
-            return;
+        // Remove only loose conjunctions
+        List<int> conjunctionIndices = new();
 
+        for (int i = 0; i < workingModel.Count; i++)
+        {
+            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Conjunction))
+                conjunctionIndices.Add(i);
+        }
+
+        for (int i = conjunctionIndices.Count - 1; i >= 0; i--)
+        {
+            int conjunctionIndex = conjunctionIndices[i];
+
+            var rightWord = (conjunctionIndex + 1) < workingModel.Count 
+                ? workingModel[conjunctionIndex + 1] 
+                : null;
+
+            var leftWord = (conjunctionIndex - 1) >= 0 
+                ? workingModel[conjunctionIndex - 1] 
+                : null;
+
+            if (rightWord == null ||
+                rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction) ||
+                rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+            {
+                workingModel.RemoveAt(conjunctionIndex);
+                continue;
+            }
+
+            if (leftWord == null ||
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction) ||
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+            {
+                workingModel.RemoveAt(conjunctionIndex);
+                continue;
+            }
+        }
+        
         List<int> nounIndices = new();
         List<int> conjunctionInsertionIndices = new();
 
@@ -451,7 +484,7 @@ public class SentenceBuilder : MonoBehaviour
                 nounIndices.Add(i);
         }
 
-        if (nounIndices.Count < 2)
+        if (nounIndices.Count < 2) // conj unnecessary if < 2 nouns present in model
             return;
 
         for (int i = 0; i < nounIndices.Count - 1; i++)
@@ -462,18 +495,19 @@ public class SentenceBuilder : MonoBehaviour
             int start = firstNounIndex + 1; 
             int end = secondNounindex;
 
-            bool verbFound = false;
+            bool verbOrConjFound = false;
                 
             for (int j = start; j < end; j++)
             {
-                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Verb) ||
+                    workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Conjunction))
                 {
-                    verbFound = true;
+                    verbOrConjFound = true;
                     break;
                 }
             }
 
-            if (verbFound)
+            if (verbOrConjFound)
                 continue;
 
             conjunctionInsertionIndices.Add(firstNounIndex + 1);
@@ -482,11 +516,13 @@ public class SentenceBuilder : MonoBehaviour
         if (conjunctionInsertionIndices.Count == 0)
             return;
 
+        var andWord = WordDataBase.Instance.GetWord("and");
+
         for (int i = conjunctionInsertionIndices.Count - 1; i >= 0; i --)
         {
             SentenceWordEntry conjunction = new();
-            conjunction.Word = WordDataBase.Instance.GetWord("and");
-            conjunction.Surface = conjunction.Word.Text;
+            conjunction.Word = andWord;
+            conjunction.Surface = andWord.Text;
 
             workingModel.Insert(conjunctionInsertionIndices[i], conjunction);
         }        
@@ -660,8 +696,56 @@ public class SentenceBuilder : MonoBehaviour
 
         return articleEntriesToInsert;
     }   
-    private void InsertArticles(List<SentenceWordEntry> workingModel, List<PendingArticleInsertion> articlesToInsert)
+    private void UpdateAndInsertArticles(List<SentenceWordEntry> workingModel, List<PendingArticleInsertion> articlesToInsert)
     {
+        // Update existing articles if necessary
+        if (workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Article)))
+        {
+            List<SentenceWordEntry> existingArticles = new();
+
+            for (int i = 0; i < workingModel.Count; i++)
+            {
+                if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                    existingArticles.Add(workingModel[i]);
+            }
+            //Debug.Log("existing articles: " + existingArticles.Count);
+
+            for (int i = 0; i < existingArticles.Count; i++)
+            {
+                // Check article anchor
+                SentenceWordEntry articleAnchor = null;
+                var owningNoun = existingArticles[i].owningNoun;
+
+                if (owningNoun == null)
+                {
+                    Debug.LogError("Article without owning noun detected");
+                    continue;
+                }
+
+                if (owningNoun.adjectives.Count == 0)
+                {
+                    articleAnchor = owningNoun;
+                    //Debug.Log("article anchor: " + articleAnchor.Surface);
+                }
+                else
+                {
+                    articleAnchor = existingArticles[i].owningNoun.adjectives.Peek();
+                    //Debug.Log("article anchor: " + articleAnchor.Surface);
+                } 
+
+                char firstLetterOfAnchor = char.ToLower(articleAnchor.Surface[0]);
+                bool startsWithVowel = "aeiou".Contains(firstLetterOfAnchor);
+                string article = startsWithVowel ? "an" : "a";
+                //Debug.Log("updated article: " + article);
+
+                if (existingArticles[i].Surface != article)
+                {
+                    //Debug.Log("article updated from " + existingArticles[i].Surface + " to " + article);
+                    existingArticles[i].Word = WordDataBase.Instance.GetWord(article);
+                    existingArticles[i].Surface = article;
+                }
+            }
+        }
 
         foreach (var pending in articlesToInsert)
         {
@@ -798,8 +882,7 @@ public class SentenceBuilder : MonoBehaviour
             wordList.Remove(uiRect);
             Destroy(uiRect.gameObject);
         }
-
-
+        
         foreach (SentenceWordEntry entry in workingModel)
         {
             // Add sentenceModel rects not present in wordList.
@@ -834,11 +917,12 @@ public class SentenceBuilder : MonoBehaviour
             wordText.text = entry.Surface;
 
             wordText.ForceMeshUpdate();
-            LayoutRebuilder.ForceRebuildLayoutImmediate(word.GetComponent<RectTransform>());
+            LayoutRebuilder.ForceRebuildLayoutImmediate(word.GetComponent<RectTransform>());            
 
             // Add instantiated prefab to wordList
             wordList.Add(word);
             ModelRects[entry] = word;
+
         }
 
         // Reorder wordList rects to match sentenceModel
@@ -860,6 +944,22 @@ public class SentenceBuilder : MonoBehaviour
                 var text = rect.GetComponent<TMP_Text>();
                 if (entry.isPreview)
                     text.color = Color.gray;
+            }
+        }
+
+        // Ensure UI text matches entries' interntal data
+        for (int i = 0; i < wordList.Count; i++)
+        {
+            var committed = wordList[i];
+            var committedText = committed.GetComponent<TMP_Text>();
+            var committedDraggable = committed.GetComponent<DraggableWord>();
+
+            if (committedText.text != committedDraggable.sentenceWordEntry.Surface)
+            {
+                committedText.text = committedDraggable.sentenceWordEntry.Surface;
+
+                committedText.ForceMeshUpdate();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(committed.GetComponent<RectTransform>());
             }
         }
 
