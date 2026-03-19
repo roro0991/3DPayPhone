@@ -104,6 +104,18 @@ public class WordDataBase : MonoBehaviour
         AddWord(elephantWord);
 
         // ----------------- Verbs -----------------
+        var doForms = new Word.VerbForms
+        {
+            Base = "do",
+            Past = "did",
+            PastParticiple = "done",
+            PresentParticiple = "doing",
+            ThirdPerson = "does"
+        };
+        var doWord = new Word("do", PartsOfSpeech.Verb);
+        doWord.AddVerbForm(doForms);
+        AddWord(doWord);
+
         var eatForms = new Word.VerbForms
         {
             Base = "eat",

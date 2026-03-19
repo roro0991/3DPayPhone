@@ -39,7 +39,7 @@ public class SentenceBuilder : MonoBehaviour
     public void HandleHoveringWord(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
     {
         GameObject dropTarget = eventData.pointerEnter;
-        
+
         if (dropTarget != null && dropTarget.transform.IsChildOf(sentencePanelRect))
         {
             // Edge case: dragging the very first word into an empty sentence panel.
@@ -77,10 +77,10 @@ public class SentenceBuilder : MonoBehaviour
             {
                 Debug.Log("***REBUILD SPAM PREVENTED***");
                 return;
-            }            
+            }
 
-            currentPreviewIndex = insertIndex;            
-        
+            currentPreviewIndex = insertIndex;
+
             // Create a preview entry
             SentenceWordEntry previewEntry = new SentenceWordEntry
             {
@@ -95,7 +95,7 @@ public class SentenceBuilder : MonoBehaviour
                 sentenceModel.Insert(insertIndex, previewEntry);
                 ApplyNormalizedPreview(sentenceModel, true);
                 sentenceHasPreviews = true;
-                Debug.Log("***PREVIEW GENERATED***");                
+                Debug.Log("***PREVIEW GENERATED***");
             }
             else
             {
@@ -108,18 +108,18 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
         else
-        {            
+        {
             if (sentenceHasPreviews)
             {
                 ClearPreview();
                 ApplyNormalizedPreview(sentenceModel, false);
-            }            
+            }
         }
     }
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
     {
         if (word == null)
-            return;        
+            return;
 
         RectTransform draggableWord = word.GetComponent<RectTransform>();
         var entryData = word.sentenceWordEntry;
@@ -128,8 +128,8 @@ public class SentenceBuilder : MonoBehaviour
 
         if (dropTarget != null && dropTarget.transform.IsChildOf(sentencePanelRect))
         {
-            draggableWord.transform.SetParent(transform, false);            
-            
+            draggableWord.transform.SetParent(transform, false);
+
             // ? CRITICAL: Validate drop commit
             if (!CanInsertAt(sentenceModel, currentPreviewIndex, entryData))
             {
@@ -172,7 +172,7 @@ public class SentenceBuilder : MonoBehaviour
         for (int i = 0; i < sentenceModel.Count; i++)
         {
             var entry = sentenceModel[i];
-            
+
             if (!ModelRects.TryGetValue(entry, out RectTransform rect))
                 continue; // skip entries without rect
 
@@ -189,8 +189,8 @@ public class SentenceBuilder : MonoBehaviour
     {
         sentenceModel.Insert(index, entry);
         storedWordList.Add(entry); // Add to backup list
-        sentenceMutated = true;        
-    }    
+        sentenceMutated = true;
+    }
     public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry, PointerEventData eventData) // Called from DraggableWord.cs
     {
         int idx = sentenceModel.IndexOf(draggableEntry);
@@ -222,10 +222,10 @@ public class SentenceBuilder : MonoBehaviour
         draggableRect.position = eventData.position;
         sentenceMutated = true;
         CommitModelChange();
-    }    
+    }
 
     // ---------------- Sentence management ----------------    
-        // Preview Methods
+    // Preview Methods
     public void ClearPreview()
     {
         if (!sentenceHasPreviews)
@@ -259,7 +259,7 @@ public class SentenceBuilder : MonoBehaviour
         List<SentenceWordEntry> normalizedModel = Normalize(model);
         ApplyNormalizationResults(normalizedModel, isPreview);
     }
-        // Drop Methods
+    // Drop Methods
     private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData)
     {
         WordBank wb = wordBank;
@@ -290,8 +290,8 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         word.isInSentencePanel = false;
-    }         
-        // Normalization Methods
+    }
+    // Normalization Methods
     private bool CanInsertAt(List<SentenceWordEntry> model, int insertIndex, SentenceWordEntry entry) // Initial grammar gate for insertion
     {
         // Initial defensive checks
@@ -331,36 +331,36 @@ public class SentenceBuilder : MonoBehaviour
                 break;
             }
         }
-        
+
         // Prevent initial preview from interfering with checks
-        if (model.Count == 1 
+        if (model.Count == 1
             && model[0].isPreview)
         {
             leftWord = null;
             rightWord = null;
-        }                
+        }
 
         // ----- NOUN PHRASE RULES -----
-        
+
         // Rule #1: Prevent article & owning noun split [Exception: adjectives]
         if (!entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective)
-            &&leftWord != null
+            && leftWord != null
             && rightWord != null
             && leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Article)
             && leftWord.owningNoun == rightWord)
-            {
-                Debug.Log("ArticleNounSplit");
-                return false;
-            }
+        {
+            Debug.Log("ArticleNounSplit");
+            return false;
+        }
 
         // Rule #2: Prevent adjective placement after noun
-        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) 
-            && leftWord != null 
+        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective)
+            && leftWord != null
             && leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
-            {
-                Debug.Log("AdjectiveAfterNoun");
-                return false;
-            }
+        {
+            Debug.Log("AdjectiveAfterNoun");
+            return false;
+        }
 
         // ----- INTERROGATIVE PHRASE RULES -----
 
@@ -406,9 +406,9 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("right word: " + rightWord.Surface);
             Debug.Log("VerbNotAfterNounOrInt");
             return false;
-        }        
+        }
         return true;
-    }        
+    }
     private List<SentenceWordEntry> Normalize(List<SentenceWordEntry> rawModel) // If insertion gate passed, fixes remaining grammar
     {
         var workingModel = new List<SentenceWordEntry>(rawModel);
@@ -421,11 +421,11 @@ public class SentenceBuilder : MonoBehaviour
         UpdateAndInsertArticles(workingModel, articleEntriesToInsert);
 
         NormalizeConjunctions(workingModel);
-                
+
         NormalizeInterrogative(workingModel);
 
         NormalizeVerb(workingModel);
-        
+
         NormalizeTrailingPunctuation(workingModel);
 
         return workingModel;
@@ -450,12 +450,12 @@ public class SentenceBuilder : MonoBehaviour
         {
             int conjunctionIndex = conjunctionIndices[i];
 
-            var rightWord = (conjunctionIndex + 1) < workingModel.Count 
-                ? workingModel[conjunctionIndex + 1] 
+            var rightWord = (conjunctionIndex + 1) < workingModel.Count
+                ? workingModel[conjunctionIndex + 1]
                 : null;
 
-            var leftWord = (conjunctionIndex - 1) >= 0 
-                ? workingModel[conjunctionIndex - 1] 
+            var leftWord = (conjunctionIndex - 1) >= 0
+                ? workingModel[conjunctionIndex - 1]
                 : null;
 
             if (rightWord == null ||
@@ -474,7 +474,7 @@ public class SentenceBuilder : MonoBehaviour
                 continue;
             }
         }
-        
+
         List<int> nounIndices = new();
         List<int> conjunctionInsertionIndices = new();
 
@@ -492,11 +492,11 @@ public class SentenceBuilder : MonoBehaviour
             int firstNounIndex = nounIndices[i];
             int secondNounindex = nounIndices[i + 1];
 
-            int start = firstNounIndex + 1; 
+            int start = firstNounIndex + 1;
             int end = secondNounindex;
 
             bool verbOrConjFound = false;
-                
+
             for (int j = start; j < end; j++)
             {
                 if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Verb) ||
@@ -518,14 +518,14 @@ public class SentenceBuilder : MonoBehaviour
 
         var andWord = WordDataBase.Instance.GetWord("and");
 
-        for (int i = conjunctionInsertionIndices.Count - 1; i >= 0; i --)
+        for (int i = conjunctionInsertionIndices.Count - 1; i >= 0; i--)
         {
             SentenceWordEntry conjunction = new();
             conjunction.Word = andWord;
             conjunction.Surface = andWord.Text;
 
             workingModel.Insert(conjunctionInsertionIndices[i], conjunction);
-        }        
+        }
     }
     // Early work in progress method of verb normalization
     // designed only to autogenerate verb 'to be'
@@ -534,10 +534,10 @@ public class SentenceBuilder : MonoBehaviour
         bool verbBeFound = false;
 
         // Defensive checks
-        if (workingModel == null) 
+        if (workingModel == null)
             return;
 
-        if (workingModel.Count <= 1) 
+        if (workingModel.Count <= 1)
             return;
 
         if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
@@ -587,7 +587,7 @@ public class SentenceBuilder : MonoBehaviour
                     verbToBe.Surface = beForms.ThirdPersonPlural;
                 else
                     verbToBe.Surface = beForms.ThirdPersonSingular;
-                    break;
+                break;
             default:
                 break;
         }
@@ -616,9 +616,9 @@ public class SentenceBuilder : MonoBehaviour
             if (articleEntry.owningNoun != null)
                 continue;
 
-            workingModel.RemoveAt(i);        
+            workingModel.RemoveAt(i);
         }
-    }    
+    }
     private void PairAdjectivesToNouns(List<SentenceWordEntry> workingModel)
     {
         for (int i = workingModel.Count - 1; i >= 0; i--)
@@ -633,9 +633,9 @@ public class SentenceBuilder : MonoBehaviour
                 adjective.owningNoun = null;
             }
             wordData.adjectives.Clear();
-            
+
             List<SentenceWordEntry> tempAdjList = new();
-            
+
             for (int j = i - 1; j >= 0; j--)
             {
                 if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
@@ -656,7 +656,7 @@ public class SentenceBuilder : MonoBehaviour
                 wordData.adjectives.Enqueue(adjective);
             }
         }
-    }    
+    }
     private class PendingArticleInsertion // Helper class for article insertion
     {
         public SentenceWordEntry nounData;
@@ -677,14 +677,14 @@ public class SentenceBuilder : MonoBehaviour
                 continue;
             if (wordData.article != null)
                 continue;
-            
+
             // Set articleAnchor to noun if no adjectives present
             SentenceWordEntry articleAnchor = wordData;
 
             if (wordData.adjectives.Count > 0)
             {
                 articleAnchor = wordData.adjectives.Peek();
-            }                
+            }
 
             articleEntriesToInsert.Add(new PendingArticleInsertion
             {
@@ -695,7 +695,7 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         return articleEntriesToInsert;
-    }   
+    }
     private void UpdateAndInsertArticles(List<SentenceWordEntry> workingModel, List<PendingArticleInsertion> articlesToInsert)
     {
         // Update existing articles if necessary
@@ -731,7 +731,7 @@ public class SentenceBuilder : MonoBehaviour
                 {
                     articleAnchor = existingArticles[i].owningNoun.adjectives.Peek();
                     //Debug.Log("article anchor: " + articleAnchor.Surface);
-                } 
+                }
 
                 char firstLetterOfAnchor = char.ToLower(articleAnchor.Surface[0]);
                 bool startsWithVowel = "aeiou".Contains(firstLetterOfAnchor);
@@ -780,7 +780,7 @@ public class SentenceBuilder : MonoBehaviour
         Debug.Log("aritcleAnchor for " + pending.nounData.Surface + " is " + pending.articleAnchor.Surface);
 
         return articleEntry;
-    }    
+    }
     private void UpdateModelDictionary() // Middleman between model entries and rects
     {
         ModelRects.Clear();
@@ -837,7 +837,7 @@ public class SentenceBuilder : MonoBehaviour
         };
 
         rawModel.Add(punctuationEntry);
-    }    
+    }
     private void MoveWord(List<SentenceWordEntry> list, int oldIndex, int newIndex)
     {
         if (oldIndex >= 0 && oldIndex < list.Count &&
@@ -848,8 +848,8 @@ public class SentenceBuilder : MonoBehaviour
             list.Insert(newIndex, entry);
         }
     }
-    
-        // UI Methods
+
+    // UI Methods
     public void CommitModelChange() // Commit sentence mutations for UI update
     {
         if (!sentenceMutated)
@@ -857,7 +857,7 @@ public class SentenceBuilder : MonoBehaviour
         sentenceModel = Normalize(sentenceModel);
         ApplyNormalizationResults(sentenceModel);
         sentenceMutated = false;
-    } 
+    }
     private void ApplyNormalizationResults(List<SentenceWordEntry> workingModel, bool isPreviewMode = false) // Update UI from normalized model
     {
         // Collect UI rects to remove
@@ -882,7 +882,7 @@ public class SentenceBuilder : MonoBehaviour
             wordList.Remove(uiRect);
             Destroy(uiRect.gameObject);
         }
-        
+
         foreach (SentenceWordEntry entry in workingModel)
         {
             // Add sentenceModel rects not present in wordList.
@@ -917,7 +917,7 @@ public class SentenceBuilder : MonoBehaviour
             wordText.text = entry.Surface;
 
             wordText.ForceMeshUpdate();
-            LayoutRebuilder.ForceRebuildLayoutImmediate(word.GetComponent<RectTransform>());            
+            LayoutRebuilder.ForceRebuildLayoutImmediate(word.GetComponent<RectTransform>());
 
             // Add instantiated prefab to wordList
             wordList.Add(word);
@@ -1019,6 +1019,8 @@ public class SentenceBuilder : MonoBehaviour
         storedWordList.Clear();
     }
 }
+
+
 
 
 

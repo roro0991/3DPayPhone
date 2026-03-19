@@ -30,7 +30,7 @@ public enum PartsOfSpeech
 // Define a class to hold info about each word
 [System.Serializable]
 public class Word
-{    
+{
     public string Text; // e.g., "run"    
     public PartsOfSpeech PartOfSpeech; // bitflags for multiple roles
     public WordID WordID; // optional, default to WordID.None
@@ -40,13 +40,13 @@ public class Word
     public List<VerbForms> VerbFormsList = new();
 
     // -------------------- Constructors --------------------
-    public Word(string text, 
-        PartsOfSpeech partOfSpeech, 
-        Intent intent = Intent.None, 
+    public Word(string text,
+        PartsOfSpeech partOfSpeech,
+        Intent intent = Intent.None,
         WordID wordID = WordID.None)
     {
         Text = text;
-        PartOfSpeech = partOfSpeech;        
+        PartOfSpeech = partOfSpeech;
         Intent = intent;
         WordID = wordID;
     }
@@ -56,7 +56,6 @@ public class Word
     [System.Serializable]
     public class NounForms
     {
-        //Nouns
         public string Singular;
         public string Plural;
     }
@@ -64,21 +63,67 @@ public class Word
     [System.Serializable]
     public class VerbForms
     {
-        // Verbs (basic set)
-        public string Base; //e.g. "run"
-        public string Past; //e.g. "ran"
-        public string PastParticiple; //e.g. "run"
-        public string PresentParticiple; //e.g. "running"
-        public string ThirdPerson; //e.g. "runs"
+        // Regular verbs
+        public string Base; // run
+        public string Past; // ran
+        public string PastParticiple; // run
+        public string PresentParticiple; // running
+        public string ThirdPerson; // runs
 
-        // Special cases (like "to be")
-        public string FirstPersonSingular;  // I am
-        public string SecondPersonSingular; // you are
-        public string ThirdPersonSingular;  // he/she/it is
-        public string PluralPast; // were
-        public string FirstPersonPlural;    // we are
-        public string SecondPersonPlural;   // you are
-        public string ThirdPersonPlural;    // they are
+        public enum VerbForm
+        {
+            Base,
+            ThirdPersonSingular,
+            PresentParticiple,
+            Past,
+            PastParticiple
+        }
+
+        // Special cases (mainly for "to be")
+        public string FirstPersonSingular;  // am
+        public string SecondPersonSingular; // are
+        public string ThirdPersonSingular;  // is
+        public string PluralPast;           // were
+        public string FirstPersonPlural;    // are
+        public string SecondPersonPlural;   // are
+        public string ThirdPersonPlural;    // are
+
+        private Dictionary<string, VerbForm> lookup;
+
+        public void BuildLookup()
+        {
+            lookup = new Dictionary<string, VerbForm>(StringComparer.OrdinalIgnoreCase);
+
+            void Add(string word, VerbForm form)
+            {
+                if (!string.IsNullOrEmpty(word))
+                    lookup[word] = form;
+            }
+
+            // Regular verbs
+            Add(Base, VerbForm.Base);
+            Add(ThirdPerson, VerbForm.ThirdPersonSingular);
+            Add(PresentParticiple, VerbForm.PresentParticiple);
+            Add(Past, VerbForm.Past);
+            Add(PastParticiple, VerbForm.PastParticiple);
+
+            // "to be" support
+            Add(FirstPersonSingular, VerbForm.Base);        // am
+            Add(SecondPersonSingular, VerbForm.Base);       // are
+            Add(ThirdPersonSingular, VerbForm.ThirdPersonSingular); // is
+            Add(PluralPast, VerbForm.Past);                 // were
+            Add(FirstPersonPlural, VerbForm.Base);
+            Add(SecondPersonPlural, VerbForm.Base);
+            Add(ThirdPersonPlural, VerbForm.Base);
+        }
+
+        public bool TryGetForm(string word, out VerbForm form)
+        {
+            if (lookup == null)
+                BuildLookup();
+
+            return lookup.TryGetValue(word, out form);
+        }
     }
 
     // ------------------ Utility Methods -------------------
