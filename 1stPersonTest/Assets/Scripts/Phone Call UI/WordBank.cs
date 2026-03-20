@@ -11,7 +11,7 @@ public class SentenceWordEntry
     public SentenceWordEntry owningNoun; // corresponding noun to this article
     public SentenceWordEntry article;
     public SentenceWordEntry verb;
-    bool isAuxiliary = true;
+    public SentenceWordEntry auxiliary;
     public Queue<SentenceWordEntry> adjectives = new();
     public bool isPreview = false;
 }

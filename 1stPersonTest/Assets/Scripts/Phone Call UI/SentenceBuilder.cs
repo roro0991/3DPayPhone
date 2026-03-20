@@ -387,8 +387,10 @@ public class SentenceBuilder : MonoBehaviour
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
             && leftWord != null
             && !(
-                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun)
-                || leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
                 ))
         {
             Debug.Log("VerbNotAfterNounOrInt");
@@ -535,13 +537,26 @@ public class SentenceBuilder : MonoBehaviour
 
         // Defensive checks
         if (workingModel == null)
+        {
+            Debug.Log("Verb normalization cancelled!");
             return;
+        }
 
         if (workingModel.Count <= 1)
+        {
+            Debug.Log("Verb normalization cancelled!");
             return;
+        }
 
-        if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
+        if (
+            !workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))&&
+            !workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Character))&&
+            !workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun))
+           )
+        {
+            Debug.Log("Verb normalization cancelled!");
             return;
+        }
 
 
         // Check for interrogative
@@ -550,8 +565,12 @@ public class SentenceBuilder : MonoBehaviour
             interrogative = workingModel[0];
 
         if (interrogative == null)
+        {
+            Debug.Log("No interrogative found!");
             return;
+        }
 
+        /*
         // Check for existing verb 'to be'
         if (workingModel[1].Word.Text == "be")
         {
@@ -579,19 +598,17 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("No anchorNoun found for verb");
             return;
         }
-
-        switch (interrogative.Surface)
+        */
+        switch (interrogative.Word.Text)
         {
             case "what":
-                if (anchorNoun.Word.IsPlural(anchorNoun.Surface))
-                    verbToBe.Surface = beForms.ThirdPersonPlural;
-                else
-                    verbToBe.Surface = beForms.ThirdPersonSingular;
+                Debug.Log("reached what normalization");
+                NormalizeWhatInterrogative(workingModel);
                 break;
             default:
                 break;
         }
-
+        /*
         // Check if new verb matches existing verb
         if (verbBeFound)
         {
@@ -603,7 +620,251 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
         workingModel.Insert(1, verbToBe);
+        */
     }
+    private void NormalizeWhatInterrogative(List<SentenceWordEntry> workingModel)
+    {
+        // Defensive checks
+        if (workingModel == null || workingModel.Count == 0)
+        {
+            Debug.Log("What interrogative normalization cancelled!");
+            return;
+        }
+
+        if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) 
+            && entry.Word.Text == "what"))
+        {
+            Debug.Log("What interrogative normalization cancelled!");
+            return;
+        }
+
+        // Cache interrogative index for iteration
+        int interrogativeIndex = workingModel.FindIndex(entry => entry.Word.Text == "what");
+
+        if (interrogativeIndex == -1)
+        {
+            Debug.Log("interrogative index not found!");
+            return;
+        }
+
+        // Cache interrogative word data
+        var interrogativeWhat = workingModel[interrogativeIndex];
+
+        // Confirm subject/object/determiner status of [what]
+        bool nounAfterInterrogative = false;
+
+        bool isSubject = false;
+        bool isObject = false;
+        bool isDeterminer = false;
+
+        // Determiner variables
+        SentenceWordEntry determinerSubject = null;
+        SentenceWordEntry determinerObject = null;
+        SentenceWordEntry determinerVerb = null;
+
+        // Object variables
+        SentenceWordEntry objectSubject = null;
+        SentenceWordEntry objectVerb = null;
+
+        // Subject variables
+        SentenceWordEntry subjectVerb = null;
+        
+        for (int i = interrogativeIndex + 1; i < workingModel.Count; i++)
+        {
+            Debug.Log("Reached what normalization for loop!");
+            var entry = workingModel[i];
+            Debug.Log("current entry: " + workingModel[i].Word.Text);
+
+            // Skip interrogative when adding word to end of sentence
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+                continue;
+
+            // skip to reach first noun or verb
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Adverb))
+                continue;
+
+            if (!isSubject &&
+                !isObject &&
+                !isDeterminer &&
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+            {
+                isSubject = true;
+                subjectVerb = entry;
+                break;
+            }
+
+            if (!isSubject &&
+                !isObject &&
+                !isDeterminer && (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+            {
+                Debug.Log("Interrogative ID'd as object!");
+                isObject = true;
+                objectSubject = entry;
+                Debug.Log("objectSubject: " + entry.Word.Text);
+                continue;
+            }
+
+            if (isObject &&
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+            {
+                objectVerb = entry;
+                Debug.Log("objectVerb: " + entry.Word.Text);
+                break;
+            }
+
+            if (!isSubject &&
+                !isObject &&
+                !isDeterminer &&
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            {
+                for (int j = i + 1; j < workingModel.Count; j++)
+                {
+                    var entryAfterNoun = workingModel[j];
+
+                    if (!isDeterminer &&
+                        !isObject &&
+                        !isSubject &&
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                    {
+                        nounAfterInterrogative = true;
+                        continue;
+                    }
+
+                    if (!isDeterminer &&
+                        !isObject &&
+                        !isSubject &&
+                        nounAfterInterrogative &&
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                    {
+                        isSubject = true;
+                        subjectVerb = entryAfterNoun;
+                        break;
+                    }
+
+                    if (nounAfterInterrogative &&
+                        (entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+                    {
+                        isDeterminer = true;
+                        determinerSubject = entryAfterNoun;
+
+                        if (entryAfterNoun.adjectives.Count != 0)
+                        {
+                            int firstAdjIndex = workingModel.IndexOf(entryAfterNoun.adjectives.Peek());
+                            determinerObject = workingModel[firstAdjIndex - 1];
+                        }
+                        else
+                        {
+                            determinerObject = 
+                                workingModel[j - 1].Word.HasPartOfSpeech(PartsOfSpeech.Noun) 
+                                ? workingModel[j - 1] 
+                                : null; 
+                        }
+
+                        if (determinerObject == null)
+                        {
+                            Debug.Log("No object for determiner found");
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    if (isDeterminer &&
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                    {
+                        determinerVerb = entryAfterNoun;
+                        break;
+                    }
+
+                    if (!nounAfterInterrogative &&
+                        !isDeterminer &&
+                        (entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+                    {
+                        Debug.Log("Interrogative ID'd as object!");
+                        isObject = true;
+                        objectSubject = entryAfterNoun;
+                        continue;
+                    }
+
+                    if (isObject &&
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                    {
+                        objectVerb = entryAfterNoun;
+                        break;
+                    }
+                }
+                break;
+            }
+            break;
+        }
+        // Auxiliary logic
+
+        if (isObject && objectVerb != null)
+        {
+            Word.VerbForms verbForms = objectVerb.Word.GetVerbForm();
+
+            if (verbForms == null)
+            {
+                Debug.Log("No verb forms found");
+                return;
+            }
+
+            // Create auxiliary verb
+            SentenceWordEntry auxiliary = new();
+            auxiliary.Word = null;
+            auxiliary.Surface = null;
+
+            // Determine auxiliary word data
+            if (verbForms.TryGetForm(objectVerb.Surface, out var form))
+            {
+                switch (form)
+                {
+                    case Word.VerbForms.VerbForm.Base:
+                        if ((objectSubject.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) && 
+                            (
+                            objectSubject.Word.Text == "we" ||
+                            objectSubject.Word.Text == "they" ||
+                            objectSubject.Word.Text == "i" ||
+                            objectSubject.Word.Text == "you"
+                            ))
+                        {
+                            auxiliary.Word = WordDataBase.Instance.GetWord("do");
+                            auxiliary.Surface = auxiliary.Word.Text;
+                        }
+                        else if ((objectSubject.Word.HasPartOfSpeech(PartsOfSpeech.Character)) ||
+                            ((objectSubject.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) &&
+                            (objectSubject.Word.Text == "he" ||
+                            objectSubject.Word.Text == "she" ||
+                            objectSubject.Word.Text == "it")))                           
+                        {
+                            auxiliary.Word = WordDataBase.Instance.GetWord("do");
+                            auxiliary.Surface = "does";
+                        }
+                            break;
+                    case Word.VerbForms.VerbForm.PresentParticiple:
+
+                        break;
+                    case Word.VerbForms.VerbForm.Past:
+                        break;
+                    case Word.VerbForms.VerbForm.PastParticiple:
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            if (auxiliary.Word != null)
+            {
+                workingModel.Insert(interrogativeIndex + 1, auxiliary);
+            }
+        }
+    }
+
+
     private void ClearAllArticles(List<SentenceWordEntry> workingModel)
     {
         for (int i = workingModel.Count - 1; i >= 0; i--)
