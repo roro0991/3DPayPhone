@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Dialogue.Core;
+using UnityEditor.SceneManagement;
 
 public class WordDataBase : MonoBehaviour
 {
@@ -104,6 +105,18 @@ public class WordDataBase : MonoBehaviour
         AddWord(elephantWord);
 
         // ----------------- Verbs -----------------
+        var haveForms = new Word.VerbForms
+        {
+            Base = "have",
+            Past = "had",
+            PastParticiple = "had",
+            PresentParticiple = "having",
+            ThirdPerson = "has"
+        };
+        var haveWord = new Word("have", PartsOfSpeech.Verb);
+        haveWord.AddVerbForm(haveForms);
+        AddWord(haveWord);
+
         var doForms = new Word.VerbForms
         {
             Base = "do",

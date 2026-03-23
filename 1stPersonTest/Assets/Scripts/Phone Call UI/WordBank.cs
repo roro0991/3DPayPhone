@@ -9,8 +9,9 @@ public class SentenceWordEntry
     public Word Word; // semantic object
     public string Surface; // the actual form used (ie. dog vs dogs)
     public SentenceWordEntry owningNoun; // corresponding noun to this article
+    public SentenceWordEntry owningVerb;
     public SentenceWordEntry article;
-    public SentenceWordEntry verb;
+    public SentenceWordEntry verb;       
     public SentenceWordEntry auxiliary;
     public Queue<SentenceWordEntry> adjectives = new();
     public bool isPreview = false;

@@ -199,15 +199,32 @@ public class SentenceBuilder : MonoBehaviour
 
 
         // sever grammatical connections
-        if (draggableEntry.article != null)
+        if (draggableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
         {
-            var articleEntry = draggableEntry.article;
+            if (draggableEntry.article != null)
+            {
+                var articleEntry = draggableEntry.article;
 
-            articleEntry.owningNoun = null;
-            draggableEntry.article = null;
+                articleEntry.owningNoun = null;
+                draggableEntry.article = null;
 
-            // Remove article from sentenceModel if it exists
-            sentenceModel.Remove(articleEntry);
+                // Remove article from sentenceModel if it exists
+                sentenceModel.Remove(articleEntry);
+            }
+        }
+
+        if (draggableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+        {
+            if (draggableEntry.auxiliary != null)
+            {
+                var auxiliaryEntry = draggableEntry.auxiliary;
+
+                auxiliaryEntry.owningVerb = null;
+                draggableEntry.auxiliary = null;
+
+                // Remove auxiliary from sentenceModel if it exists
+                sentenceModel.Remove(auxiliaryEntry);
+            }
         }
 
         // remove rect to prevent destruction by normalization
@@ -648,7 +665,7 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         // Cache interrogative word data
-        var interrogativeWhat = workingModel[interrogativeIndex];
+        var whatInterrogative = workingModel[interrogativeIndex];
 
         // Confirm subject/object/determiner status of [what]
         bool nounAfterInterrogative = false;
@@ -802,66 +819,143 @@ public class SentenceBuilder : MonoBehaviour
             break;
         }
         // Auxiliary logic
-
         if (isObject && objectVerb != null)
         {
-            Word.VerbForms verbForms = objectVerb.Word.GetVerbForm();
 
+            Word.VerbForms verbForms = objectVerb.Word.GetVerbForm();
+            
             if (verbForms == null)
             {
                 Debug.Log("No verb forms found");
                 return;
             }
 
-            // Create auxiliary verb
-            SentenceWordEntry auxiliary = new();
-            auxiliary.Word = null;
-            auxiliary.Surface = null;
-
-            // Determine auxiliary word data
-            if (verbForms.TryGetForm(objectVerb.Surface, out var form))
+            Word.VerbForms.VerbForm cachedForm;
+            bool found = verbForms.TryGetForm(objectVerb.Surface, out cachedForm);
+            var pendingData = new PendingAuxiliaryInsertion
             {
-                switch (form)
-                {
-                    case Word.VerbForms.VerbForm.Base:
-                        if ((objectSubject.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) && 
-                            (
-                            objectSubject.Word.Text == "we" ||
-                            objectSubject.Word.Text == "they" ||
-                            objectSubject.Word.Text == "i" ||
-                            objectSubject.Word.Text == "you"
-                            ))
-                        {
-                            auxiliary.Word = WordDataBase.Instance.GetWord("do");
-                            auxiliary.Surface = auxiliary.Word.Text;
-                        }
-                        else if ((objectSubject.Word.HasPartOfSpeech(PartsOfSpeech.Character)) ||
-                            ((objectSubject.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) &&
-                            (objectSubject.Word.Text == "he" ||
-                            objectSubject.Word.Text == "she" ||
-                            objectSubject.Word.Text == "it")))                           
-                        {
-                            auxiliary.Word = WordDataBase.Instance.GetWord("do");
-                            auxiliary.Surface = "does";
-                        }
-                            break;
-                    case Word.VerbForms.VerbForm.PresentParticiple:
+                isQuestion = true,
+                auxiliaryInsertionIndex = interrogativeIndex + 1,
+                subjectNoun = objectSubject,
+                verb = objectVerb,
+                verbForm = cachedForm
+            };
 
-                        break;
-                    case Word.VerbForms.VerbForm.Past:
-                        break;
-                    case Word.VerbForms.VerbForm.PastParticiple:
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            if (auxiliary.Word != null)
-            {
-                workingModel.Insert(interrogativeIndex + 1, auxiliary);
-            }
+            CreateAuxiliaryVerb(workingModel, pendingData);
         }
+    }
+
+    private class PendingAuxiliaryInsertion
+    {
+        public bool isQuestion = false;
+        public int auxiliaryInsertionIndex;
+        public SentenceWordEntry subjectNoun;
+        public SentenceWordEntry verb;
+        public Word.VerbForms.VerbForm verbForm;
+    }
+
+    private void CreateAuxiliaryVerb(List<SentenceWordEntry> workingModel, PendingAuxiliaryInsertion pendingAuxiliaryData)
+    {
+        if (workingModel == null || workingModel.Count == 0)
+            return;
+
+        if (pendingAuxiliaryData == null)
+            return;
+
+        var subjectNoun = pendingAuxiliaryData.subjectNoun;
+
+        // Create auxiliary entry
+        SentenceWordEntry auxiliaryVerb = new();
+        auxiliaryVerb.owningVerb = pendingAuxiliaryData.verb;
+        auxiliaryVerb.owningVerb.auxiliary = auxiliaryVerb;
+
+        // Determine auxiliary entry data
+        switch (pendingAuxiliaryData.verbForm)
+        {
+            case Word.VerbForms.VerbForm.Base: // eat
+                if ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) &&
+                    (
+                    subjectNoun.Word.Text == "we" ||
+                    subjectNoun.Word.Text == "they" ||
+                    subjectNoun.Word.Text == "i" ||
+                    subjectNoun.Word.Text == "you"
+                    ))
+                {
+                    auxiliaryVerb.Word = WordDataBase.Instance.GetWord("do");
+                    auxiliaryVerb.Surface = auxiliaryVerb.Word.Text;
+                }
+                else if ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.Character)) ||
+                    ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) &&
+                    (subjectNoun.Word.Text == "he" ||
+                    subjectNoun.Word.Text == "she" ||
+                    subjectNoun.Word.Text == "it")))
+                {
+                    auxiliaryVerb.Word = WordDataBase.Instance.GetWord("do");
+                    auxiliaryVerb.Surface = "does";
+                }
+                break;
+            case Word.VerbForms.VerbForm.PresentParticiple: // eating
+                if ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) &&
+                    (
+                    subjectNoun.Word.Text == "we" ||
+                    subjectNoun.Word.Text == "they" ||
+                    subjectNoun.Word.Text == "you"
+                    ))
+                {
+                    auxiliaryVerb.Word = WordDataBase.Instance.GetWord("be");
+                    auxiliaryVerb.Surface = "are";
+                }
+                else if (subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) &&
+                    subjectNoun.Word.Text == "i")
+                {
+                    auxiliaryVerb.Word = WordDataBase.Instance.GetWord("be");
+                    auxiliaryVerb.Surface = "am";
+                }
+                else if ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.Character)) ||
+                    ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) &&
+                    (subjectNoun.Word.Text == "he" ||
+                    subjectNoun.Word.Text == "she" ||
+                    subjectNoun.Word.Text == "it")))
+                {
+                    auxiliaryVerb.Word = WordDataBase.Instance.GetWord("be");
+                    auxiliaryVerb.Surface = "is";
+                }
+                break;
+            case Word.VerbForms.VerbForm.Past:
+                auxiliaryVerb.Word = WordDataBase.Instance.GetWord("do");
+                auxiliaryVerb.Surface = "did";
+                break;
+            case Word.VerbForms.VerbForm.PastParticiple:
+                if ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) &&
+                    (
+                    subjectNoun.Word.Text == "we" ||
+                    subjectNoun.Word.Text == "they" ||
+                    subjectNoun.Word.Text == "i" ||
+                    subjectNoun.Word.Text == "you"
+                    ))
+                {
+                    auxiliaryVerb.Word = WordDataBase.Instance.GetWord("have");
+                    auxiliaryVerb.Surface = auxiliaryVerb.Word.Text;
+                }
+                else if ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.Character)) ||
+                    ((subjectNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)) &&
+                    (subjectNoun.Word.Text == "he" ||
+                    subjectNoun.Word.Text == "she" ||
+                    subjectNoun.Word.Text == "it")))
+                {
+                    auxiliaryVerb.Word = WordDataBase.Instance.GetWord("have");
+                    auxiliaryVerb.Surface = "has";
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (auxiliaryVerb.Word == null)
+            return;
+
+        int auxiliaryInsertionIndex = pendingAuxiliaryData.auxiliaryInsertionIndex;
+        workingModel.Insert(auxiliaryInsertionIndex, auxiliaryVerb);
     }
 
 

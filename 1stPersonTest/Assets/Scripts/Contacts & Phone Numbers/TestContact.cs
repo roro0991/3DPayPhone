@@ -26,7 +26,9 @@ public class TestContact : Contact
     {
         wordBank.AddWordToSentence("What");
         wordBank.AddWordToSentence("anna");
-        wordBank.AddWordToSentence("do");        
+        wordBank.AddWordToSentence("do");
+        wordBank.AddWordToSentence("doing");
+        wordBank.AddWordToSentence("done");
     }
 
     public override string GenerateResponse(ResponseKey responsekey)
