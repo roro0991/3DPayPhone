@@ -670,21 +670,22 @@ public class SentenceBuilder : MonoBehaviour
         // Confirm subject/object/determiner status of [what]
         bool nounAfterInterrogative = false;
 
-        bool isSubject = false;
-        bool isObject = false;
-        bool isDeterminer = false;
+        bool interrogativeIsSubject = false;
+        bool interrogativeIsObject = false;
+        bool interrogativeIsDeterminer = false;
+        bool determinerIsSubject = false;
+        bool determinerIsObject = false;
 
-        // Determiner variables
-        SentenceWordEntry determinerSubject = null;
-        SentenceWordEntry determinerObject = null;
-        SentenceWordEntry determinerVerb = null;
+        // Question variables
+        List<SentenceWordEntry> subjectEntries = new();
+        List<SentenceWordEntry> objectEntries = new();
+        List<SentenceWordEntry> verbEntries = new();
 
-        // Object variables
-        SentenceWordEntry objectSubject = null;
-        SentenceWordEntry objectVerb = null;
+        if (determinerIsSubject)
+            determinerIsObject = false;
 
-        // Subject variables
-        SentenceWordEntry subjectVerb = null;
+        if (determinerIsObject)
+            determinerIsSubject = false;
         
         for (int i = interrogativeIndex + 1; i < workingModel.Count; i++)
         {
@@ -692,7 +693,7 @@ public class SentenceBuilder : MonoBehaviour
             var entry = workingModel[i];
             Debug.Log("current entry: " + workingModel[i].Word.Text);
 
-            // Skip interrogative when adding word to end of sentence
+            // Skip trailing punctuation when adding word to end of sentence
             if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
                 continue;
 
@@ -701,147 +702,245 @@ public class SentenceBuilder : MonoBehaviour
                 entry.Word.HasPartOfSpeech(PartsOfSpeech.Adverb))
                 continue;
 
-            if (!isSubject &&
-                !isObject &&
-                !isDeterminer &&
+            if (!interrogativeIsSubject &&
+                !interrogativeIsObject &&
+                !interrogativeIsDeterminer &&
                 entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
             {
-                isSubject = true;
-                subjectVerb = entry;
-                break;
-            }
-
-            if (!isSubject &&
-                !isObject &&
-                !isDeterminer && (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
-            {
-                Debug.Log("Interrogative ID'd as object!");
-                isObject = true;
-                objectSubject = entry;
-                Debug.Log("objectSubject: " + entry.Word.Text);
+                Debug.Log("Interrogative ID'd as subject!");
+                interrogativeIsSubject = true;
+                verbEntries.Add(entry);
+                Debug.Log("verb entry added: " + entry.Word.Text);
                 continue;
             }
 
-            if (isObject &&
+            if (interrogativeIsSubject &&
                 entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
             {
-                objectVerb = entry;
-                Debug.Log("objectVerb: " + entry.Word.Text);
-                break;
+                Debug.Log("verb entry added: " + entry.Word.Text);
+                verbEntries.Add(entry);
+                continue;
             }
 
-            if (!isSubject &&
-                !isObject &&
-                !isDeterminer &&
+            if (interrogativeIsSubject &&
+                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Character)))
+            {
+                Debug.Log("object entry added: " + entry.Word.Text);
+                objectEntries.Add(entry);
+                continue;
+            }
+
+            if (!interrogativeIsSubject &&
+                !interrogativeIsObject &&
+                !interrogativeIsDeterminer && 
+                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+            {
+                Debug.Log("Interrogative ID'd as object!");
+                interrogativeIsObject = true;
+                subjectEntries.Add(entry);
+                Debug.Log("subject entry added: " + entry.Word.Text);
+                continue;
+            }
+
+            if (interrogativeIsObject && 
+                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+            {
+                subjectEntries.Add(entry);
+                Debug.Log("subject entry added: " + entry.Word.Text);
+                continue;
+            }
+
+            if (interrogativeIsObject &&
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+            {
+                verbEntries.Add(entry);
+                Debug.Log("verb entry added: " + entry.Word.Text);
+                continue;
+            }
+
+            if (!interrogativeIsSubject &&
+                !interrogativeIsObject &&
+                !interrogativeIsDeterminer &&
                 entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            {
+                nounAfterInterrogative = true;
+            }
+
+            if (nounAfterInterrogative)
             {
                 for (int j = i + 1; j < workingModel.Count; j++)
                 {
                     var entryAfterNoun = workingModel[j];
 
-                    if (!isDeterminer &&
-                        !isObject &&
-                        !isSubject &&
+                    if (!interrogativeIsDeterminer &&
+                        !interrogativeIsObject &&
+                        !interrogativeIsSubject &&
                         entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                     {
-                        nounAfterInterrogative = true;
                         continue;
                     }
 
-                    if (!isDeterminer &&
-                        !isObject &&
-                        !isSubject &&
+                    if (!interrogativeIsDeterminer &&
+                        !interrogativeIsObject &&
+                        !interrogativeIsSubject &&
                         nounAfterInterrogative &&
                         entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
                     {
-                        isSubject = true;
-                        subjectVerb = entryAfterNoun;
-                        break;
+                        interrogativeIsDeterminer = true;
+                        determinerIsSubject = true;
+                        subjectEntries.Add(workingModel[j - 1]);
+                        Debug.Log("subject entry added: " + workingModel[j - 1].Word.Text);
+                        verbEntries.Add(entryAfterNoun);
+                        Debug.Log("verb entry added:" + entryAfterNoun.Word.Text);
+                        continue;
                     }
 
-                    if (nounAfterInterrogative &&
+                    if (interrogativeIsDeterminer &&
+                        determinerIsSubject &&
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                    {
+                        Debug.Log("verb entry added: " + entryAfterNoun.Word.Text);
+                        verbEntries.Add(entryAfterNoun);
+                        continue;
+                    }
+
+                    if (interrogativeIsDeterminer &&
+                        determinerIsSubject &&
+                        (entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
+                    {
+                        Debug.Log("object entry added: " + entryAfterNoun.Word.Text);
+                        objectEntries.Add(entryAfterNoun);
+                        continue;
+                    }
+
+                    if (!interrogativeIsDeterminer &&
+                        !interrogativeIsObject &&
+                        !interrogativeIsSubject &&
+                        nounAfterInterrogative &&
                         (entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
                         entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
                     {
-                        isDeterminer = true;
-                        determinerSubject = entryAfterNoun;
+                        interrogativeIsDeterminer = true;
+                        determinerIsObject = true;
+                        Debug.Log("subject entry added: " + entryAfterNoun.Word.Text);
+                        subjectEntries.Add(entryAfterNoun);
 
                         if (entryAfterNoun.adjectives.Count != 0)
                         {
                             int firstAdjIndex = workingModel.IndexOf(entryAfterNoun.adjectives.Peek());
-                            determinerObject = workingModel[firstAdjIndex - 1];
+                            objectEntries.Add(workingModel[firstAdjIndex - 1]);
                         }
                         else
                         {
-                            determinerObject = 
-                                workingModel[j - 1].Word.HasPartOfSpeech(PartsOfSpeech.Noun) 
-                                ? workingModel[j - 1] 
-                                : null; 
+                            if (workingModel[j - 1] != null &&
+                                workingModel[j - 1].Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                            objectEntries.Add(workingModel[j - 1]);
                         }
 
-                        if (determinerObject == null)
+                        if (objectEntries.Count == 0)
                         {
                             Debug.Log("No object for determiner found");
                             break;
                         }
-
                         continue;
                     }
 
-                    if (isDeterminer &&
-                        entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
-                    {
-                        determinerVerb = entryAfterNoun;
-                        break;
-                    }
-
-                    if (!nounAfterInterrogative &&
-                        !isDeterminer &&
+                    if (interrogativeIsDeterminer &&
+                        determinerIsObject &&
                         (entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
                         entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
                     {
-                        Debug.Log("Interrogative ID'd as object!");
-                        isObject = true;
-                        objectSubject = entryAfterNoun;
+                        Debug.Log("subject entry added: " + entryAfterNoun.Word.Text);
+                        subjectEntries.Add(entryAfterNoun);
                         continue;
                     }
 
-                    if (isObject &&
+                    if (interrogativeIsDeterminer &&
+                        determinerIsObject &&
                         entryAfterNoun.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
                     {
-                        objectVerb = entryAfterNoun;
-                        break;
+                        Debug.Log("verb entry added: " + entryAfterNoun.Word.Text);
+                        verbEntries.Add(entryAfterNoun);
+                        continue;
                     }
                 }
-                break;
             }
+                        
+            if (!nounAfterInterrogative &&
+                !interrogativeIsSubject &&
+                !interrogativeIsObject &&
+                !interrogativeIsDeterminer &&
+                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+            {
+                Debug.Log("Interrogative ID'd as object!");
+                interrogativeIsObject = true;
+                Debug.Log("subject entry added: " + entry.Word.Text);
+                subjectEntries.Add(entry);
+                continue;
+            }
+
+            if (!nounAfterInterrogative &&
+                interrogativeIsObject && 
+                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+            {
+                Debug.Log("subject entry added: " + entry.Word.Text);
+                subjectEntries.Add(entry);
+            }
+
+            if (!nounAfterInterrogative &&
+                interrogativeIsObject &&
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+            {
+                verbEntries.Add(entry);
+                continue;
+            }
+
             break;
         }
-        // Auxiliary logic
-        if (isObject && objectVerb != null)
-        {
 
-            Word.VerbForms verbForms = objectVerb.Word.GetVerbForm();
-            
-            if (verbForms == null)
+        // EVERTHING BELOW THIS POINT IS TO BE IGNORED AS IT NEEDS TO BE UPDATED
+
+        // Determine subject verb agreement
+                 
+
+
+        // Auxiliary logic
+        if (interrogativeIsObject && verbEntries.Count != 0)
+        {
+            Word.VerbForms verbForms = new();
+
+            foreach (var verbEntry in verbEntries)
             {
-                Debug.Log("No verb forms found");
-                return;
+                verbForms = verbEntry.Word.GetVerbForm();
+            
+                if (verbForms == null)
+                {
+                    Debug.Log("No verb forms found");
+                    return;
+                }
             }
 
-            Word.VerbForms.VerbForm cachedForm;
-            bool found = verbForms.TryGetForm(objectVerb.Surface, out cachedForm);
-            var pendingData = new PendingAuxiliaryInsertion
+            foreach (var verbEntry in verbEntries)
             {
-                isQuestion = true,
-                auxiliaryInsertionIndex = interrogativeIndex + 1,
-                subjectNoun = objectSubject,
-                verb = objectVerb,
-                verbForm = cachedForm
-            };
-
+                Word.VerbForms.VerbForm cachedForm;
+                bool found = verbForms.TryGetForm(verbEntry.Surface, out cachedForm);
+                var pendingData = new PendingAuxiliaryInsertion
+                {
+                    isQuestion = true,
+                    auxiliaryInsertionIndex = interrogativeIndex + 1,
+                    subjectNoun = subjectEntries[0],
+                    verb = verbEntry,
+                    verbForm = cachedForm,
+                };
             CreateAuxiliaryVerb(workingModel, pendingData);
+            }
         }
     }
 
@@ -852,6 +951,14 @@ public class SentenceBuilder : MonoBehaviour
         public SentenceWordEntry subjectNoun;
         public SentenceWordEntry verb;
         public Word.VerbForms.VerbForm verbForm;
+        
+        public enum SubjectAgreementType
+        {
+            FirstpersonSingular,
+            ThirdPersonSingular,
+            SecondPerson,
+            Plural,
+        }
     }
 
     private void CreateAuxiliaryVerb(List<SentenceWordEntry> workingModel, PendingAuxiliaryInsertion pendingAuxiliaryData)
