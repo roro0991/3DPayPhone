@@ -6,5 +6,6 @@ namespace Dialogue.Core
     {
         None,
         Anna,
+        John
     }
 }

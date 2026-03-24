@@ -36,6 +36,7 @@ public class WordDataBase : MonoBehaviour
         // ----------------- Characters -----------------
 
         AddWord(new Word("anna", PartsOfSpeech.Character, wordID: WordID.Anna));
+        AddWord(new Word("john", PartsOfSpeech.Character, wordID: WordID.John));
 
         // ----------------- Interrogatives -----------------
         AddWord(new Word(".", PartsOfSpeech.Punctuation));
