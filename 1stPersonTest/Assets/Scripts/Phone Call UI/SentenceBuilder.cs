@@ -26,6 +26,8 @@ public class SentenceBuilder : MonoBehaviour
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
 
+    public GameObject trailingPunctuation;
+
     private bool sentenceHasPreviews;
     private bool sentenceMutated;
     private int currentPreviewIndex = -1;
@@ -65,7 +67,7 @@ public class SentenceBuilder : MonoBehaviour
             // No need to process hover because there's no insertion point.
             if (sentenceModel.Count == 1 && sentenceModel[0].isPreview)
             {
-                Debug.Log("***HOVER LOGIC CANCELLED!***");
+                //Debug.Log("***HOVER LOGIC CANCELLED!***");
                 return;
             }
 
@@ -94,7 +96,7 @@ public class SentenceBuilder : MonoBehaviour
             // Prevent rebuild spam
             if (insertIndex == currentPreviewIndex)
             {
-                Debug.Log("***REBUILD SPAM PREVENTED***");
+                //Debug.Log("***REBUILD SPAM PREVENTED***");
                 return;
             }
 
@@ -114,7 +116,7 @@ public class SentenceBuilder : MonoBehaviour
                 sentenceModel.Insert(insertIndex, previewEntry);
                 ApplyNormalizedPreview(sentenceModel, true);
                 sentenceHasPreviews = true;
-                Debug.Log("***PREVIEW GENERATED***");
+                //Debug.Log("***PREVIEW GENERATED***");
             }
             else
             {
@@ -123,7 +125,7 @@ public class SentenceBuilder : MonoBehaviour
                     ClearPreview();
                     ApplyNormalizedPreview(sentenceModel, false);
                 }
-                Debug.Log("***CAN INSERT CHECK FAILED***");
+                //Debug.Log("***CAN INSERT CHECK FAILED***");
             }
         }
         else
@@ -288,7 +290,7 @@ public class SentenceBuilder : MonoBehaviour
 
         // Reset preview tracking
         currentPreviewIndex = -1;
-        Debug.Log("Previews removed");
+        //Debug.Log("Previews removed");
     }
     private void ApplyNormalizedPreview(List<SentenceWordEntry> model, bool isPreview)
     {
@@ -347,7 +349,7 @@ public class SentenceBuilder : MonoBehaviour
                 && candidate != entry)
             {
                 leftWord = candidate;
-                Debug.Log("Left word: " + leftWord.Surface);
+                //Debug.Log("Left word: " + leftWord.Surface);
                 break;
             }
         }
@@ -363,7 +365,7 @@ public class SentenceBuilder : MonoBehaviour
                 && candidate != entry)
             {
                 rightWord = candidate;
-                Debug.Log("Right word: " + rightWord.Surface);
+                //Debug.Log("Right word: " + rightWord.Surface);
                 break;
             }
         }
@@ -385,7 +387,7 @@ public class SentenceBuilder : MonoBehaviour
             && leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Article)
             && leftWord.owningNoun == rightWord)
         {
-            Debug.Log("ArticleNounSplit");
+            //Debug.Log("ArticleNounSplit");
             return false;
         }
 
@@ -394,7 +396,7 @@ public class SentenceBuilder : MonoBehaviour
             && leftWord != null
             && leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
         {
-            Debug.Log("AdjectiveAfterNoun");
+            //Debug.Log("AdjectiveAfterNoun");
             return false;
         }
 
@@ -404,7 +406,7 @@ public class SentenceBuilder : MonoBehaviour
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
             && sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) && !entry.isPreview))
         {
-            Debug.Log("MultipleInterrogatives");
+            //Debug.Log("MultipleInterrogatives");
             return false;
         }
         // Rule #1.2: Allow insertion of sole interrogative anywhere
@@ -413,7 +415,7 @@ public class SentenceBuilder : MonoBehaviour
         // Rule #1.3: Prevent insertion before interrogative 
         if (rightWord != null && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) && !rightWord.isPreview)
         {
-            Debug.Log("InsertionBeforeInterrogative");
+            //Debug.Log("InsertionBeforeInterrogative");
             return false;
         }
 
@@ -423,7 +425,7 @@ public class SentenceBuilder : MonoBehaviour
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
             model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)))
         {
-            Debug.Log("Sentence already contains 1 verb token");
+            //Debug.Log("Sentence already contains 1 verb token");
             return false;
         }
 
@@ -437,7 +439,7 @@ public class SentenceBuilder : MonoBehaviour
                 leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
                 ))
         {
-            Debug.Log("VerbNotAfterNounOrInt");
+            //Debug.Log("VerbNotAfterNounOrInt");
             return false;
         }
 
@@ -452,8 +454,7 @@ public class SentenceBuilder : MonoBehaviour
             entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun)
             ))
         {
-            Debug.Log("right word: " + rightWord.Surface);
-            Debug.Log("VerbNotAfterNounOrInt");
+            //Debug.Log("VerbNotAfterNounOrInt");
             return false;
         }
 
@@ -463,7 +464,7 @@ public class SentenceBuilder : MonoBehaviour
     {
         var workingModel = new List<SentenceWordEntry>(rawModel);
 
-        ClearAllArticles(workingModel);
+        ClearLooseArticles(workingModel);
 
         PairAdjectivesToNouns(workingModel);
 
@@ -480,6 +481,7 @@ public class SentenceBuilder : MonoBehaviour
 
         return workingModel;
     }
+    
 
     // Early conjunction normalizer meant to add 'and' between adjacent noun phrases
     private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
@@ -557,6 +559,7 @@ public class SentenceBuilder : MonoBehaviour
             int start = firstNounIndex + 1;
             int end = secondNounindex;
 
+            // Check for verbs or existing conjuntions between nouns
             bool verbOrConjFound = false;
 
             for (int j = start; j < end; j++)
@@ -570,6 +573,13 @@ public class SentenceBuilder : MonoBehaviour
             }
 
             if (verbOrConjFound)
+                continue;
+
+            // Prevent conjunctions between nouns and (characters + pronouns)
+            if ((workingModel[firstNounIndex].Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
+                !workingModel[secondNounindex].Word.HasPartOfSpeech(PartsOfSpeech.Noun)) ||
+                (!workingModel[firstNounIndex].Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
+                workingModel[secondNounindex].Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
                 continue;
 
             conjunctionInsertionIndices.Add(firstNounIndex + 1);
@@ -598,13 +608,13 @@ public class SentenceBuilder : MonoBehaviour
         // Defensive checks
         if (workingModel == null)
         {
-            Debug.Log("Verb normalization cancelled!");
+            //Debug.Log("Verb normalization cancelled!");
             return;
         }
 
         if (workingModel.Count <= 1)
         {
-            Debug.Log("Verb normalization cancelled!");
+            //Debug.Log("Verb normalization cancelled!");
             return;
         }
 
@@ -614,7 +624,7 @@ public class SentenceBuilder : MonoBehaviour
             !workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun))
            )
         {
-            Debug.Log("Verb normalization cancelled!");
+            //Debug.Log("Verb normalization cancelled!");
             return;
         }
 
@@ -626,7 +636,7 @@ public class SentenceBuilder : MonoBehaviour
 
         if (interrogative == null)
         {
-            Debug.Log("No interrogative found!");
+            //Debug.Log("No interrogative found!");
             return;
         }
 
@@ -662,7 +672,7 @@ public class SentenceBuilder : MonoBehaviour
         switch (interrogative.Word.Text)
         {
             case "what":
-                Debug.Log("reached what normalization");
+                //Debug.Log("reached what normalization");
                 NormalizeWhatInterrogative(workingModel);
                 break;
             default:
@@ -702,6 +712,7 @@ public class SentenceBuilder : MonoBehaviour
         int interrogativeIndex = workingModel.FindIndex(entry => entry.Word.Text == "what");
 
         InterrogativeRole interRole = InterrogativeRole.Unknown;
+        Debug.Log("default interRole: " + interRole);
 
         if (interrogativeIndex == -1)
         {
@@ -732,59 +743,68 @@ public class SentenceBuilder : MonoBehaviour
 
             // skip to reach first noun or verb
             if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.Adverb))
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Article))
                 continue;
 
-            if (interRole == InterrogativeRole.Unknown &&
-                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) && entry.activePOS != PartsOfSpeech.Auxiliary))
+            if (!isNounAfterInterrogative)
             {
-                interRole = InterrogativeRole.Subject;
-                subjectEntries.Add(whatInterrogative); // if "what" is the only subject
-                verbEntry = entry;
-                continue;
-            }
+                if (interRole == InterrogativeRole.Unknown &&
+                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
+                && entry.activePOS != PartsOfSpeech.Auxiliary))
+                {
+                    interRole = InterrogativeRole.Subject;
+                    Debug.Log("interRole is Subject");
+                    subjectEntries.Add(whatInterrogative); // if "what" is the only subject
+                    verbEntry = entry;
+                    continue;
+                }
 
-            if (interRole == InterrogativeRole.Subject &&
-                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.Character)))
-            {
-                objectEntries.Add(entry);
-                continue;
-            }
+                if (interRole == InterrogativeRole.Subject &&
+                    (entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                    entry.Word.HasPartOfSpeech(PartsOfSpeech.Character)))
+                {
+                    objectEntries.Add(entry);
+                    continue;
+                }
 
-            if (interRole == InterrogativeRole.Unknown && 
-                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
-            {
-                interRole = InterrogativeRole.Object;
-                objectEntries.Add(whatInterrogative);
-                subjectEntries.Add(entry);
-                continue;
-            }
+                if (interRole == InterrogativeRole.Unknown &&
+                    (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                    entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+                {
+                    interRole = InterrogativeRole.Object;
+                    Debug.Log("interRole is Object");
+                    objectEntries.Add(whatInterrogative);
+                    subjectEntries.Add(entry);
+                    continue;
+                }
 
-            if (interRole == InterrogativeRole.Object && 
-                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
-            {
-                subjectEntries.Add(entry);
-                continue;
-            }
+                if (interRole == InterrogativeRole.Object &&
+                    (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                    entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
+                {
+                    subjectEntries.Add(entry);
+                    continue;
+                }
 
-            if (interRole == InterrogativeRole.Object &&
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
-            {
-                verbEntry = entry;
-                continue;
-            }
+                if (interRole == InterrogativeRole.Object &&
+                    (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+                    entry.activePOS != PartsOfSpeech.Auxiliary))
+                {
+                    verbEntry = entry;
+                    continue;
+                }
 
-            if (interRole == InterrogativeRole.Unknown &&
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
-            {
-                isNounAfterInterrogative = true;
-                nounAfterInterrogative = entry;
-                continue;
+                if (interRole == InterrogativeRole.Unknown &&
+                    entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                {
+                    Debug.Log("noun found after interrogative");
+                    isNounAfterInterrogative = true;
+                    nounAfterInterrogative = entry;
+                    continue;
+                }
             }
-
+            
             if (isNounAfterInterrogative)
             {
                 if (interRole == InterrogativeRole.Unknown &&
@@ -795,15 +815,17 @@ public class SentenceBuilder : MonoBehaviour
                 }
 
                 if (interRole == InterrogativeRole.Unknown &&
-                    entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                    entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+                    entry.activePOS != PartsOfSpeech.Auxiliary)
                 {
                     interRole = InterrogativeRole.DeterminerOfSubject;
+                    Debug.Log("interRole is DeterminerOfSubject");
                     subjectEntries.Add(nounAfterInterrogative);
                     verbEntry = entry;
                     continue;
                 }
 
-                if (interRole == InterrogativeRole.DeterminerOfSubject&&
+                if (interRole == InterrogativeRole.DeterminerOfSubject &&
                     (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
@@ -817,6 +839,7 @@ public class SentenceBuilder : MonoBehaviour
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
                 {
                     interRole = InterrogativeRole.DeterminerOfObject;
+                    Debug.Log("interRole is DeterminerOfObject");
                     subjectEntries.Add(entry);
 
                     int firstObjectIndex = -1;
@@ -839,6 +862,7 @@ public class SentenceBuilder : MonoBehaviour
                             objectEntries.Add(workingModel[j]);
                         }
                     }
+                    continue;
                 }
 
                 if (interRole == InterrogativeRole.DeterminerOfObject &&
@@ -850,7 +874,8 @@ public class SentenceBuilder : MonoBehaviour
                 }
 
                 if (interRole == InterrogativeRole.DeterminerOfObject &&
-                    entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                    (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) 
+                    && entry.activePOS != PartsOfSpeech.Auxiliary))
                 {
                     verbEntry = entry;
                     continue;
@@ -950,6 +975,7 @@ public class SentenceBuilder : MonoBehaviour
         };
 
         Debug.Log(interRole);
+        Debug.Log(subjectAgreement);
 
         CreateAuxiliaryVerb(workingModel, pendingData);                
     }
@@ -1063,21 +1089,6 @@ public class SentenceBuilder : MonoBehaviour
     }
 
 
-    private void ClearAllArticles(List<SentenceWordEntry> workingModel)
-    {
-        for (int i = workingModel.Count - 1; i >= 0; i--)
-        {
-            if (!workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
-                continue;
-
-            var articleEntry = workingModel[i];
-
-            if (articleEntry.owningNoun != null)
-                continue;
-
-            workingModel.RemoveAt(i);
-        }
-    }
     private void PairAdjectivesToNouns(List<SentenceWordEntry> workingModel)
     {
         for (int i = workingModel.Count - 1; i >= 0; i--)
@@ -1105,7 +1116,7 @@ public class SentenceBuilder : MonoBehaviour
 
                 tempAdjList.Add(workingModel[j]);
             }
-            Debug.Log(wordData.Surface + " has " + tempAdjList.Count + " adjectives.");
+            //Debug.Log(wordData.Surface + " has " + tempAdjList.Count + " adjectives.");
 
             tempAdjList.Reverse();
 
@@ -1114,6 +1125,24 @@ public class SentenceBuilder : MonoBehaviour
                 adjective.owningNoun = wordData;
                 wordData.adjectives.Enqueue(adjective);
             }
+        }
+    }
+    private void ClearLooseArticles(List<SentenceWordEntry> workingModel)
+    {
+        for (int i = workingModel.Count - 1; i >= 0; i--)
+        {
+            if (!workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                continue;
+
+            var articleEntry = workingModel[i];
+            int articleIndex = workingModel.IndexOf(articleEntry);
+
+            // Skip if article has an owningNoun
+            if (articleEntry.owningNoun != null)
+                continue;
+            
+
+            workingModel.RemoveAt(i);
         }
     }
     private class PendingArticleInsertion // Helper class for article insertion
@@ -1177,7 +1206,7 @@ public class SentenceBuilder : MonoBehaviour
 
                 if (owningNoun == null)
                 {
-                    Debug.LogError("Article without owning noun detected");
+                    //Debug.LogError("Article without owning noun detected");
                     continue;
                 }
 
@@ -1236,7 +1265,7 @@ public class SentenceBuilder : MonoBehaviour
 
         //Debug.Log("inserted article: " + article);
         //Debug.Log("article's owning noun: " + wordData.Surface);
-        Debug.Log("aritcleAnchor for " + pending.nounData.Surface + " is " + pending.articleAnchor.Surface);
+        //Debug.Log("aritcleAnchor for " + pending.nounData.Surface + " is " + pending.articleAnchor.Surface);
 
         return articleEntry;
     }

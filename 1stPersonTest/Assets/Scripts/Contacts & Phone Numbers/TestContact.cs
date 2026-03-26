@@ -31,6 +31,7 @@ public class TestContact : Contact
         wordBank.AddWordToSentence("doing");
         wordBank.AddWordToSentence("done");
         wordBank.AddWordToSentence("eat");
+        wordBank.AddWordToSentence("apple");
     }
 
     public override string GenerateResponse(ResponseKey responsekey)
