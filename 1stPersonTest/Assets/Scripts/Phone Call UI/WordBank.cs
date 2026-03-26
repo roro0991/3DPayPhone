@@ -8,12 +8,18 @@ public class SentenceWordEntry
 {
     public Word Word; // semantic object
     public string Surface; // the actual form used (ie. dog vs dogs)
+    public PartsOfSpeech activePOS;
+
+    // Relationship references
     public SentenceWordEntry owningNoun; // corresponding noun to this article
-    public SentenceWordEntry owningVerb;
+    public SentenceWordEntry owningVerb; // corresponding to this adverb
+    public SentenceWordEntry owningAdjective; // corresponding to this adverb
     public SentenceWordEntry article;
     public SentenceWordEntry verb;       
     public SentenceWordEntry auxiliary;
     public Queue<SentenceWordEntry> adjectives = new();
+
+
     public bool isPreview = false;
 }
 

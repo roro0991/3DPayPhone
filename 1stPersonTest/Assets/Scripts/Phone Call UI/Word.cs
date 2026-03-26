@@ -23,6 +23,7 @@ public enum PartsOfSpeech
     Article = 1 << 12,
     Interrogative = 1 << 13,
     Character = 1 << 14,
+    Auxiliary = 1 << 15
 
 }
 

@@ -419,7 +419,15 @@ public class SentenceBuilder : MonoBehaviour
 
         // ----- VERB PHRASE RULES -----
 
-        // Rule #1: Verbs only after nouns and interrogatives
+        // Rule #1: Prevent more than 1 verb token per sentence
+        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+            model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)))
+        {
+            Debug.Log("Sentence already contains 1 verb token");
+            return false;
+        }
+
+        // Rule #2: Verbs only after nouns, characters, pronouns and interrogatives
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
             && leftWord != null
             && !(
@@ -433,18 +441,22 @@ public class SentenceBuilder : MonoBehaviour
             return false;
         }
 
-        // Rule #1.1: Prevent non-verbs and non-interrogatives placed left of verbs
+        // Rule #3: Prevent non-interrogatives/characters/pronouns/nouns placed left of verbs
         if (rightWord != null
             && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
             && !(
-            entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)
-            || entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) || 
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) ||
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun)
             ))
         {
             Debug.Log("right word: " + rightWord.Surface);
             Debug.Log("VerbNotAfterNounOrInt");
             return false;
         }
+
         return true;
     }
     private List<SentenceWordEntry> Normalize(List<SentenceWordEntry> rawModel) // If insertion gate passed, fixes remaining grammar
@@ -498,15 +510,24 @@ public class SentenceBuilder : MonoBehaviour
 
             if (rightWord == null ||
                 rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction) ||
-                rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+                rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation) ||
+                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) ||
+                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
+                (!rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) && rightWord.owningAdjective == null))
             {
                 workingModel.RemoveAt(conjunctionIndex);
                 continue;
             }
 
             if (leftWord == null ||
-                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction) ||
-                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
+                (!rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) && rightWord.owningAdjective == null))
             {
                 workingModel.RemoveAt(conjunctionIndex);
                 continue;
@@ -518,7 +539,10 @@ public class SentenceBuilder : MonoBehaviour
 
         for (int i = 0; i < workingModel.Count; i++)
         {
-            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun))
                 nounIndices.Add(i);
         }
 
@@ -712,24 +736,13 @@ public class SentenceBuilder : MonoBehaviour
                 continue;
 
             if (interRole == InterrogativeRole.Unknown &&
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+                (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) && entry.activePOS != PartsOfSpeech.Auxiliary))
             {
                 interRole = InterrogativeRole.Subject;
                 subjectEntries.Add(whatInterrogative); // if "what" is the only subject
                 verbEntry = entry;
                 continue;
             }
-
-            // Removed to only allow 1 verb at a time
-            /* 
-            if (InterRole == InterrogativeRole.Subject &&
-                entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
-            {
-                Debug.Log("verb entry added: " + entry.Word.Text);
-                verbEntry.Add(entry);
-                continue;
-            }
-            */
 
             if (interRole == InterrogativeRole.Subject &&
                 (entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
@@ -789,17 +802,6 @@ public class SentenceBuilder : MonoBehaviour
                     verbEntry = entry;
                     continue;
                 }
-
-                // Removed to only allow 1 verb at a time
-                /*
-                if (InterRole == InterrogativeRole.DeterminerOfSubject &&
-                    entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
-                {
-                    Debug.Log("verb entry added: " + entry.Word.Text);
-                    verbEntry.Add(entry);
-                    continue;
-                }
-                */
 
                 if (interRole == InterrogativeRole.DeterminerOfSubject&&
                     (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
@@ -947,6 +949,8 @@ public class SentenceBuilder : MonoBehaviour
             verbForm = cachedForm,
         };
 
+        Debug.Log(interRole);
+
         CreateAuxiliaryVerb(workingModel, pendingData);                
     }
 
@@ -970,11 +974,27 @@ public class SentenceBuilder : MonoBehaviour
 
         if (pendingAuxiliaryData.auxInsertionIndex == -1)
             return;
+        
 
-        // Create auxiliary entry
         SentenceWordEntry auxiliaryVerb = new();
-        auxiliaryVerb.owningVerb = pendingAuxiliaryData.verb;
-        auxiliaryVerb.owningVerb.auxiliary = auxiliaryVerb;
+        bool updatedExistingAuxiliary = false;
+        
+        // Update existing auxiliary entry
+        if (pendingAuxiliaryData.verb.auxiliary != null)
+        {
+            var verb = pendingAuxiliaryData.verb;
+            Debug.Log("Existing auxiliary for verb [" + verb.Surface + "] has been updated");
+            auxiliaryVerb = verb.auxiliary;
+            updatedExistingAuxiliary = true;
+        }
+        else
+        {
+            Debug.Log("New auxiliary created");
+            // Create auxiliary entry
+            auxiliaryVerb.owningVerb = pendingAuxiliaryData.verb;
+            auxiliaryVerb.owningVerb.auxiliary = auxiliaryVerb;
+            auxiliaryVerb.activePOS = PartsOfSpeech.Auxiliary;
+        }
 
         SubjectAgreement subjectAgreement = pendingAuxiliaryData.subjAgreement;
 
@@ -1033,6 +1053,9 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         if (auxiliaryVerb.Word == null)
+            return;
+
+        if (updatedExistingAuxiliary)
             return;
 
         int auxiliaryInsertionIndex = pendingAuxiliaryData.auxInsertionIndex;

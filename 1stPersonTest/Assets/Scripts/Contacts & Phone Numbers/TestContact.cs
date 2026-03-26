@@ -30,6 +30,7 @@ public class TestContact : Contact
         wordBank.AddWordToSentence("do");
         wordBank.AddWordToSentence("doing");
         wordBank.AddWordToSentence("done");
+        wordBank.AddWordToSentence("eat");
     }
 
     public override string GenerateResponse(ResponseKey responsekey)
