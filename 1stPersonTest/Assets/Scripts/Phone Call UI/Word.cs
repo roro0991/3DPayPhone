@@ -102,11 +102,11 @@ public class Word
             }
 
             // Regular verbs
-            Add(Base, VerbForm.Base);
-            Add(ThirdPerson, VerbForm.ThirdPersonSingular);
-            Add(PresentParticiple, VerbForm.PresentParticiple);
-            Add(Past, VerbForm.Past);
-            Add(PastParticiple, VerbForm.PastParticiple);
+            Add(Base, VerbForm.Base); // eat 
+            Add(ThirdPerson, VerbForm.ThirdPersonSingular); // eats
+            Add(PresentParticiple, VerbForm.PresentParticiple); // eating
+            Add(Past, VerbForm.Past); // ate
+            Add(PastParticiple, VerbForm.PastParticiple); // eaten
 
             // "to be" support
             Add(FirstPersonSingular, VerbForm.Base);        // am

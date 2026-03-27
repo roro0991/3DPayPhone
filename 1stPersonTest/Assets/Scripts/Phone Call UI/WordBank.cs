@@ -14,9 +14,9 @@ public class SentenceWordEntry
     public SentenceWordEntry owningNoun; // corresponding noun to this article
     public SentenceWordEntry owningVerb; // corresponding to this adverb
     public SentenceWordEntry owningAdjective; // corresponding to this adverb
-    public SentenceWordEntry article;
-    public SentenceWordEntry verb;       
-    public SentenceWordEntry auxiliary;
+    public SentenceWordEntry article; // this noun's article
+    public SentenceWordEntry verb; // this noun's verb       
+    public SentenceWordEntry auxiliary; // this verb's auxiliary
     public Queue<SentenceWordEntry> adjectives = new();
 
 
