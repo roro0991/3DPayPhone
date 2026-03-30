@@ -11,6 +11,8 @@ public class SentenceWordEntry
     public PartsOfSpeech activePOS;
 
     // Relationship references
+    [System.NonSerialized]
+    public List<SentenceWordEntry> owningSubjects = new(); // verb relationship
     public SentenceWordEntry owningNoun; // corresponding noun to this article
     public SentenceWordEntry owningVerb; // corresponding to this adverb
     public SentenceWordEntry owningAdjective; // corresponding to this adverb
@@ -18,7 +20,6 @@ public class SentenceWordEntry
     public SentenceWordEntry verb; // this noun's verb       
     public SentenceWordEntry auxiliary; // this verb's auxiliary
     public Queue<SentenceWordEntry> adjectives = new();
-
 
     public bool isPreview = false;
 }

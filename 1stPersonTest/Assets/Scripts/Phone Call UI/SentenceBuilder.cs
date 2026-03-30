@@ -233,6 +233,15 @@ public class SentenceBuilder : MonoBehaviour
                 // Remove article from sentenceModel if it exists
                 sentenceModel.Remove(articleEntry);
             }
+
+        }
+               
+        if (draggableEntry.verb != null && 
+            draggableEntry.verb.owningSubjects.Contains(draggableEntry))
+        {
+            Debug.Log("noun: " + draggableEntry.Surface + " removed from " + draggableEntry.verb.Surface + "'s owningSubjects List.");
+            draggableEntry.verb.owningSubjects.Remove(draggableEntry);
+            draggableEntry.verb = null;
         }
 
         if (draggableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
@@ -294,6 +303,7 @@ public class SentenceBuilder : MonoBehaviour
         currentPreviewIndex = -1;
         //Debug.Log("Previews removed");
     }
+
     private void ApplyNormalizedPreview(List<SentenceWordEntry> model, bool isPreview)
     {
         List<SentenceWordEntry> normalizedModel = Normalize(model);
@@ -466,6 +476,10 @@ public class SentenceBuilder : MonoBehaviour
     {
         var workingModel = new List<SentenceWordEntry>(rawModel);
 
+        ClearPreviewRelationships(workingModel);
+
+        ClearLooseAuxiliaries(workingModel);
+
         ClearLooseArticles(workingModel);
 
         PairAdjectivesToNouns(workingModel);
@@ -473,18 +487,65 @@ public class SentenceBuilder : MonoBehaviour
         var articleEntriesToInsert = CollectArticlesToInsert(workingModel);
         UpdateAndInsertArticles(workingModel, articleEntriesToInsert);
 
-        NormalizeConjunctions(workingModel);
-
         NormalizeInterrogative(workingModel); // just force interrogative to start of sentence
 
         NormalizeIfQuestion(workingModel);
+
+        NormalizeConjunctions(workingModel);
 
         NormalizeTrailingPunctuation(workingModel);
 
         return workingModel;
     }
-    
+    private void ClearPreviewRelationships(List<SentenceWordEntry> workingModel)
+    {
+        if (sentenceModel.Count == 0)
+            return;
 
+        for (int i = 0; i < sentenceModel.Count; i++)
+        {
+            var entry = sentenceModel[i];
+
+            if (entry.owningSubjects.Count > 0)
+            {
+                entry.owningSubjects.RemoveAll(entry => entry.isPreview);
+                Debug.Log("preview owningSubjects removed");
+                Debug.Log("verb: " + entry.Surface + " now has " + entry.owningSubjects.Count + " owningSubjects.");
+            }
+
+            if (entry.owningNoun != null && entry.owningNoun.isPreview)
+                entry.owningNoun = null;
+
+            if (entry.owningVerb != null && entry.owningVerb.isPreview)
+                entry.owningVerb = null;
+
+            if (entry.owningAdjective != null && entry.owningAdjective.isPreview)
+                entry.owningAdjective = null;
+
+            if (entry.article != null && entry.article.isPreview)
+                entry.article = null;
+
+            if (entry.verb != null && entry.verb.isPreview)
+                entry.verb = null;
+
+            if (entry.auxiliary != null && entry.auxiliary.isPreview)
+                entry.auxiliary = null;
+
+            if (entry.adjectives.Count > 0 && entry.adjectives.Any(e => e.isPreview))
+            {
+                int count = entry.adjectives.Count;
+
+                for (int j = 0; j < count; j++)
+                {
+                    var adjEntry = entry.adjectives.Dequeue();
+
+                    if (!adjEntry.isPreview)
+                        entry.adjectives.Enqueue(adjEntry);
+                }
+            }
+        }
+    }
+    
     // Early conjunction normalizer meant to add 'and' between adjacent noun phrases
     private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
     {
@@ -850,6 +911,23 @@ public class SentenceBuilder : MonoBehaviour
         if (verbEntry == null)
             return;
 
+        // Cache relationship ref between verb and subjects
+        for (int i = 0;  i < subjectEntries.Count; i++)
+        {
+            if (!verbEntry.owningSubjects.Contains(subjectEntries[i]))
+            {
+                verbEntry.owningSubjects.Add(subjectEntries[i]);
+
+            }
+
+            if (subjectEntries[i].verb != verbEntry)
+            {
+                subjectEntries[i].verb = verbEntry;
+            }
+            Debug.Log("verb: " + verbEntry.Surface + " has been added as " + subjectEntries[i].Surface + "'s verb.");
+        }
+        Debug.Log("The verb: " + verbEntry.Surface + " has " + subjectEntries.Count + " owningSubjects.");
+
         SubjectAgreement subjectAgreement = SubjectAgreement.Unknown;
 
         List<string> subjectEntriesAsStrings = new();
@@ -945,6 +1023,29 @@ public class SentenceBuilder : MonoBehaviour
         CreateAuxiliaryVerb(workingModel, pendingData);                
     }
 
+    private void ClearLooseAuxiliaries(List<SentenceWordEntry> workingModel)
+    {
+        // Auxiliaries already get cleared if their owningVerb is removed
+        // This is to remove auxiliaries if their ownVerb's owningSubjects are removed.
+
+        if (!workingModel.Any(entry => entry.activePOS == PartsOfSpeech.Auxiliary))
+            return;
+
+        for (int i = workingModel.Count - 1; i >= 0; i--)
+        {
+            if (workingModel[i].activePOS == PartsOfSpeech.Auxiliary && workingModel[i].owningVerb != null)
+            {
+                var owningVerb = workingModel[i].owningVerb;
+
+                if (owningVerb.auxiliary == workingModel[i] 
+                    && owningVerb.owningSubjects.Count == 0)
+                {
+                    owningVerb.auxiliary = null;
+                    workingModel.RemoveAt(i);
+                }
+            }
+        }
+    }
     private class PendingAuxiliaryInsertion
     {
         public bool isQuestion = false;
@@ -1054,10 +1155,17 @@ public class SentenceBuilder : MonoBehaviour
         if (auxiliaryVerb.Word == null)
             return;
 
-        if (updatedExistingAuxiliary)
-            return;
-
         int auxiliaryInsertionIndex = pendingAuxiliaryData.auxInsertionIndex;
+
+        if (updatedExistingAuxiliary)
+        {
+            // Update auxiliary position
+            if (workingModel.IndexOf(auxiliaryVerb) != auxiliaryInsertionIndex)
+                MoveWord(workingModel, workingModel.IndexOf(auxiliaryVerb), auxiliaryInsertionIndex);
+
+            return;
+        }
+
         workingModel.Insert(auxiliaryInsertionIndex, auxiliaryVerb);
     }
 
@@ -1106,13 +1214,28 @@ public class SentenceBuilder : MonoBehaviour
             if (!workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
                 continue;
 
-            var articleEntry = workingModel[i];
-            int articleIndex = workingModel.IndexOf(articleEntry);
+            bool precededByInterrogative = false;
 
-            // Skip if article has an owningNoun
-            if (articleEntry.owningNoun != null)
+            var articleEntry = workingModel[i];
+
+            if (i - 1 >= 0)
+            {
+                if (workingModel[i - 1].Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+                    precededByInterrogative = true;
+            }
+
+            // Remove if owningNoun exists, but article is preceded by an interrogative
+            if (articleEntry.owningNoun != null && precededByInterrogative)
+            {
+                articleEntry.owningNoun.article = null;
+                articleEntry.owningNoun = null;
+                workingModel.RemoveAt(i);
                 continue;
-            
+            }
+
+            // Skip if article has an owningNoun && not preceded by an interrogative
+            if (articleEntry.owningNoun != null && !precededByInterrogative)
+                continue;
 
             workingModel.RemoveAt(i);
         }
@@ -1130,12 +1253,29 @@ public class SentenceBuilder : MonoBehaviour
         for (int i = workingModel.Count - 1; i >= 0; i--)
         {
             SentenceWordEntry wordData = workingModel[i];
+            bool precededByInterrogative = false;
 
             if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                 continue;
             if (!wordData.Word.IsSingular(wordData.Surface))
                 continue;
             if (wordData.article != null)
+                continue;
+
+            int nounIndex = workingModel.IndexOf(wordData);
+
+            for (int j = nounIndex - 1; j >= 0; j--)
+            {
+                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+                    continue;
+
+                if (!workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+                    break;
+
+                precededByInterrogative = true;
+            }
+
+            if (precededByInterrogative)
                 continue;
 
             // Set articleAnchor to noun if no adjectives present
