@@ -6,6 +6,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 {
     public SentenceWordEntry sentenceWordEntry;
     private RectTransform rectTransform;
+    private Word.VerbForms verbForms;
 
     private Canvas canvas;
     private CanvasGroup canvasGroup;
@@ -31,11 +32,24 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         TMP_Text tmp = GetComponent<TMP_Text>();
         sentenceWordEntry.Surface = tmp.text;
         sentenceWordEntry.Word = WordDataBase.Instance.GetWord(tmp.text);
+
+        if (sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+            this.sentenceWordEntry.activePOS != PartsOfSpeech.Auxiliary)
+        {
+            verbForms = sentenceWordEntry.Word.GetVerbForm();
+        }
     }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (!isDraggable) return; // prevent drag entirely
+
+        if (sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) && 
+            sentenceWordEntry.Surface != verbForms.Base)
+        {
+            sentenceWordEntry.Surface = verbForms.Base;
+            this.GetComponent<TMP_Text>().text = sentenceWordEntry.Surface;
+        }
 
         if (isInSentencePanel)
         {

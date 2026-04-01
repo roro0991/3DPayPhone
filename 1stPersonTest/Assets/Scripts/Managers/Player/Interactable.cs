@@ -9,6 +9,6 @@ public class Interactable : MonoBehaviour, IInteractable
     
     public void Interact()
     {
-        unityEvent.Invoke(); 
+        unityEvent.Invoke();         
     }
 }

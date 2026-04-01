@@ -26,6 +26,12 @@ public class SentenceBuilder : MonoBehaviour
     public string currentSentenceAsString;
     public GameObject draggableWordPrefab;
 
+    public GameObject verbMenu;
+    public GameObject verbButtonPast;
+    public bool isHovered = false;
+    public DraggableWord currentDraggable;
+    public SentenceWordEntry currentPreviewEntry;
+
     public SentenceWordEntry deactivatedVerb = null;
     public int deactivatedVerbIndex = -1;
 
@@ -118,6 +124,8 @@ public class SentenceBuilder : MonoBehaviour
                 isPreview = true
             };
 
+            currentPreviewEntry = previewEntry;
+
             if (CanInsertAt(sentenceModel, insertIndex, previewEntry))
             {
                 // verb swap logic
@@ -185,6 +193,8 @@ public class SentenceBuilder : MonoBehaviour
         if (word == null)
             return;
 
+        currentDraggable = word;
+
         RectTransform draggableWord = word.GetComponent<RectTransform>();
         var entryData = word.sentenceWordEntry;
 
@@ -202,6 +212,13 @@ public class SentenceBuilder : MonoBehaviour
                 ReturnWordToBank(draggableWord, word, false, eventData);
                 ClearPreview();
                 ApplyNormalizationResults(sentenceModel);
+                return;
+            }
+
+            if (entryData.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+            {
+                draggableWord.gameObject.SetActive(false);
+                verbMenu.SetActive(true);
                 return;
             }
 
@@ -237,6 +254,75 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         CommitModelChange();
+    }
+
+    // Verb form menu button methods
+
+    public void ChooseVerbFormPast()
+    {
+        SentenceWordEntry currentEntry = currentDraggable.sentenceWordEntry;
+        RectTransform draggableRect = currentDraggable.GetComponent<RectTransform>();
+        draggableRect.gameObject.SetActive(true);
+
+        Word.VerbForms verbForms = new();
+        verbForms = currentEntry.Word.GetVerbForm();
+
+        if (verbForms != null)
+        {
+            currentEntry.Surface = verbForms.Past;
+        }
+        else
+        {
+            Debug.Log("no verb forms found.");
+        }
+
+        ModelRects[currentEntry] = draggableRect;
+
+        InsertWordEntryAt(currentEntry, currentPreviewIndex);
+        ClearPreview();
+
+        // Clear deactivated verb and return to wordbank if swapped
+        if (currentEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+            deactivatedVerb != null)
+        {
+            wordBank.CreateWordUI(deactivatedVerb);
+            deactivatedVerb = null;
+            deactivatedVerbIndex = -1;
+        }
+
+        currentDraggable.isInSentencePanel = true;
+
+        sentenceMutated = true;
+
+        CommitModelChange();
+
+        verbMenu.SetActive(false);
+    }
+
+    public void HoverPastButton()
+    {
+        Word.VerbForms verbForms = new();
+        verbForms = currentPreviewEntry.Word.GetVerbForm();
+
+        if (!isHovered)
+        {
+            isHovered = true;
+
+            currentPreviewEntry.Surface = verbForms.Past;
+
+            ApplyNormalizedPreview(sentenceModel, true);
+            return;
+        }
+
+        if (isHovered)
+        {
+            isHovered = false;
+
+            currentPreviewEntry.Surface = verbForms.Base;
+            ApplyNormalizedPreview(sentenceModel, true);
+            return;
+        }
+
     }
     private int GetInsertionIndex(float draggableMidX, float margin = 10f)
     {
@@ -1166,6 +1252,9 @@ public class SentenceBuilder : MonoBehaviour
         if (pendingAuxiliaryData.auxInsertionIndex == -1)
             return;
 
+        Word.VerbForms verbForms = new();
+        verbForms = pendingAuxiliaryData.verb.Word.GetVerbForm();
+
         SentenceWordEntry auxiliaryVerb; 
         bool updatedExistingAuxiliary = false;
 
@@ -1233,6 +1322,7 @@ public class SentenceBuilder : MonoBehaviour
             case Word.VerbForms.VerbForm.Past:
                 auxiliaryVerb.Word = WordDataBase.Instance.GetWord("do");
                 auxiliaryVerb.Surface = "did";
+                pendingAuxiliaryData.verb.Surface = verbForms.Base;
                 break;
             case Word.VerbForms.VerbForm.PastParticiple:
                 if (subjectAgreement == SubjectAgreement.Plural ||
