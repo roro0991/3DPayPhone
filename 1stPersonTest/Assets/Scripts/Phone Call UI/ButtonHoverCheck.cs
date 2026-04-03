@@ -3,17 +3,21 @@ using UnityEngine.EventSystems;
 
 public class ButtonHoverCheck : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
+
+    private IInteractable interactable;
+
+    private void Awake()
+    {
+        TryGetComponent(out interactable);
+    }
+
     public void OnPointerEnter(PointerEventData eventData)
     {
-        this.gameObject.TryGetComponent<IInteractable>(out IInteractable interactable);
-
-        interactable.Interact();
+        interactable?.OnHoverEnter();
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        this.gameObject.TryGetComponent<IInteractable>(out IInteractable interactable);
-
-        interactable.Interact();
+        interactable?.OnHoverExit();
     }
 }

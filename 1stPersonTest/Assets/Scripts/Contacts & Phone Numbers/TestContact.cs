@@ -26,7 +26,6 @@ public class TestContact : Contact
     {
         wordBank.AddWordToSentence("What");
         wordBank.AddWordToSentence("john");
-        wordBank.AddWordToSentence("do");
         wordBank.AddWordToSentence("eat");
         wordBank.AddWordToSentence("apple");
     }

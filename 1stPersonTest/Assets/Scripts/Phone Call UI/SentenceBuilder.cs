@@ -27,10 +27,10 @@ public class SentenceBuilder : MonoBehaviour
     public GameObject draggableWordPrefab;
 
     public GameObject verbMenu;
-    public GameObject verbButtonPast;
-    public bool isHovered = false;
     public DraggableWord currentDraggable;
     public SentenceWordEntry currentPreviewEntry;
+
+    public GameObject nounMenu;
 
     public SentenceWordEntry deactivatedVerb = null;
     public int deactivatedVerbIndex = -1;
@@ -56,7 +56,7 @@ public class SentenceBuilder : MonoBehaviour
         FirstPersonSingular, // I
         ThirdPersonSingular, // He, She, It [including Character names]
         Plural, // We, They, You, You [plural]
-    }    
+    }
 
     private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
 
@@ -129,16 +129,18 @@ public class SentenceBuilder : MonoBehaviour
             if (CanInsertAt(sentenceModel, insertIndex, previewEntry))
             {
                 // verb swap logic
-                
+
                 if (previewEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
                     sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
                     entry.activePOS != PartsOfSpeech.Auxiliary))
                 {
+                    Debug.Log("verb swap logic triggered!");
                     var existingVerb = sentenceModel.Find(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
                     entry.activePOS != PartsOfSpeech.Auxiliary);
 
                     deactivatedVerb = existingVerb;
-                    var deactivatedVerbAuxiliary = existingVerb.auxiliary != null? existingVerb.auxiliary : null;
+                    Debug.Log("deactivedVerb no longer null.");
+                    var deactivatedVerbAuxiliary = existingVerb.auxiliary != null ? existingVerb.auxiliary : null;
                     deactivatedVerbIndex = sentenceModel.IndexOf(existingVerb);
 
                     if (deactivatedVerbAuxiliary != null)
@@ -154,12 +156,12 @@ public class SentenceBuilder : MonoBehaviour
                     sentenceHasPreviews = true;
                     return;
                 }
-                
+
                 // Insert preview into model
                 sentenceModel.Insert(insertIndex, previewEntry);
                 ApplyNormalizedPreview(sentenceModel, true);
                 sentenceHasPreviews = true;
-                //Debug.Log("***PREVIEW GENERATED***");                
+                Debug.Log("***PREVIEW GENERATED***");                
             }
             else
             {
@@ -222,15 +224,22 @@ public class SentenceBuilder : MonoBehaviour
                 return;
             }
 
+            if (entryData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            {
+                draggableWord.gameObject.SetActive(false);
+                nounMenu.SetActive(true);
+                return;
+            }
+
             ModelRects[entryData] = draggableWord;
 
             InsertWordEntryAt(entryData, currentPreviewIndex);
             ClearPreview();
 
             // Clear deactivated verb and return to wordbank if swapped
-            if (entryData.Word.HasPartOfSpeech(PartsOfSpeech.Verb) && 
+            if (entryData.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
                 deactivatedVerb != null)
-            {                
+            {
                 wordBank.CreateWordUI(deactivatedVerb);
                 deactivatedVerb = null;
                 deactivatedVerbIndex = -1;
@@ -256,25 +265,75 @@ public class SentenceBuilder : MonoBehaviour
         CommitModelChange();
     }
 
-    // Verb form menu button methods
+    // Noun form menu button methods
 
-    public void ChooseVerbFormPast()
+    public void CommitNounForm()
     {
         SentenceWordEntry currentEntry = currentDraggable.sentenceWordEntry;
         RectTransform draggableRect = currentDraggable.GetComponent<RectTransform>();
-        draggableRect.gameObject.SetActive(true);
+        currentDraggable.gameObject.SetActive(true);
+        Word.NounForms nounForms = new();
+        nounForms = currentEntry.Word.GetNounForm();
 
+        if (nounForms == null)
+            Debug.Log("no noun forms found.");
+
+        currentEntry.Surface = nounForms.Plural;
+
+        ModelRects[currentEntry] = draggableRect;
+
+        InsertWordEntryAt(currentEntry, currentPreviewIndex);
+        ClearPreview();
+
+        currentDraggable.isInSentencePanel = true;
+
+        sentenceMutated = true;
+
+        CommitModelChange();
+
+        nounMenu.SetActive(false);
+    }
+
+    public void HoverNounButtonEnter()
+    {
+        var nounForms = currentPreviewEntry.Word.GetNounForm();
+        RebuildPreview(nounForms.Plural);
+    }
+
+    public void HoverNounButtonExit()
+    {
+        var nounForms = currentPreviewEntry.Word.GetNounForm();
+        RebuildPreview(nounForms.Singular);
+    }
+
+    // Verb form menu button methods
+
+    public void CommitVerbForm(string verbForm)
+    {        
+        SentenceWordEntry currentEntry = currentDraggable.sentenceWordEntry;
+        RectTransform draggableRect = currentDraggable.GetComponent<RectTransform>();
+        currentDraggable.gameObject.SetActive(true);
         Word.VerbForms verbForms = new();
         verbForms = currentEntry.Word.GetVerbForm();
 
-        if (verbForms != null)
-        {
-            currentEntry.Surface = verbForms.Past;
-        }
-        else
-        {
+        if (verbForms == null)
             Debug.Log("no verb forms found.");
+
+        string cachedForm = string.Empty;
+
+        switch (verbForm)
+        {
+            case "past":
+                cachedForm = verbForms.Past;
+                break;
+            case "present":
+                cachedForm = verbForms.PresentParticiple;                
+                break;
+            default:
+                break;
         }
+
+        currentEntry.Surface = cachedForm;              
 
         ModelRects[currentEntry] = draggableRect;
 
@@ -299,30 +358,43 @@ public class SentenceBuilder : MonoBehaviour
         verbMenu.SetActive(false);
     }
 
-    public void HoverPastButton()
+    private void RebuildPreview(string surface)
     {
-        Word.VerbForms verbForms = new();
-        verbForms = currentPreviewEntry.Word.GetVerbForm();
-
-        if (!isHovered)
+        var entry = new SentenceWordEntry()
         {
-            isHovered = true;
+            Word = currentPreviewEntry.Word,
+            Surface = surface,
+            isPreview = true
+        };
 
-            currentPreviewEntry.Surface = verbForms.Past;
+        sentenceModel.RemoveAll(entry => entry.isPreview);
+        sentenceModel.Insert(currentPreviewIndex, entry);
 
-            ApplyNormalizedPreview(sentenceModel, true);
-            return;
-        }
+        currentPreviewEntry = entry;
 
-        if (isHovered)
+        ApplyNormalizedPreview(sentenceModel, true);
+
+    }
+
+    public void HoverVerbButtonEnter(string form)
+    {
+        var verbForms = currentPreviewEntry.Word.GetVerbForm();
+
+        switch (form)
         {
-            isHovered = false;
+            case "past":
+                RebuildPreview(verbForms.Past);                
+                break;
+            case "present":
+                RebuildPreview(verbForms.PresentParticiple);
+                break;
+        }        
+    }
 
-            currentPreviewEntry.Surface = verbForms.Base;
-            ApplyNormalizedPreview(sentenceModel, true);
-            return;
-        }
-
+    public void HoverVerbButtonExit()
+    {
+        var verbForms = currentPreviewEntry.Word.GetVerbForm();        
+        RebuildPreview(verbForms.Base);
     }
     private int GetInsertionIndex(float draggableMidX, float margin = 10f)
     {
@@ -373,8 +445,8 @@ public class SentenceBuilder : MonoBehaviour
             }
 
         }
-               
-        if (draggableEntry.verb != null && 
+
+        if (draggableEntry.verb != null &&
             draggableEntry.verb.owningSubjects.Contains(draggableEntry))
         {
             Debug.Log("noun: " + draggableEntry.Surface + " removed from " + draggableEntry.verb.Surface + "'s owningSubjects List.");
@@ -417,6 +489,8 @@ public class SentenceBuilder : MonoBehaviour
     {
         if (!sentenceHasPreviews)
             return;
+
+        Debug.Log("previews cleared");
 
         sentenceModel.RemoveAll(entry => entry.isPreview);
         sentenceHasPreviews = false;
@@ -576,7 +650,7 @@ public class SentenceBuilder : MonoBehaviour
             !entry.isPreview && entry.activePOS != PartsOfSpeech.Auxiliary)
             ))
             return true;
-        
+
         // Rule #1: Allow swapping verb | limit sentence to 1 verb token
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
             (model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)) &&
@@ -592,7 +666,7 @@ public class SentenceBuilder : MonoBehaviour
                 return false;
             }
         }
-        
+
 
         // Rule #2: Verbs only after nouns, characters, pronouns and interrogatives
         if ((!model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
@@ -614,7 +688,7 @@ public class SentenceBuilder : MonoBehaviour
         if (rightWord != null
             && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
             && !(
-            entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) || 
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
             entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) ||
             entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
             entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
@@ -657,12 +731,15 @@ public class SentenceBuilder : MonoBehaviour
 
     private void ClearPreviewRelationships(List<SentenceWordEntry> workingModel)
     {
-        if (sentenceModel.Count == 0)
+        if (workingModel.Count == 0)
             return;
 
-        for (int i = 0; i < sentenceModel.Count; i++)
+        if (workingModel.Any(entry => entry.isPreview))
+            return;
+
+        for (int i = 0; i < workingModel.Count; i++)
         {
-            var entry = sentenceModel[i];
+            var entry = workingModel[i];
 
             if (entry.owningSubjects.Count > 0)
             {
@@ -703,7 +780,7 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
     }
-    
+
     // Early conjunction normalizer meant to add 'and' between adjacent noun phrases
     private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
     {
@@ -820,7 +897,7 @@ public class SentenceBuilder : MonoBehaviour
             workingModel.Insert(conjunctionInsertionIndices[i], conjunction);
         }
     }
-    
+
     private void NormalizeIfQuestion(List<SentenceWordEntry> workingModel)
     {
         // Defensive checks
@@ -865,7 +942,7 @@ public class SentenceBuilder : MonoBehaviour
             return;
         }
 
-        if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) 
+        if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
             && entry.Word.Text == "what"))
         {
             //Debug.Log("What interrogative normalization cancelled!");
@@ -894,7 +971,7 @@ public class SentenceBuilder : MonoBehaviour
         List<SentenceWordEntry> subjectEntries = new();
         List<SentenceWordEntry> objectEntries = new();
         SentenceWordEntry verbEntry = null;
-        
+
         // Determine Interrogative Role
         for (int i = interrogativeIndex + 1; i < workingModel.Count; i++)
         {
@@ -941,7 +1018,7 @@ public class SentenceBuilder : MonoBehaviour
                     continue;
                 }
             }
-            
+
             if (isNounAfterInterrogative)
             {
                 if (interRole == InterrogativeRole.Unknown &&
@@ -964,7 +1041,7 @@ public class SentenceBuilder : MonoBehaviour
                     Debug.Log("interRole is DeterminerOfObject");
                     break;
                 }
-            }                
+            }
         }
 
         if (interRole == InterrogativeRole.Unknown)
@@ -1097,7 +1174,7 @@ public class SentenceBuilder : MonoBehaviour
             return;
 
         // Cache relationship ref between verb and subjects
-        for (int i = 0;  i < subjectEntries.Count; i++)
+        for (int i = 0; i < subjectEntries.Count; i++)
         {
             if (!verbEntry.owningSubjects.Contains(subjectEntries[i]))
             {
@@ -1117,14 +1194,14 @@ public class SentenceBuilder : MonoBehaviour
 
         List<string> subjectEntriesAsStrings = new();
         List<string> ThirdPersonSingular = new List<string> { "he", "she", "it" };
-        List<string> Plural = new List<string> { "you", "we", "they" };        
+        List<string> Plural = new List<string> { "you", "we", "they" };
 
         foreach (var entry in subjectEntries)
         {
             string subjectEntryAsString = entry.Word.Text;
             subjectEntriesAsStrings.Add(subjectEntryAsString);
         }
-       
+
         if (subjectEntriesAsStrings.Count == 1)
         {
             if (subjectEntriesAsStrings.Contains("i"))
@@ -1138,7 +1215,7 @@ public class SentenceBuilder : MonoBehaviour
             {
                 subjectAgreement = SubjectAgreement.ThirdPersonSingular;
             }
-                
+
             hasAny = ThirdPersonSingular.Any(entry => subjectEntriesAsStrings.Contains(entry));
 
             if (hasAny)
@@ -1174,7 +1251,7 @@ public class SentenceBuilder : MonoBehaviour
                 break;
             case (InterrogativeRole.DeterminerOfObject):
                 if (objectEntries.Count > 0)
-                auxiliaryInsertionIndex = workingModel.IndexOf(objectEntries[objectEntries.Count - 1]) + 1;
+                    auxiliaryInsertionIndex = workingModel.IndexOf(objectEntries[objectEntries.Count - 1]) + 1;
                 break;
             default:
                 auxiliaryInsertionIndex = -1;
@@ -1183,12 +1260,12 @@ public class SentenceBuilder : MonoBehaviour
 
         // Cache verb form
         if (verbEntry == null)
-            return;        
+            return;
         Word.VerbForms verbForms = new();
         verbForms = verbEntry.Word.GetVerbForm();
         if (verbForms == null)
             return;
-        
+
         Word.VerbForms.VerbForm cachedForm;
         bool found = verbForms.TryGetForm(verbEntry.Surface, out cachedForm);
         var pendingData = new PendingAuxiliaryInsertion
@@ -1205,7 +1282,7 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("existing auxiliary for verb " + verbEntry.Surface + " is " + verbEntry.auxiliary.Surface);
         }
 
-        CreateAuxiliaryVerb(workingModel, pendingData);                
+        CreateAuxiliaryVerb(workingModel, pendingData);
     }
 
     private void ClearLooseAuxiliaries(List<SentenceWordEntry> workingModel)
@@ -1222,7 +1299,7 @@ public class SentenceBuilder : MonoBehaviour
             {
                 var owningVerb = workingModel[i].owningVerb;
 
-                if (owningVerb.auxiliary == workingModel[i] 
+                if (owningVerb.auxiliary == workingModel[i]
                     && owningVerb.owningSubjects.Count == 0)
                 {
                     owningVerb.auxiliary = null;
@@ -1238,8 +1315,8 @@ public class SentenceBuilder : MonoBehaviour
         public SubjectAgreement subjAgreement;
         public SentenceWordEntry verb;
         public Word.VerbForms.VerbForm verbForm;
-        
-    }  
+
+    }
 
     private void CreateAuxiliaryVerb(List<SentenceWordEntry> workingModel, PendingAuxiliaryInsertion pendingAuxiliaryData)
     {
@@ -1255,7 +1332,7 @@ public class SentenceBuilder : MonoBehaviour
         Word.VerbForms verbForms = new();
         verbForms = pendingAuxiliaryData.verb.Word.GetVerbForm();
 
-        SentenceWordEntry auxiliaryVerb; 
+        SentenceWordEntry auxiliaryVerb;
         bool updatedExistingAuxiliary = false;
 
         // Remove existing auxiliary ref if it's a preview
@@ -1264,7 +1341,7 @@ public class SentenceBuilder : MonoBehaviour
         {
             pendingAuxiliaryData.verb.auxiliary = null;
         }
-        
+
         // Update existing auxiliary entry
         if (pendingAuxiliaryData.verb.auxiliary != null)
         {
@@ -1278,10 +1355,10 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("New auxiliary created");
             // Create auxiliary entry
             auxiliaryVerb = new SentenceWordEntry();
-            auxiliaryVerb.activePOS = PartsOfSpeech.Auxiliary;            
+            auxiliaryVerb.activePOS = PartsOfSpeech.Auxiliary;
             auxiliaryVerb.owningVerb = pendingAuxiliaryData.verb;
             auxiliaryVerb.owningVerb.auxiliary = auxiliaryVerb;
-            
+
         }
 
         SubjectAgreement subjectAgreement = pendingAuxiliaryData.subjAgreement;
@@ -1669,10 +1746,11 @@ public class SentenceBuilder : MonoBehaviour
 
         foreach (RectTransform uiRect in uiRectsToRemove)
         {
+            Debug.Log("rect destroyed");
             wordList.Remove(uiRect);
             Destroy(uiRect.gameObject);
         }
-
+        
         foreach (SentenceWordEntry entry in workingModel)
         {
             // Add sentenceModel rects not present in wordList.
@@ -1809,6 +1887,11 @@ public class SentenceBuilder : MonoBehaviour
         storedWordList.Clear();
     }
 }
+
+
+
+
+
 
 
 

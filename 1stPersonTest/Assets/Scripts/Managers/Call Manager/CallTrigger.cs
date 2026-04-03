@@ -26,6 +26,9 @@ public class CallTrigger : MonoBehaviour
             //string assignedNumber = phoneNumberManager.AssignNumber(testContact);
             //Debug.Log($"TestContact '{testContact.ContactName}' assigned number: {assignedNumber}");
         }
+
+        // enter call mode immediately for test purpose
+        callManager.EnterCallMode(0);
     }
 
     private void Update()

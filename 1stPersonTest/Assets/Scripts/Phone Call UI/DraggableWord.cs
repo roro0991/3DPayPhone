@@ -7,6 +7,7 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public SentenceWordEntry sentenceWordEntry;
     private RectTransform rectTransform;
     private Word.VerbForms verbForms;
+    private Word.NounForms nounForms;
 
     private Canvas canvas;
     private CanvasGroup canvasGroup;
@@ -38,6 +39,9 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         {
             verbForms = sentenceWordEntry.Word.GetVerbForm();
         }
+
+        if (sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            nounForms = sentenceWordEntry.Word.GetNounForm();
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -48,6 +52,13 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             sentenceWordEntry.Surface != verbForms.Base)
         {
             sentenceWordEntry.Surface = verbForms.Base;
+            this.GetComponent<TMP_Text>().text = sentenceWordEntry.Surface;
+        }
+
+        if (sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
+            sentenceWordEntry.Surface != nounForms.Singular)
+        {
+            sentenceWordEntry.Surface = nounForms.Singular;
             this.GetComponent<TMP_Text>().text = sentenceWordEntry.Surface;
         }
 

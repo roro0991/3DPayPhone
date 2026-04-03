@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 interface IInteractable
 {
     public void Interact();
+    public void OnHoverEnter();
+    public void OnHoverExit();
 }
 public class InteractionManager : MonoBehaviour
 {

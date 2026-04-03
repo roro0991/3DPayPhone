@@ -5,10 +5,22 @@ using UnityEngine.Events;
 
 public class Interactable : MonoBehaviour, IInteractable
 {
-    public UnityEvent unityEvent = new UnityEvent();
+    public UnityEvent onClick = new UnityEvent();
+    public UnityEvent onHoverEnter = new UnityEvent();
+    public UnityEvent onHoverExit = new UnityEvent();
     
     public void Interact()
     {
-        unityEvent.Invoke();         
+        onClick.Invoke();         
+    }
+
+    public void OnHoverEnter()
+    {
+        onHoverEnter.Invoke();
+    }
+
+    public void OnHoverExit()
+    {
+        onHoverExit.Invoke();
     }
 }
