@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using static UnityEditor.PlayerSettings.SplashScreen;
+using static Word;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -31,6 +32,8 @@ public class SentenceBuilder : MonoBehaviour
     public SentenceWordEntry currentPreviewEntry;
 
     public GameObject nounMenu;
+
+    public GameObject interrogativeMenu;
 
     public SentenceWordEntry deactivatedVerb = null;
     public int deactivatedVerbIndex = -1;
@@ -114,7 +117,7 @@ public class SentenceBuilder : MonoBehaviour
                 return;
             }
 
-            currentPreviewIndex = insertIndex;
+            currentPreviewIndex = insertIndex;            
 
             // Create a preview entry
             SentenceWordEntry previewEntry = new SentenceWordEntry
@@ -123,6 +126,13 @@ public class SentenceBuilder : MonoBehaviour
                 Surface = word.sentenceWordEntry.Surface,
                 isPreview = true
             };
+
+            // Set default interrogative preview to [what]
+            if (word.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+            {
+                previewEntry.Word = WordDataBase.Instance.GetWord("what");
+                previewEntry.Surface = previewEntry.Word.Text;
+            }
 
             currentPreviewEntry = previewEntry;
 
@@ -231,6 +241,13 @@ public class SentenceBuilder : MonoBehaviour
                 return;
             }
 
+            if (entryData.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+            {
+                draggableWord.gameObject.SetActive(false);
+                interrogativeMenu.SetActive(true);
+                return;
+            }
+
             ModelRects[entryData] = draggableWord;
 
             InsertWordEntryAt(entryData, currentPreviewIndex);
@@ -267,7 +284,7 @@ public class SentenceBuilder : MonoBehaviour
 
     // Noun form menu button methods
 
-    public void CommitNounForm()
+    public void CommitNounForm(string nounForm)
     {
         SentenceWordEntry currentEntry = currentDraggable.sentenceWordEntry;
         RectTransform draggableRect = currentDraggable.GetComponent<RectTransform>();
@@ -278,7 +295,11 @@ public class SentenceBuilder : MonoBehaviour
         if (nounForms == null)
             Debug.Log("no noun forms found.");
 
-        currentEntry.Surface = nounForms.Plural;
+        if (nounForm == "plural")
+            currentEntry.Surface = nounForms.Plural;
+
+        if (nounForm == "singular")
+            currentEntry.Surface = nounForms.Singular;
 
         ModelRects[currentEntry] = draggableRect;
 
@@ -294,10 +315,15 @@ public class SentenceBuilder : MonoBehaviour
         nounMenu.SetActive(false);
     }
 
-    public void HoverNounButtonEnter()
+    public void HoverNounButtonEnter(string nounForm)
     {
         var nounForms = currentPreviewEntry.Word.GetNounForm();
-        RebuildPreview(nounForms.Plural);
+
+        if (nounForm == "plural")
+            RebuildPreview(nounForms.Plural);
+
+        if (nounForm == "singular")
+            RebuildPreview(nounForms.Singular);
     }
 
     public void HoverNounButtonExit()
@@ -327,7 +353,7 @@ public class SentenceBuilder : MonoBehaviour
                 cachedForm = verbForms.Past;
                 break;
             case "present":
-                cachedForm = verbForms.PresentParticiple;                
+                cachedForm = verbForms.ThirdPerson;                
                 break;
             default:
                 break;
@@ -358,6 +384,97 @@ public class SentenceBuilder : MonoBehaviour
         verbMenu.SetActive(false);
     }
 
+
+    public void HoverVerbButtonEnter(string form)
+    {
+        var verbForms = currentPreviewEntry.Word.GetVerbForm();
+
+        switch (form)
+        {
+            case "past":
+                RebuildPreview(verbForms.Past);                
+                break;
+            case "present":
+                RebuildPreview(verbForms.ThirdPerson);
+                break;
+            default:
+                break;
+        }        
+    }
+
+    public void HoverVerbButtonExit()
+    {
+        var verbForms = currentPreviewEntry.Word.GetVerbForm();        
+        RebuildPreview(verbForms.Base);
+    }
+
+
+    // Interrogative menu button methods
+
+    public void CommitInterrogative(string interrogativeForm)
+    {
+        
+        switch (interrogativeForm)
+        {
+            case "what":
+                ChangeEntryWord(currentDraggable, "what");
+                break;
+            case "who":
+                ChangeEntryWord(currentDraggable, "who");
+                break;
+            default:
+                break;
+        }
+
+        SentenceWordEntry currentEntry = currentDraggable.sentenceWordEntry;
+        RectTransform draggableRect = currentDraggable.GetComponent<RectTransform>();
+        currentDraggable.gameObject.SetActive(true);  
+
+        ModelRects[currentEntry] = draggableRect;
+
+        InsertWordEntryAt(currentEntry, currentPreviewIndex);
+        ClearPreview();
+
+        currentDraggable.isInSentencePanel = true;
+
+        sentenceMutated = true;
+
+        CommitModelChange();
+
+        interrogativeMenu.SetActive(false);
+    }
+
+    public void HoverInterrogativeButton(string interrogativeForm)
+    {
+        switch (interrogativeForm)
+        {
+            case "what":
+                RebuildPreview("what");
+                break;
+            case "who":
+                RebuildPreview("who");
+                break;
+            default:
+                break;
+        }
+    }
+    public void ReturnToBankButton()
+    {        
+        currentDraggable.gameObject.SetActive(true);
+        var draggableRect = currentDraggable.GetComponent<RectTransform>();
+        ReturnWordToBank(draggableRect, currentDraggable, false);
+        sentenceModel.RemoveAll(entry => entry.isPreview);
+        sentenceModel = Normalize(sentenceModel);
+        ApplyNormalizationResults(sentenceModel, false);
+        verbMenu.SetActive(false);
+        nounMenu.SetActive(false);
+        interrogativeMenu.SetActive(false);
+    }
+    private void ChangeEntryWord(DraggableWord originalDraggable, string newWord)
+    {
+        originalDraggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(newWord);
+        originalDraggable.sentenceWordEntry.Surface = newWord;
+    }
     private void RebuildPreview(string surface)
     {
         var entry = new SentenceWordEntry()
@@ -374,27 +491,6 @@ public class SentenceBuilder : MonoBehaviour
 
         ApplyNormalizedPreview(sentenceModel, true);
 
-    }
-
-    public void HoverVerbButtonEnter(string form)
-    {
-        var verbForms = currentPreviewEntry.Word.GetVerbForm();
-
-        switch (form)
-        {
-            case "past":
-                RebuildPreview(verbForms.Past);                
-                break;
-            case "present":
-                RebuildPreview(verbForms.PresentParticiple);
-                break;
-        }        
-    }
-
-    public void HoverVerbButtonExit()
-    {
-        var verbForms = currentPreviewEntry.Word.GetVerbForm();        
-        RebuildPreview(verbForms.Base);
     }
     private int GetInsertionIndex(float draggableMidX, float margin = 10f)
     {
@@ -522,7 +618,7 @@ public class SentenceBuilder : MonoBehaviour
         ApplyNormalizationResults(normalizedModel, isPreview);
     }
     // Drop Methods
-    private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData)
+    private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData = null)
     {
         WordBank wb = wordBank;
 
@@ -1268,6 +1364,14 @@ public class SentenceBuilder : MonoBehaviour
 
         Word.VerbForms.VerbForm cachedForm;
         bool found = verbForms.TryGetForm(verbEntry.Surface, out cachedForm);
+
+        // Reset cachedForm to Base for interrogative question
+        if (cachedForm == Word.VerbForms.VerbForm.ThirdPersonSingular)
+        {
+            verbEntry.Surface = verbForms.Base;
+            found = verbForms.TryGetForm(verbEntry.Surface, out cachedForm);
+        }
+
         var pendingData = new PendingAuxiliaryInsertion
         {
             isQuestion = true,
@@ -1315,8 +1419,7 @@ public class SentenceBuilder : MonoBehaviour
         public SubjectAgreement subjAgreement;
         public SentenceWordEntry verb;
         public Word.VerbForms.VerbForm verbForm;
-
-    }
+    }   
 
     private void CreateAuxiliaryVerb(List<SentenceWordEntry> workingModel, PendingAuxiliaryInsertion pendingAuxiliaryData)
     {

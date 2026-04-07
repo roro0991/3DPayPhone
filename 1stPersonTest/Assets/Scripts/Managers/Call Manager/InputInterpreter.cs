@@ -15,7 +15,6 @@ public class InputInterpreter : MonoBehaviour
         List<RectTransform> sentence = new List<RectTransform>();
         sentence = playerInput;
         
-
         for (int i = 0; i < sentence.Count; i++)
         {
             if(sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.

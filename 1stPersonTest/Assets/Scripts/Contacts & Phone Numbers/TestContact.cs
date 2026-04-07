@@ -24,7 +24,7 @@ public class TestContact : Contact
 
     public override void PopulateWordBank()
     {
-        wordBank.AddWordToSentence("What");
+        wordBank.AddWordToSentence("[?]");
         wordBank.AddWordToSentence("john");
         wordBank.AddWordToSentence("eat");
         wordBank.AddWordToSentence("apple");
