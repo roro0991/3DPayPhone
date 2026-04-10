@@ -3,6 +3,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Windows.Speech;
 using Dialogue.Core;
+using NUnit.Framework.Constraints;
 
 public class TestContact : Contact
 {
@@ -10,11 +11,7 @@ public class TestContact : Contact
     {
         ContactName = "John Smith";
         OpeningLine = "Hello?";
-
-        ResponsesByIntent[new ResponseKey(Intent.ASK_ABOUT_IDENTITY, WordID.Anna)] =
-            "Anna is my friend.";
-        ResponsesByIntent[new ResponseKey(Intent.ASK_ABOUT_LOCATION, WordID.Anna)] =
-            "Anna is at the office.";
+        
     }
 
     public override void SpeakFirstLine()
@@ -26,21 +23,21 @@ public class TestContact : Contact
     {
         wordBank.AddWordToSentence("[?]");
         wordBank.AddWordToSentence("john");
-        wordBank.AddWordToSentence("eat");
-        wordBank.AddWordToSentence("apple");
+        wordBank.AddWordToSentence("car");
+        wordBank.AddWordToSentence("drive");
     }
 
-    public override string GenerateResponse(ResponseKey responsekey)
+    public override string GenerateResponse(InterpretedQuery interpretedQuery)
     {
-        if (ResponsesByIntent.TryGetValue(responsekey, out var response))
+        switch (interpretedQuery.Interrogative)
         {
-            ContactResponse = response;
+            case InterrogativeType.What:
+                ContactResponse = HandleWhat(interpretedQuery);
+                break;
+            default:
+                break;
         }
-        else
-        {
-            ContactResponse = "I don't understand.";
-        }
-
+        
         return ContactResponse;
     }
 }

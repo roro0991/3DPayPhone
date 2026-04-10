@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Dialogue.Core;
+using Game.World;
 
 [System.Flags]
 public enum PartsOfSpeech
@@ -34,6 +35,7 @@ public class Word
     public string Text; // e.g., "run"    
     public PartsOfSpeech PartOfSpeech; // bitflags for multiple roles
     public WordID WordID; // optional, default to WordID.None
+    public Entity Entity;
     public Intent Intent; // optional, default to Intent.None
 
     public List<NounForms> NounFormsList = new();
@@ -43,12 +45,13 @@ public class Word
     public Word(string text,
         PartsOfSpeech partOfSpeech,
         Intent intent = Intent.None,
-        WordID wordID = WordID.None)
+        WordID wordID = WordID.None, Entity entity = null)
     {
         Text = text;
         PartOfSpeech = partOfSpeech;
         Intent = intent;
         WordID = wordID;
+        Entity = entity;
     }
 
     // ------------------- Nested Types -------------------

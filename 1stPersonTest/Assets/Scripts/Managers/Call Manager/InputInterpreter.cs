@@ -2,42 +2,39 @@ using Ink.Parsed;
 using UnityEngine;
 using System.Collections.Generic;
 using Dialogue.Core;
+using Game.World;
 
-
+public class InterpretedQuery
+{
+    public InterrogativeType Interrogative;        
+    public Entity Subject;
+    public Entity Target;
+    public SentenceWordEntry Verb;
+}
 
 public class InputInterpreter : MonoBehaviour
 {
-    Intent foundIntent = Intent.None;
-    WordID foundTopic = WordID.None;
 
-    public ResponseKey InterpretPlayerInput(List<RectTransform> playerInput)
+    public InterpretedQuery InterpretPlayerInput(PlayerQuestionData questionData)
     {
-        List<RectTransform> sentence = new List<RectTransform>();
-        sentence = playerInput;
-        
-        for (int i = 0; i < sentence.Count; i++)
+        var workingData = questionData;
+
+        InterrogativeType interrogative = workingData.Interrogative;
+            
+        InterpretedQuery interpretedQuery = new InterpretedQuery();
+
+        switch (interrogative)
         {
-            if(sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
-                Intent != Intent.None)
-               
-            {
-                foundIntent = sentence[i].GetComponent<DraggableWord>().
-                    sentenceWordEntry.Word.Intent;
-            }
+            case InterrogativeType.What:
+                interpretedQuery.Interrogative = workingData.Interrogative;
+                interpretedQuery.Subject = workingData.Subject.Word.Entity;
+                interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
+                break;
+            default:
+                break;
         }
 
-        for (int i = 0; i < sentence.Count; i++)
-        {
-            if (sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
-                HasPartOfSpeech(PartsOfSpeech.Character))
-            {
-                foundTopic = sentence[i].GetComponent<DraggableWord>().sentenceWordEntry.Word.
-                WordID;
-            }
-        }
-
-        ResponseKey responsekey = new ResponseKey(foundIntent, foundTopic);
-
-        return responsekey;
+        return interpretedQuery;
     }
+
 }

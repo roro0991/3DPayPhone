@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Dialogue.Core;
+using Game.World;
 
 public abstract class Contact : MonoBehaviour
 {
@@ -63,7 +64,22 @@ public abstract class Contact : MonoBehaviour
 
     public abstract void SpeakFirstLine();
     
-    public abstract string GenerateResponse(ResponseKey responseKey);
+    public abstract string GenerateResponse(InterpretedQuery interpretedQuery);
+
+    public string HandleWhat(InterpretedQuery interpretedQuery)
+    {
+        if (interpretedQuery.Subject is Person person &&
+            interpretedQuery.Target is ObjectEntity objectEntity)
+        {
+            ContactResponse = $"{person.Name} drives a {objectEntity.Name}.";
+        }
+        else
+        {
+            ContactResponse = "I don't know.";
+        }
+
+        return ContactResponse;
+    }
 
     public virtual void PopulateWordBank()
     {

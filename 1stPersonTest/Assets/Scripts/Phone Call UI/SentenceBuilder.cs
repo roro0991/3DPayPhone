@@ -10,40 +10,54 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Dialogue.Core;
 using static UnityEditor.PlayerSettings.SplashScreen;
 using static Word;
 
 public class SentenceBuilder : MonoBehaviour
 {
+    // Other scripts
     public WordBank wordBank;
+
+    // Panels
+    public GameObject verbMenu;
+    public GameObject nounMenu;
+    public GameObject interrogativeMenu;
+
+    // RectTransforms
     public RectTransform sentencePanelRect;
 
-    public Vector2 startPosition = Vector2.zero;
-    public float spacing = 10f;
+    // Prefabs
+    public GameObject draggableWordPrefab;
 
+    // Lists & Dictionaries
     public List<RectTransform> wordList = new List<RectTransform>(); // sentence word gameobjects
     public List<SentenceWordEntry> sentenceModel = new List<SentenceWordEntry>(); // sentence word data
     public List<SentenceWordEntry> storedWordList = new List<SentenceWordEntry>(); // for wordbank repopulation
-    public string currentSentenceAsString;
-    public GameObject draggableWordPrefab;
-
-    public GameObject verbMenu;
+    private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
+    
+    // Entries & Draggables
     public DraggableWord currentDraggable;
     public SentenceWordEntry currentPreviewEntry;
-
-    public GameObject nounMenu;
-
-    public GameObject interrogativeMenu;
-
     public SentenceWordEntry deactivatedVerb = null;
+
+    // Question Data
+    public PlayerQuestionData currentQuestionData;
+
+    // Floats | Ints | Vectors
+    public Vector2 startPosition = Vector2.zero;
+    public float spacing = 10f;
     public int deactivatedVerbIndex = -1;
-
-    public GameObject trailingPunctuation;
-
-    private bool sentenceHasPreviews;
-    private bool sentenceMutated;
     private int currentPreviewIndex = -1;
 
+    // Strings
+    public string currentSentenceAsString;
+
+    // Bools
+    private bool sentenceHasPreviews;
+    private bool sentenceMutated;
+
+    // Enums
     public enum InterrogativeRole
     {
         Unknown,
@@ -51,8 +65,7 @@ public class SentenceBuilder : MonoBehaviour
         Object,
         DeterminerOfSubject,
         DeterminerOfObject
-    }
-
+    }    
     public enum SubjectAgreement
     {
         Unknown,
@@ -60,15 +73,11 @@ public class SentenceBuilder : MonoBehaviour
         ThirdPersonSingular, // He, She, It [including Character names]
         Plural, // We, They, You, You [plural]
     }
-
-    private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
-
     private void Start()
     {
         wordBank = FindAnyObjectByType<WordBank>();
         deactivatedVerb = null;
     }
-
     // ---------------- Hover & Drop Management ------------
     public void HandleHoveringWord(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
     {
@@ -281,9 +290,8 @@ public class SentenceBuilder : MonoBehaviour
 
         CommitModelChange();
     }
-
+    
     // Noun form menu button methods
-
     public void CommitNounForm(string nounForm)
     {
         SentenceWordEntry currentEntry = currentDraggable.sentenceWordEntry;
@@ -314,7 +322,6 @@ public class SentenceBuilder : MonoBehaviour
 
         nounMenu.SetActive(false);
     }
-
     public void HoverNounButtonEnter(string nounForm)
     {
         var nounForms = currentPreviewEntry.Word.GetNounForm();
@@ -324,16 +331,9 @@ public class SentenceBuilder : MonoBehaviour
 
         if (nounForm == "singular")
             RebuildPreview(nounForms.Singular);
-    }
-
-    public void HoverNounButtonExit()
-    {
-        var nounForms = currentPreviewEntry.Word.GetNounForm();
-        RebuildPreview(nounForms.Singular);
-    }
+    }    
 
     // Verb form menu button methods
-
     public void CommitVerbForm(string verbForm)
     {        
         SentenceWordEntry currentEntry = currentDraggable.sentenceWordEntry;
@@ -383,8 +383,6 @@ public class SentenceBuilder : MonoBehaviour
 
         verbMenu.SetActive(false);
     }
-
-
     public void HoverVerbButtonEnter(string form)
     {
         var verbForms = currentPreviewEntry.Word.GetVerbForm();
@@ -401,16 +399,8 @@ public class SentenceBuilder : MonoBehaviour
                 break;
         }        
     }
-
-    public void HoverVerbButtonExit()
-    {
-        var verbForms = currentPreviewEntry.Word.GetVerbForm();        
-        RebuildPreview(verbForms.Base);
-    }
-
-
+    
     // Interrogative menu button methods
-
     public void CommitInterrogative(string interrogativeForm)
     {
         
@@ -443,7 +433,6 @@ public class SentenceBuilder : MonoBehaviour
 
         interrogativeMenu.SetActive(false);
     }
-
     public void HoverInterrogativeButton(string interrogativeForm)
     {
         switch (interrogativeForm)
@@ -458,6 +447,8 @@ public class SentenceBuilder : MonoBehaviour
                 break;
         }
     }
+    
+    // Return to bank button
     public void ReturnToBankButton()
     {        
         currentDraggable.gameObject.SetActive(true);
@@ -470,28 +461,8 @@ public class SentenceBuilder : MonoBehaviour
         nounMenu.SetActive(false);
         interrogativeMenu.SetActive(false);
     }
-    private void ChangeEntryWord(DraggableWord originalDraggable, string newWord)
-    {
-        originalDraggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(newWord);
-        originalDraggable.sentenceWordEntry.Surface = newWord;
-    }
-    private void RebuildPreview(string surface)
-    {
-        var entry = new SentenceWordEntry()
-        {
-            Word = currentPreviewEntry.Word,
-            Surface = surface,
-            isPreview = true
-        };
 
-        sentenceModel.RemoveAll(entry => entry.isPreview);
-        sentenceModel.Insert(currentPreviewIndex, entry);
-
-        currentPreviewEntry = entry;
-
-        ApplyNormalizedPreview(sentenceModel, true);
-
-    }
+    // Utility methods
     private int GetInsertionIndex(float draggableMidX, float margin = 10f)
     {
         int modelIndex = sentenceModel.Count; // default to end
@@ -511,12 +482,6 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         return modelIndex;
-    }
-    public void InsertWordEntryAt(SentenceWordEntry entry, int index)
-    {
-        sentenceModel.Insert(index, entry);
-        storedWordList.Add(entry); // Add to backup list
-        sentenceMutated = true;
     }
     public void RemoveDraggableFromSentence(SentenceWordEntry draggableEntry, PointerEventData eventData) // Called from DraggableWord.cs
     {
@@ -578,46 +543,6 @@ public class SentenceBuilder : MonoBehaviour
         sentenceMutated = true;
         CommitModelChange();
     }
-
-    // ---------------- Sentence management ----------------    
-    // Preview Methods
-    public void ClearPreview()
-    {
-        if (!sentenceHasPreviews)
-            return;
-
-        Debug.Log("previews cleared");
-
-        sentenceModel.RemoveAll(entry => entry.isPreview);
-        sentenceHasPreviews = false;
-
-        // Remove preview RectTransforms from the UI and dictionary
-        foreach (var kvp in ModelRects.Where(kvp => kvp.Key.isPreview).ToList())
-        {
-            RectTransform rect = kvp.Value;
-
-            // Remove from wordList to prevent it from being rebuilt
-            if (wordList.Contains(rect))
-                wordList.Remove(rect);
-
-            // Destroy the UI element
-            Destroy(rect.gameObject);
-
-            // Remove from ModelRects 
-            ModelRects.Remove(kvp.Key);
-        }
-
-        // Reset preview tracking
-        currentPreviewIndex = -1;
-        Debug.Log("Previews removed");
-    }
-
-    private void ApplyNormalizedPreview(List<SentenceWordEntry> model, bool isPreview)
-    {
-        List<SentenceWordEntry> normalizedModel = Normalize(model);
-        ApplyNormalizationResults(normalizedModel, isPreview);
-    }
-    // Drop Methods
     private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData = null)
     {
         WordBank wb = wordBank;
@@ -649,6 +574,83 @@ public class SentenceBuilder : MonoBehaviour
 
         word.isInSentencePanel = false;
     }
+    private void ChangeEntryWord(DraggableWord originalDraggable, string newWord)
+    {
+        originalDraggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(newWord);
+        originalDraggable.sentenceWordEntry.Surface = newWord;
+    }
+    private void RebuildPreview(string surface)
+    {
+        var entry = new SentenceWordEntry()
+        {
+            Word = currentPreviewEntry.Word,
+            Surface = surface,
+            isPreview = true
+        };
+
+        sentenceModel.RemoveAll(entry => entry.isPreview);
+        sentenceModel.Insert(currentPreviewIndex, entry);
+
+        currentPreviewEntry = entry;
+
+        ApplyNormalizedPreview(sentenceModel, true);
+
+    }
+    private void InsertWordEntryAt(SentenceWordEntry entry, int index)
+    {
+        sentenceModel.Insert(index, entry);
+        storedWordList.Add(entry); // Add to backup list
+        sentenceMutated = true;
+    }
+    private void MoveWord(List<SentenceWordEntry> list, int oldIndex, int newIndex)
+    {
+        if (oldIndex >= 0 && oldIndex < list.Count &&
+            newIndex >= 0 && newIndex <= list.Count)
+        {
+            SentenceWordEntry entry = list[oldIndex];
+            list.RemoveAt(oldIndex);
+            list.Insert(newIndex, entry);
+        }
+    }
+
+    // ---------------- Sentence management ----------------    
+    // Preview Methods
+    private void ClearPreview()
+    {
+        if (!sentenceHasPreviews)
+            return;
+
+        Debug.Log("previews cleared");
+
+        sentenceModel.RemoveAll(entry => entry.isPreview);
+        sentenceHasPreviews = false;
+
+        // Remove preview RectTransforms from the UI and dictionary
+        foreach (var kvp in ModelRects.Where(kvp => kvp.Key.isPreview).ToList())
+        {
+            RectTransform rect = kvp.Value;
+
+            // Remove from wordList to prevent it from being rebuilt
+            if (wordList.Contains(rect))
+                wordList.Remove(rect);
+
+            // Destroy the UI element
+            Destroy(rect.gameObject);
+
+            // Remove from ModelRects 
+            ModelRects.Remove(kvp.Key);
+        }
+
+        // Reset preview tracking
+        currentPreviewIndex = -1;
+        Debug.Log("Previews removed");
+    }
+    private void ApplyNormalizedPreview(List<SentenceWordEntry> model, bool isPreview)
+    {
+        List<SentenceWordEntry> normalizedModel = Normalize(model);
+        ApplyNormalizationResults(normalizedModel, isPreview);
+    }
+    
     // Normalization Methods
     private bool CanInsertAt(List<SentenceWordEntry> model, int insertIndex, SentenceWordEntry entry) // Initial grammar gate for insertion
     {
@@ -824,7 +826,6 @@ public class SentenceBuilder : MonoBehaviour
 
         return workingModel;
     }
-
     private void ClearPreviewRelationships(List<SentenceWordEntry> workingModel)
     {
         if (workingModel.Count == 0)
@@ -876,124 +877,245 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
     }
-
-    // Early conjunction normalizer meant to add 'and' between adjacent noun phrases
-    private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
+    private void ClearLooseAuxiliaries(List<SentenceWordEntry> workingModel)
     {
-        if (workingModel == null || workingModel.Count == 0) //Defensive check
+        // Auxiliaries already get cleared if their owningVerb is removed
+        // This is to remove auxiliaries if their ownVerb's owningSubjects are removed.
+
+        if (!workingModel.Any(entry => entry.activePOS == PartsOfSpeech.Auxiliary))
             return;
 
-        // Remove only loose conjunctions
-        List<int> conjunctionIndices = new();
-
-        for (int i = 0; i < workingModel.Count; i++)
+        for (int i = workingModel.Count - 1; i >= 0; i--)
         {
-            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Conjunction))
-                conjunctionIndices.Add(i);
-        }
-
-        for (int i = conjunctionIndices.Count - 1; i >= 0; i--)
-        {
-            int conjunctionIndex = conjunctionIndices[i];
-
-            var rightWord = (conjunctionIndex + 1) < workingModel.Count
-                ? workingModel[conjunctionIndex + 1]
-                : null;
-
-            var leftWord = (conjunctionIndex - 1) >= 0
-                ? workingModel[conjunctionIndex - 1]
-                : null;
-
-            if (rightWord == null ||
-                rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction) ||
-                rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation) ||
-                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
-                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) ||
-                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
-                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
-                (!rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) && rightWord.owningAdjective == null))
+            if (workingModel[i].activePOS == PartsOfSpeech.Auxiliary && workingModel[i].owningVerb != null)
             {
-                workingModel.RemoveAt(conjunctionIndex);
-                continue;
-            }
+                var owningVerb = workingModel[i].owningVerb;
 
-            if (leftWord == null ||
-                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
-                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
-                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) ||
-                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
-                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
-                (!rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) && rightWord.owningAdjective == null))
-            {
-                workingModel.RemoveAt(conjunctionIndex);
-                continue;
-            }
-        }
-
-        List<int> nounIndices = new();
-        List<int> conjunctionInsertionIndices = new();
-
-        for (int i = 0; i < workingModel.Count; i++)
-        {
-            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
-                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
-                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
-                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun))
-                nounIndices.Add(i);
-        }
-
-        if (nounIndices.Count < 2) // conj unnecessary if < 2 nouns present in model
-            return;
-
-        for (int i = 0; i < nounIndices.Count - 1; i++)
-        {
-            int firstNounIndex = nounIndices[i];
-            int secondNounindex = nounIndices[i + 1];
-
-            int start = firstNounIndex + 1;
-            int end = secondNounindex;
-
-            // Check for verbs or existing conjuntions between nouns
-            bool verbOrConjFound = false;
-
-            for (int j = start; j < end; j++)
-            {
-                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Verb) ||
-                    workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Conjunction))
+                if (owningVerb.auxiliary == workingModel[i]
+                    && owningVerb.owningSubjects.Count == 0)
                 {
-                    verbOrConjFound = true;
-                    break;
+                    owningVerb.auxiliary = null;
+                    workingModel.RemoveAt(i);
                 }
             }
-
-            if (verbOrConjFound)
-                continue;
-
-            // Prevent conjunctions between nouns and (characters + pronouns)
-            if ((workingModel[firstNounIndex].Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
-                !workingModel[secondNounindex].Word.HasPartOfSpeech(PartsOfSpeech.Noun)) ||
-                (!workingModel[firstNounIndex].Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
-                workingModel[secondNounindex].Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
-                continue;
-
-            conjunctionInsertionIndices.Add(firstNounIndex + 1);
-        }
-
-        if (conjunctionInsertionIndices.Count == 0)
-            return;
-
-        var andWord = WordDataBase.Instance.GetWord("and");
-
-        for (int i = conjunctionInsertionIndices.Count - 1; i >= 0; i--)
-        {
-            SentenceWordEntry conjunction = new();
-            conjunction.Word = andWord;
-            conjunction.Surface = andWord.Text;
-
-            workingModel.Insert(conjunctionInsertionIndices[i], conjunction);
         }
     }
+    private void ClearLooseArticles(List<SentenceWordEntry> workingModel)
+    {
+        for (int i = workingModel.Count - 1; i >= 0; i--)
+        {
+            if (!workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                continue;
 
+            bool precededByInterrogative = false;
+
+            var articleEntry = workingModel[i];
+
+            if (i - 1 >= 0)
+            {
+                if (workingModel[i - 1].Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+                    precededByInterrogative = true;
+            }
+
+            // Remove if owningNoun exists, but article is preceded by an interrogative
+            if (articleEntry.owningNoun != null && precededByInterrogative)
+            {
+                articleEntry.owningNoun.article = null;
+                articleEntry.owningNoun = null;
+                workingModel.RemoveAt(i);
+                continue;
+            }
+
+            // Skip if article has an owningNoun && not preceded by an interrogative
+            if (articleEntry.owningNoun != null && !precededByInterrogative)
+                continue;
+
+            workingModel.RemoveAt(i);
+        }
+    }
+    private void PairAdjectivesToNouns(List<SentenceWordEntry> workingModel)
+    {
+        for (int i = workingModel.Count - 1; i >= 0; i--)
+        {
+            SentenceWordEntry wordData = workingModel[i];
+
+            if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                continue;
+
+            foreach (var adjective in wordData.adjectives)
+            {
+                adjective.owningNoun = null;
+            }
+            wordData.adjectives.Clear();
+
+            List<SentenceWordEntry> tempAdjList = new();
+
+            for (int j = i - 1; j >= 0; j--)
+            {
+                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+                    continue;
+
+                if (!workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Adjective))
+                    break;
+
+                tempAdjList.Add(workingModel[j]);
+            }
+            //Debug.Log(wordData.Surface + " has " + tempAdjList.Count + " adjectives.");
+
+            tempAdjList.Reverse();
+
+            foreach (var adjective in tempAdjList)
+            {
+                adjective.owningNoun = wordData;
+                wordData.adjectives.Enqueue(adjective);
+            }
+        }
+    }
+    private List<PendingArticleInsertion> CollectArticlesToInsert(List<SentenceWordEntry> workingModel)
+    {
+        List<PendingArticleInsertion> articleEntriesToInsert = new List<PendingArticleInsertion>();
+
+        for (int i = workingModel.Count - 1; i >= 0; i--)
+        {
+            SentenceWordEntry wordData = workingModel[i];
+            bool precededByInterrogative = false;
+
+            if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+                continue;
+            if (!wordData.Word.IsSingular(wordData.Surface))
+                continue;
+            if (wordData.article != null)
+                continue;
+
+            int nounIndex = workingModel.IndexOf(wordData);
+
+            for (int j = nounIndex - 1; j >= 0; j--)
+            {
+                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
+                    continue;
+
+                if (!workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+                    break;
+
+                precededByInterrogative = true;
+            }
+
+            if (precededByInterrogative)
+                continue;
+
+            // Set articleAnchor to noun if no adjectives present
+            SentenceWordEntry articleAnchor = wordData;
+
+            if (wordData.adjectives.Count > 0)
+            {
+                articleAnchor = wordData.adjectives.Peek();
+            }
+
+            articleEntriesToInsert.Add(new PendingArticleInsertion
+            {
+                nounIndex = i,
+                nounData = wordData,
+                articleAnchor = articleAnchor
+            });
+        }
+
+        return articleEntriesToInsert;
+    }
+    private void UpdateAndInsertArticles(List<SentenceWordEntry> workingModel, List<PendingArticleInsertion> articlesToInsert)
+    {
+        // Update existing articles if necessary
+        if (workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Article)))
+        {
+            List<SentenceWordEntry> existingArticles = new();
+
+            for (int i = 0; i < workingModel.Count; i++)
+            {
+                if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                    existingArticles.Add(workingModel[i]);
+            }
+            //Debug.Log("existing articles: " + existingArticles.Count);
+
+            for (int i = 0; i < existingArticles.Count; i++)
+            {
+                // Check article anchor
+                SentenceWordEntry articleAnchor = null;
+                var owningNoun = existingArticles[i].owningNoun;
+
+                if (owningNoun == null)
+                {
+                    //Debug.LogError("Article without owning noun detected");
+                    continue;
+                }
+
+                if (owningNoun.adjectives.Count == 0)
+                {
+                    articleAnchor = owningNoun;
+                    //Debug.Log("article anchor: " + articleAnchor.Surface);
+                }
+                else
+                {
+                    articleAnchor = existingArticles[i].owningNoun.adjectives.Peek();
+                    //Debug.Log("article anchor: " + articleAnchor.Surface);
+                }
+
+                char firstLetterOfAnchor = char.ToLower(articleAnchor.Surface[0]);
+                bool startsWithVowel = "aeiou".Contains(firstLetterOfAnchor);
+                string article = startsWithVowel ? "an" : "a";
+                //Debug.Log("updated article: " + article);
+
+                if (existingArticles[i].Surface != article)
+                {
+                    //Debug.Log("article updated from " + existingArticles[i].Surface + " to " + article);
+                    existingArticles[i].Word = WordDataBase.Instance.GetWord(article);
+                    existingArticles[i].Surface = article;
+                }
+            }
+        }
+
+        foreach (var pending in articlesToInsert)
+        {
+            int anchorIndex = workingModel.IndexOf(pending.articleAnchor);
+
+            if (anchorIndex < 0)
+                continue; // noun no longer exists - safety check
+
+            SentenceWordEntry articleEntry =
+                CreateArticleForNoun(pending);
+
+            workingModel.Insert(anchorIndex, articleEntry);
+        }
+    }
+    private SentenceWordEntry CreateArticleForNoun(PendingArticleInsertion pending)
+    {
+        SentenceWordEntry articleEntry = new SentenceWordEntry();
+
+        // Determine article
+        char firstLetterOfAnchor = char.ToLower(pending.articleAnchor.Surface[0]);
+        bool startsWithVowel = "aeiou".Contains(firstLetterOfAnchor);
+        string article = startsWithVowel ? "an" : "a";
+
+        // Set word data
+        articleEntry.Word = WordDataBase.Instance.GetWord(article);
+        articleEntry.Surface = article;
+        articleEntry.owningNoun = pending.nounData;
+        pending.nounData.article = articleEntry;
+
+        //Debug.Log("inserted article: " + article);
+        //Debug.Log("article's owning noun: " + wordData.Surface);
+        //Debug.Log("aritcleAnchor for " + pending.nounData.Surface + " is " + pending.articleAnchor.Surface);
+
+        return articleEntry;
+    }
+    private void NormalizeInterrogative(List<SentenceWordEntry> rawModel)
+    {
+        var foundInterrogative = rawModel.FirstOrDefault(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+        && !entry.isPreview);
+
+        if (foundInterrogative != null &&
+            rawModel[0] != foundInterrogative)
+            MoveWord(rawModel, rawModel.IndexOf(foundInterrogative), 0);
+    }
+    // Question Normalization Methods
     private void NormalizeIfQuestion(List<SentenceWordEntry> workingModel)
     {
         // Defensive checks
@@ -1386,41 +1508,17 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("existing auxiliary for verb " + verbEntry.Surface + " is " + verbEntry.auxiliary.Surface);
         }
 
+        currentQuestionData = new PlayerQuestionData
+        {
+            Interrogative = InterrogativeType.What,
+            isCopular = verbEntry.Word.Text == "be" ? true : false,
+            Subject = subjectEntries[0] != null ? subjectEntries[0] : null,
+            Object = objectEntries[0] != null ? objectEntries[0] : null,
+            Verb = verbEntry != null ? verbEntry : null
+        };
+
         CreateAuxiliaryVerb(workingModel, pendingData);
     }
-
-    private void ClearLooseAuxiliaries(List<SentenceWordEntry> workingModel)
-    {
-        // Auxiliaries already get cleared if their owningVerb is removed
-        // This is to remove auxiliaries if their ownVerb's owningSubjects are removed.
-
-        if (!workingModel.Any(entry => entry.activePOS == PartsOfSpeech.Auxiliary))
-            return;
-
-        for (int i = workingModel.Count - 1; i >= 0; i--)
-        {
-            if (workingModel[i].activePOS == PartsOfSpeech.Auxiliary && workingModel[i].owningVerb != null)
-            {
-                var owningVerb = workingModel[i].owningVerb;
-
-                if (owningVerb.auxiliary == workingModel[i]
-                    && owningVerb.owningSubjects.Count == 0)
-                {
-                    owningVerb.auxiliary = null;
-                    workingModel.RemoveAt(i);
-                }
-            }
-        }
-    }
-    private class PendingAuxiliaryInsertion
-    {
-        public bool isQuestion = false;
-        public int auxInsertionIndex;
-        public SubjectAgreement subjAgreement;
-        public SentenceWordEntry verb;
-        public Word.VerbForms.VerbForm verbForm;
-    }   
-
     private void CreateAuxiliaryVerb(List<SentenceWordEntry> workingModel, PendingAuxiliaryInsertion pendingAuxiliaryData)
     {
         if (workingModel == null || workingModel.Count == 0)
@@ -1537,250 +1635,120 @@ public class SentenceBuilder : MonoBehaviour
 
         workingModel.Insert(auxiliaryInsertionIndex, auxiliaryVerb);
     }
-
-    private void PairAdjectivesToNouns(List<SentenceWordEntry> workingModel)
+    private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
     {
-        for (int i = workingModel.Count - 1; i >= 0; i--)
+        if (workingModel == null || workingModel.Count == 0) //Defensive check
+            return;
+
+        // Remove only loose conjunctions
+        List<int> conjunctionIndices = new();
+
+        for (int i = 0; i < workingModel.Count; i++)
         {
-            SentenceWordEntry wordData = workingModel[i];
+            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Conjunction))
+                conjunctionIndices.Add(i);
+        }
 
-            if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+        for (int i = conjunctionIndices.Count - 1; i >= 0; i--)
+        {
+            int conjunctionIndex = conjunctionIndices[i];
+
+            var rightWord = (conjunctionIndex + 1) < workingModel.Count
+                ? workingModel[conjunctionIndex + 1]
+                : null;
+
+            var leftWord = (conjunctionIndex - 1) >= 0
+                ? workingModel[conjunctionIndex - 1]
+                : null;
+
+            if (rightWord == null ||
+                rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Conjunction) ||
+                rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation) ||
+                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) ||
+                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                !rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
+                (!rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) && rightWord.owningAdjective == null))
+            {
+                workingModel.RemoveAt(conjunctionIndex);
                 continue;
-
-            foreach (var adjective in wordData.adjectives)
-            {
-                adjective.owningNoun = null;
             }
-            wordData.adjectives.Clear();
 
-            List<SentenceWordEntry> tempAdjList = new();
-
-            for (int j = i - 1; j >= 0; j--)
+            if (leftWord == null ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                !leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
+                (!rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) && rightWord.owningAdjective == null))
             {
-                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
-                    continue;
+                workingModel.RemoveAt(conjunctionIndex);
+                continue;
+            }
+        }
 
-                if (!workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Adjective))
+        List<int> nounIndices = new();
+        List<int> conjunctionInsertionIndices = new();
+
+        for (int i = 0; i < workingModel.Count; i++)
+        {
+            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
+                workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun))
+                nounIndices.Add(i);
+        }
+
+        if (nounIndices.Count < 2) // conj unnecessary if < 2 nouns present in model
+            return;
+
+        for (int i = 0; i < nounIndices.Count - 1; i++)
+        {
+            int firstNounIndex = nounIndices[i];
+            int secondNounindex = nounIndices[i + 1];
+
+            int start = firstNounIndex + 1;
+            int end = secondNounindex;
+
+            // Check for verbs or existing conjuntions between nouns
+            bool verbOrConjFound = false;
+
+            for (int j = start; j < end; j++)
+            {
+                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Verb) ||
+                    workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Conjunction))
+                {
+                    verbOrConjFound = true;
                     break;
-
-                tempAdjList.Add(workingModel[j]);
-            }
-            //Debug.Log(wordData.Surface + " has " + tempAdjList.Count + " adjectives.");
-
-            tempAdjList.Reverse();
-
-            foreach (var adjective in tempAdjList)
-            {
-                adjective.owningNoun = wordData;
-                wordData.adjectives.Enqueue(adjective);
-            }
-        }
-    }
-    private void ClearLooseArticles(List<SentenceWordEntry> workingModel)
-    {
-        for (int i = workingModel.Count - 1; i >= 0; i--)
-        {
-            if (!workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
-                continue;
-
-            bool precededByInterrogative = false;
-
-            var articleEntry = workingModel[i];
-
-            if (i - 1 >= 0)
-            {
-                if (workingModel[i - 1].Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
-                    precededByInterrogative = true;
-            }
-
-            // Remove if owningNoun exists, but article is preceded by an interrogative
-            if (articleEntry.owningNoun != null && precededByInterrogative)
-            {
-                articleEntry.owningNoun.article = null;
-                articleEntry.owningNoun = null;
-                workingModel.RemoveAt(i);
-                continue;
-            }
-
-            // Skip if article has an owningNoun && not preceded by an interrogative
-            if (articleEntry.owningNoun != null && !precededByInterrogative)
-                continue;
-
-            workingModel.RemoveAt(i);
-        }
-    }
-    private class PendingArticleInsertion // Helper class for article insertion
-    {
-        public SentenceWordEntry nounData;
-        public int nounIndex;
-        public SentenceWordEntry articleAnchor;
-    }
-    private List<PendingArticleInsertion> CollectArticlesToInsert(List<SentenceWordEntry> workingModel)
-    {
-        List<PendingArticleInsertion> articleEntriesToInsert = new List<PendingArticleInsertion>();
-
-        for (int i = workingModel.Count - 1; i >= 0; i--)
-        {
-            SentenceWordEntry wordData = workingModel[i];
-            bool precededByInterrogative = false;
-
-            if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
-                continue;
-            if (!wordData.Word.IsSingular(wordData.Surface))
-                continue;
-            if (wordData.article != null)
-                continue;
-
-            int nounIndex = workingModel.IndexOf(wordData);
-
-            for (int j = nounIndex - 1; j >= 0; j--)
-            {
-                if (workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Punctuation))
-                    continue;
-
-                if (!workingModel[j].Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
-                    break;
-
-                precededByInterrogative = true;
-            }
-
-            if (precededByInterrogative)
-                continue;
-
-            // Set articleAnchor to noun if no adjectives present
-            SentenceWordEntry articleAnchor = wordData;
-
-            if (wordData.adjectives.Count > 0)
-            {
-                articleAnchor = wordData.adjectives.Peek();
-            }
-
-            articleEntriesToInsert.Add(new PendingArticleInsertion
-            {
-                nounIndex = i,
-                nounData = wordData,
-                articleAnchor = articleAnchor
-            });
-        }
-
-        return articleEntriesToInsert;
-    }
-    private void UpdateAndInsertArticles(List<SentenceWordEntry> workingModel, List<PendingArticleInsertion> articlesToInsert)
-    {
-        // Update existing articles if necessary
-        if (workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Article)))
-        {
-            List<SentenceWordEntry> existingArticles = new();
-
-            for (int i = 0; i < workingModel.Count; i++)
-            {
-                if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Article))
-                    existingArticles.Add(workingModel[i]);
-            }
-            //Debug.Log("existing articles: " + existingArticles.Count);
-
-            for (int i = 0; i < existingArticles.Count; i++)
-            {
-                // Check article anchor
-                SentenceWordEntry articleAnchor = null;
-                var owningNoun = existingArticles[i].owningNoun;
-
-                if (owningNoun == null)
-                {
-                    //Debug.LogError("Article without owning noun detected");
-                    continue;
-                }
-
-                if (owningNoun.adjectives.Count == 0)
-                {
-                    articleAnchor = owningNoun;
-                    //Debug.Log("article anchor: " + articleAnchor.Surface);
-                }
-                else
-                {
-                    articleAnchor = existingArticles[i].owningNoun.adjectives.Peek();
-                    //Debug.Log("article anchor: " + articleAnchor.Surface);
-                }
-
-                char firstLetterOfAnchor = char.ToLower(articleAnchor.Surface[0]);
-                bool startsWithVowel = "aeiou".Contains(firstLetterOfAnchor);
-                string article = startsWithVowel ? "an" : "a";
-                //Debug.Log("updated article: " + article);
-
-                if (existingArticles[i].Surface != article)
-                {
-                    //Debug.Log("article updated from " + existingArticles[i].Surface + " to " + article);
-                    existingArticles[i].Word = WordDataBase.Instance.GetWord(article);
-                    existingArticles[i].Surface = article;
                 }
             }
+
+            if (verbOrConjFound)
+                continue;
+
+            // Prevent conjunctions between nouns and (characters + pronouns)
+            if ((workingModel[firstNounIndex].Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
+                !workingModel[secondNounindex].Word.HasPartOfSpeech(PartsOfSpeech.Noun)) ||
+                (!workingModel[firstNounIndex].Word.HasPartOfSpeech(PartsOfSpeech.Noun) &&
+                workingModel[secondNounindex].Word.HasPartOfSpeech(PartsOfSpeech.Noun)))
+                continue;
+
+            conjunctionInsertionIndices.Add(firstNounIndex + 1);
         }
 
-        foreach (var pending in articlesToInsert)
+        if (conjunctionInsertionIndices.Count == 0)
+            return;
+
+        var andWord = WordDataBase.Instance.GetWord("and");
+
+        for (int i = conjunctionInsertionIndices.Count - 1; i >= 0; i--)
         {
-            int anchorIndex = workingModel.IndexOf(pending.articleAnchor);
+            SentenceWordEntry conjunction = new();
+            conjunction.Word = andWord;
+            conjunction.Surface = andWord.Text;
 
-            if (anchorIndex < 0)
-                continue; // noun no longer exists - safety check
-
-            SentenceWordEntry articleEntry =
-                CreateArticleForNoun(pending);
-
-            workingModel.Insert(anchorIndex, articleEntry);
+            workingModel.Insert(conjunctionInsertionIndices[i], conjunction);
         }
-    }
-    private SentenceWordEntry CreateArticleForNoun(PendingArticleInsertion pending)
-    {
-        SentenceWordEntry articleEntry = new SentenceWordEntry();
-
-        // Determine article
-        char firstLetterOfAnchor = char.ToLower(pending.articleAnchor.Surface[0]);
-        bool startsWithVowel = "aeiou".Contains(firstLetterOfAnchor);
-        string article = startsWithVowel ? "an" : "a";
-
-        // Set word data
-        articleEntry.Word = WordDataBase.Instance.GetWord(article);
-        articleEntry.Surface = article;
-        articleEntry.owningNoun = pending.nounData;
-        pending.nounData.article = articleEntry;
-
-        //Debug.Log("inserted article: " + article);
-        //Debug.Log("article's owning noun: " + wordData.Surface);
-        //Debug.Log("aritcleAnchor for " + pending.nounData.Surface + " is " + pending.articleAnchor.Surface);
-
-        return articleEntry;
-    }
-    private void UpdateModelDictionary() // Middleman between model entries and rects
-    {
-        ModelRects.Clear();
-
-        foreach (SentenceWordEntry entry in sentenceModel)
-        {
-
-            RectTransform rect = FindRectForEntry(entry);
-            if (rect != null && !ModelRects.ContainsKey(entry))
-                ModelRects.Add(entry, rect);
-        }
-    }
-    private RectTransform FindRectForEntry(SentenceWordEntry entry) // Helper method for ModelDictionary
-    {
-        foreach (RectTransform rect in wordList)
-        {
-            var draggable = rect.GetComponent<DraggableWord>();
-            if (draggable != null && draggable.sentenceWordEntry == entry)
-                return rect;
-        }
-
-        return null;
-    }
-    private void NormalizeInterrogative(List<SentenceWordEntry> rawModel)
-    {
-        var foundInterrogative = rawModel.FirstOrDefault(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
-        && !entry.isPreview);
-
-        if (foundInterrogative != null &&
-            rawModel[0] != foundInterrogative)
-            MoveWord(rawModel, rawModel.IndexOf(foundInterrogative), 0);
     }
     private void NormalizeTrailingPunctuation(List<SentenceWordEntry> rawModel)
     {
@@ -1808,19 +1776,50 @@ public class SentenceBuilder : MonoBehaviour
 
         rawModel.Add(punctuationEntry);
     }
-    private void MoveWord(List<SentenceWordEntry> list, int oldIndex, int newIndex)
+    
+    // Data classes
+    private class PendingAuxiliaryInsertion
     {
-        if (oldIndex >= 0 && oldIndex < list.Count &&
-            newIndex >= 0 && newIndex <= list.Count)
+        public bool isQuestion = false;
+        public int auxInsertionIndex;
+        public SubjectAgreement subjAgreement;
+        public SentenceWordEntry verb;
+        public Word.VerbForms.VerbForm verbForm;
+    }   
+    private class PendingArticleInsertion // Helper class for article insertion
+    {
+        public SentenceWordEntry nounData;
+        public int nounIndex;
+        public SentenceWordEntry articleAnchor;
+    }    
+
+    // Model dictionary methods
+    private void UpdateModelDictionary() // Middleman between model entries and rects
+    {
+        ModelRects.Clear();
+
+        foreach (SentenceWordEntry entry in sentenceModel)
         {
-            SentenceWordEntry entry = list[oldIndex];
-            list.RemoveAt(oldIndex);
-            list.Insert(newIndex, entry);
+
+            RectTransform rect = FindRectForEntry(entry);
+            if (rect != null && !ModelRects.ContainsKey(entry))
+                ModelRects.Add(entry, rect);
         }
+    }
+    private RectTransform FindRectForEntry(SentenceWordEntry entry) // Helper method for ModelDictionary
+    {
+        foreach (RectTransform rect in wordList)
+        {
+            var draggable = rect.GetComponent<DraggableWord>();
+            if (draggable != null && draggable.sentenceWordEntry == entry)
+                return rect;
+        }
+
+        return null;
     }
 
     // UI Methods
-    public void CommitModelChange() // Commit sentence mutations for UI update
+    private void CommitModelChange() // Commit sentence mutations for UI update
     {
         if (!sentenceMutated)
             return;

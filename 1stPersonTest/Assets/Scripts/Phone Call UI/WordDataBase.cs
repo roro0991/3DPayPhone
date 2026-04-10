@@ -40,7 +40,7 @@ public class WordDataBase : MonoBehaviour
         // ----------------- Characters -----------------
 
         AddWord(new Word("anna", PartsOfSpeech.Character, wordID: WordID.Anna));
-        AddWord(new Word("john", PartsOfSpeech.Character, wordID: WordID.John));
+        AddWord(new Word("john", PartsOfSpeech.Character, wordID: WordID.John, entity: WorldRegistryBootStrapper.JohnEntity));
 
         // ----------------- Interrogatives -----------------
         AddWord(new Word(".", PartsOfSpeech.Punctuation));
@@ -50,11 +50,9 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word("and", PartsOfSpeech.Conjunction));
 
         // ----------------- Interrogatives -----------------
-        AddWord(new Word("who", PartsOfSpeech.Interrogative, 
-            intent: Intent.ASK_ABOUT_IDENTITY));
+        AddWord(new Word("who", PartsOfSpeech.Interrogative));
         AddWord(new Word("what", PartsOfSpeech.Interrogative));
-        AddWord(new Word("where", PartsOfSpeech.Interrogative,
-            intent: Intent.ASK_ABOUT_LOCATION));
+        AddWord(new Word("where", PartsOfSpeech.Interrogative));
         AddWord(new Word("when", PartsOfSpeech.Interrogative));
         AddWord(new Word("why", PartsOfSpeech.Interrogative));
 
@@ -94,6 +92,11 @@ public class WordDataBase : MonoBehaviour
         appleWord.AddNounForm(appleForms);
         AddWord(appleWord);
 
+        var carForms = new Word.NounForms { Singular = "car", Plural = "cars" };
+        var carWord = new Word("car", PartsOfSpeech.Noun);
+        carWord.AddNounForm(carForms);
+        AddWord(carWord);
+
         var dogForms = new Word.NounForms { Singular = "dog", Plural = "dogs" };
         var dogWord = new Word("dog", PartsOfSpeech.Noun);
         dogWord.AddNounForm(dogForms);
@@ -110,6 +113,20 @@ public class WordDataBase : MonoBehaviour
         AddWord(elephantWord);
 
         // ----------------- Verbs -----------------
+
+        var driveForms = new Word.VerbForms
+        {
+            Base = "drive",
+            Past = "drove",
+            PastParticiple = "driven",
+            PresentParticiple = "driving",
+            ThirdPerson = "Drives"
+        };
+
+        var driveWord = new Word("drive", PartsOfSpeech.Verb);
+        driveWord.AddVerbForm(driveForms);
+        AddWord(driveWord);
+
         var haveForms = new Word.VerbForms
         {
             Base = "have",

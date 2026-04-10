@@ -103,11 +103,11 @@ public class CallManager : MonoBehaviour
     // --- PLAYER INPUT ---
     public void ReadPlayerInput(string s)
     {
-        if (CurrentState != Call_State.IN_CALL) return;        
+        if (CurrentState != Call_State.IN_CALL) return;
 
-        ResponseKey responseKey = inputInterpreter.InterpretPlayerInput(sentenceBuilder.wordList);
+        InterpretedQuery interpretedQuery = inputInterpreter.InterpretPlayerInput(sentenceBuilder.currentQuestionData);
 
-        currentContact.GenerateResponse(responseKey);
+        currentContact.GenerateResponse(interpretedQuery);
         StartCoroutine(ReadPlayerInputSequence());
     }
 
