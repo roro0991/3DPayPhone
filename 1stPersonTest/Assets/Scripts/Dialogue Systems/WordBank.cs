@@ -12,7 +12,7 @@ public class SentenceWordEntry
 
     // Relationship references
     [System.NonSerialized]
-    public List<SentenceWordEntry> owningSubjects = new(); // verb relationship
+    public SentenceWordEntry owningSubject; // verb relationship
     public SentenceWordEntry owningNoun; // corresponding noun to this article
     public SentenceWordEntry owningVerb; // corresponding to this adverb
     public SentenceWordEntry owningAdjective; // corresponding to this adverb
@@ -22,6 +22,8 @@ public class SentenceWordEntry
     public Queue<SentenceWordEntry> adjectives = new();
 
     public bool isPreview = false;
+    public bool isObject = false;
+    public bool isSubject = false;
 }
 
 public class WordBank : MonoBehaviour

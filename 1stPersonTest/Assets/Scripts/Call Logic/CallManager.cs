@@ -28,7 +28,7 @@ public class CallManager : MonoBehaviour
     private void Start()
     {
         // start in call mode for test purposes
-        CurrentState = Call_State.IN_CALL;
+        CurrentState = Call_State.ON_STANDBY;
     }
 
     private void Update()

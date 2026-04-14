@@ -24,6 +24,7 @@ public class TestContact : Contact
         wordBank.AddWordToSentence("[?]");
         wordBank.AddWordToSentence("john");
         wordBank.AddWordToSentence("car");
+        wordBank.AddWordToSentence("dog");
         wordBank.AddWordToSentence("drive");
     }
 

@@ -1,7 +1,9 @@
 using Dialogue.Core;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -35,7 +37,7 @@ public class SentenceBuilder : MonoBehaviour
     public SentenceWordEntry currentPreviewEntry;
     public SentenceWordEntry deactivatedVerb = null;
 
-    // Question Data
+    // Question Data    
     public PlayerQuestionData currentQuestionData;
 
     // Floats | Ints | Vectors
@@ -51,7 +53,7 @@ public class SentenceBuilder : MonoBehaviour
     private bool sentenceHasPreviews;
     private bool sentenceMutated;
 
-    // Enums
+    // Enums    
     public enum InterrogativeRole
     {
         Unknown,
@@ -530,6 +532,13 @@ public class SentenceBuilder : MonoBehaviour
         // sever grammatical connections
         if (draggableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
         {
+            if (draggableEntry.isSubject)
+                draggableEntry.isSubject = false;
+
+
+            if (draggableEntry.isObject)
+                draggableEntry.isObject = false;
+
             // Remove relationships references
             if (draggableEntry.article != null)
             {
@@ -545,10 +554,10 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         if (draggableEntry.verb != null &&
-            draggableEntry.verb.owningSubjects.Contains(draggableEntry))
+            draggableEntry.verb.owningSubject == draggableEntry)
         {
             Debug.Log("noun: " + draggableEntry.Surface + " removed from " + draggableEntry.verb.Surface + "'s owningSubjects List.");
-            draggableEntry.verb.owningSubjects.Remove(draggableEntry);
+            draggableEntry.verb.owningSubject = null;
             draggableEntry.verb = null;
         }
 
@@ -568,7 +577,6 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         // remove rect to prevent destruction by normalization
-
         if (ModelRects.TryGetValue(draggableEntry, out RectTransform draggableRect)
             && wordList.Contains(draggableRect))
         {
@@ -698,6 +706,7 @@ public class SentenceBuilder : MonoBehaviour
             return false;
         if (model.Count == 0)
             return true;
+
         // Cache words left and right of insertion for checks
         var leftWord = insertIndex > 0 ? model[insertIndex - 1] : null;
         for (int i = insertIndex - 1; i >= 0; i--)
@@ -729,12 +738,51 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
 
+        // Cache existing object/subject role capable entries
+        List<SentenceWordEntry> objectSubjectCapable = new();
+
+        foreach (var capableEntry in model)
+        {
+            if (capableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
+                capableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Character))
+                objectSubjectCapable.Add(capableEntry);
+        }
+
         // Prevent initial preview from interfering with checks
         if (model.Count == 1
             && model[0].isPreview)
         {
             leftWord = null;
             rightWord = null;
+        }
+
+        // ----- OBJECT & SUBJECT ROLE LIMIT -----
+        // Limit sentences to a maximum of 2 subject/object role capable entires
+        int coreCount = model.Count(entry => IsCoreEntity(entry) && !entry.isPreview);
+
+        if (IsCoreEntity(entry) && coreCount >= 2)
+        {
+            Debug.Log("too many object & subject capable entries");
+            return false;
+        }
+
+        bool hasSubjectPronoun = 
+            model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) && !entry.isPreview);
+        bool hasObjectPronoun = 
+            model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) && !entry.isPreview);
+
+        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) 
+            && hasSubjectPronoun)
+        {
+            Debug.Log("too many object & subject capable entries");
+            return false;
+        }
+
+        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun)
+            && hasObjectPronoun)
+        {
+            Debug.Log("too many object & subject capable entries");
+            return false;
         }
 
         // ----- NOUN PHRASE RULES -----
@@ -759,7 +807,7 @@ public class SentenceBuilder : MonoBehaviour
             return false;
         }
 
-        // ----- INTERROGATIVE PHRASE RULES -----
+        // ----- INTERROGATIVE PLACEMENT RULES -----
 
         // Rule #1: Prevent multiple interrogatives
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
@@ -780,13 +828,14 @@ public class SentenceBuilder : MonoBehaviour
 
         // ----- VERB PHRASE RULES -----
 
+        // Rule #1: Only allow 1 verb at a time
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
-            (!model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
-            !entry.isPreview && entry.activePOS != PartsOfSpeech.Auxiliary)
+            (model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+            entry.isPreview && entry.activePOS != PartsOfSpeech.Auxiliary)
             ))
-            return true;
+            return false;
 
-        // Rule #1: Allow swapping verb | limit sentence to 1 verb token
+        // Rule #2: Allow swapping verb | limit sentence to 1 verb token
         if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
             (model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)) &&
             entry.activePOS != PartsOfSpeech.Auxiliary &&
@@ -803,7 +852,7 @@ public class SentenceBuilder : MonoBehaviour
         }
 
 
-        // Rule #2: Verbs only after nouns, characters, pronouns and interrogatives
+        // Rule #3: Verbs only after nouns, characters, pronouns and interrogatives
         if ((!model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
             && entry.activePOS != PartsOfSpeech.Auxiliary)
             && entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
@@ -819,7 +868,7 @@ public class SentenceBuilder : MonoBehaviour
             return false;
         }
 
-        // Rule #3: Prevent non-interrogatives/characters/pronouns/nouns placed left of verbs
+        // Rule #4: Prevent non-interrogatives/characters/pronouns/nouns placed left of verbs
         if (rightWord != null
             && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
             && !(
@@ -836,11 +885,19 @@ public class SentenceBuilder : MonoBehaviour
 
         return true;
     }
+
+    private bool IsCoreEntity(SentenceWordEntry entry)
+    {
+        return entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)
+            || entry.Word.HasPartOfSpeech(PartsOfSpeech.Character)
+            || entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)
+            || entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun);
+    }
     private List<SentenceWordEntry> Normalize(List<SentenceWordEntry> rawModel) // If insertion gate passed, fixes remaining grammar
     {
         ConsoleClearer.ClearConsole();
 
-        var workingModel = new List<SentenceWordEntry>(rawModel);
+        var workingModel = new List<SentenceWordEntry>(rawModel);        
 
         ClearPreviewRelationships(workingModel);
 
@@ -859,9 +916,9 @@ public class SentenceBuilder : MonoBehaviour
 
         NormalizeConjunctions(workingModel);
 
-        NormalizeTrailingPunctuation(workingModel);
+        NormalizeTrailingPunctuation(workingModel);         
 
-        return workingModel;
+            return workingModel;
     }
     private void ClearPreviewRelationships(List<SentenceWordEntry> workingModel)
     {
@@ -875,11 +932,11 @@ public class SentenceBuilder : MonoBehaviour
         {
             var entry = workingModel[i];
 
-            if (entry.owningSubjects.Count > 0)
+            if (entry.owningSubject != null &&
+                entry.owningSubject.isPreview)
             {
-                entry.owningSubjects.RemoveAll(entry => entry.isPreview);
+                entry.owningSubject = null;
                 Debug.Log("preview owningSubjects removed");
-                Debug.Log("verb: " + entry.Surface + " now has " + entry.owningSubjects.Count + " owningSubjects.");
             }
 
             if (entry.owningNoun != null && entry.owningNoun.isPreview)
@@ -929,7 +986,7 @@ public class SentenceBuilder : MonoBehaviour
                 var owningVerb = workingModel[i].owningVerb;
 
                 if (owningVerb.auxiliary == workingModel[i]
-                    && owningVerb.owningSubjects.Count == 0)
+                    && owningVerb.owningSubject == null)
                 {
                     owningVerb.auxiliary = null;
                     workingModel.RemoveAt(i);
@@ -1223,8 +1280,8 @@ public class SentenceBuilder : MonoBehaviour
 
         // Question variables
         SentenceWordEntry nounAfterInterrogative = new();
-        List<SentenceWordEntry> subjectEntries = new();
-        List<SentenceWordEntry> objectEntries = new();
+        SentenceWordEntry subjectEntry = new();
+        SentenceWordEntry objectEntry = new();
         SentenceWordEntry verbEntry = null;
 
         // Determine Interrogative Role
@@ -1245,8 +1302,8 @@ public class SentenceBuilder : MonoBehaviour
                 (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
                 && entry.activePOS != PartsOfSpeech.Auxiliary))
                 {
-                    if (!subjectEntries.Contains(whatInterrogative))
-                        subjectEntries.Add(whatInterrogative);
+                    if (subjectEntry != whatInterrogative)
+                        subjectEntry = whatInterrogative;
 
                     interRole = InterrogativeRole.Subject;
                     Debug.Log("interRole is Subject");
@@ -1257,8 +1314,8 @@ public class SentenceBuilder : MonoBehaviour
                     (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
                 {
-                    if (!objectEntries.Contains(whatInterrogative))
-                        objectEntries.Add(whatInterrogative);
+                    if (objectEntry != whatInterrogative)
+                        objectEntry = whatInterrogative;
 
                     interRole = InterrogativeRole.Object;
                     Debug.Log("interRole is Object");
@@ -1289,8 +1346,8 @@ public class SentenceBuilder : MonoBehaviour
                     (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)))
                 {
-                    if (!subjectEntries.Contains(entry))
-                        subjectEntries.Add(entry);
+                    if (subjectEntry != entry)
+                        subjectEntry = entry;
 
                     interRole = InterrogativeRole.DeterminerOfObject;
                     Debug.Log("interRole is DeterminerOfObject");
@@ -1307,8 +1364,8 @@ public class SentenceBuilder : MonoBehaviour
 
         if (interRole == InterrogativeRole.Subject)
         {
-            if (!subjectEntries.Contains(whatInterrogative))
-                subjectEntries.Add(whatInterrogative);
+            if (subjectEntry != whatInterrogative)
+                subjectEntry = whatInterrogative;
 
             for (int i = interrogativeIndex + 1; i < workingModel.Count; i++)
             {
@@ -1325,8 +1382,8 @@ public class SentenceBuilder : MonoBehaviour
 
         if (interRole == InterrogativeRole.Object)
         {
-            if (!objectEntries.Contains(whatInterrogative))
-                objectEntries.Add(whatInterrogative);
+            if (objectEntry != whatInterrogative)
+                objectEntry = whatInterrogative;
 
             for (int i = interrogativeIndex + 1; i < workingModel.Count; i++)
             {
@@ -1335,8 +1392,8 @@ public class SentenceBuilder : MonoBehaviour
                 if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun))
                 {
-                    if (!subjectEntries.Contains(entry))
-                        subjectEntries.Add(entry);
+                    if (subjectEntry != entry)
+                        subjectEntry = entry;
 
                     continue;
                 }
@@ -1360,8 +1417,8 @@ public class SentenceBuilder : MonoBehaviour
 
                 if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                 {
-                    if (!subjectEntries.Contains(entry))
-                        subjectEntries.Add(entry);
+                    if (subjectEntry != entry)
+                        subjectEntry = entry;
 
                     continue;
                 }
@@ -1379,8 +1436,8 @@ public class SentenceBuilder : MonoBehaviour
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) ||
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                 {
-                    if (!objectEntries.Contains(entry))
-                        objectEntries.Add(entry);
+                    if (objectEntry != entry)
+                        objectEntry = entry;
 
                     continue;
                 }
@@ -1395,8 +1452,8 @@ public class SentenceBuilder : MonoBehaviour
 
                 if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
                 {
-                    if (!objectEntries.Contains(entry))
-                        objectEntries.Add(entry);
+                    if (objectEntry != entry)
+                        objectEntry = entry;
 
                     continue;
                 }
@@ -1404,8 +1461,8 @@ public class SentenceBuilder : MonoBehaviour
                 if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
                     entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun))
                 {
-                    if (!subjectEntries.Contains(entry))
-                        subjectEntries.Add(entry);
+                    if (subjectEntry != entry)
+                        subjectEntry = entry;
 
                     continue;
                 }
@@ -1422,72 +1479,55 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         // Determine subject agreement
-        if (subjectEntries.Count == 0)
+        if (subjectEntry == null)
             return;
 
         if (verbEntry == null)
             return;
 
-        // Cache relationship ref between verb and subjects
-        for (int i = 0; i < subjectEntries.Count; i++)
+        subjectEntry.isSubject = true;
+        objectEntry.isObject = true;
+
+        // Cache relationship ref between verb and subjects        
+        if (verbEntry.owningSubject != subjectEntry)
         {
-            if (!verbEntry.owningSubjects.Contains(subjectEntries[i]))
-            {
-                verbEntry.owningSubjects.Add(subjectEntries[i]);
-
-            }
-
-            if (subjectEntries[i].verb != verbEntry)
-            {
-                subjectEntries[i].verb = verbEntry;
-            }
-            Debug.Log("verb: " + verbEntry.Surface + " has been added as " + subjectEntries[i].Surface + "'s verb.");
+            verbEntry.owningSubject = subjectEntry;
         }
-        Debug.Log("The verb: " + verbEntry.Surface + " has " + subjectEntries.Count + " owningSubjects.");
+
+        if (subjectEntry.verb != verbEntry)
+        {
+            subjectEntry.verb = verbEntry;
+            Debug.Log("verb: " + verbEntry.Surface + " has been added as " + subjectEntry.Surface + "'s verb.");
+        }                
 
         SubjectAgreement subjectAgreement = SubjectAgreement.Unknown;
 
-        List<string> subjectEntriesAsStrings = new();
         List<string> ThirdPersonSingular = new List<string> { "he", "she", "it" };
         List<string> Plural = new List<string> { "you", "we", "they" };
 
-        foreach (var entry in subjectEntries)
+        string subjectEntryAsString = subjectEntry.Word.Text;
+            
+        if (subjectEntryAsString != string.Empty)
         {
-            string subjectEntryAsString = entry.Word.Text;
-            subjectEntriesAsStrings.Add(subjectEntryAsString);
-        }
-
-        if (subjectEntriesAsStrings.Count == 1)
-        {
-            if (subjectEntriesAsStrings.Contains("i"))
+            if (subjectEntryAsString == "i")
             {
                 subjectAgreement = SubjectAgreement.FirstPersonSingular;
             }
 
+            if (ThirdPersonSingular.Contains(subjectEntryAsString) ||
+                subjectEntry.Word.HasPartOfSpeech(PartsOfSpeech.Character))
+            {
+                subjectAgreement = SubjectAgreement.ThirdPersonSingular;
+            }
+
             bool hasAny = new();
 
-            if (subjectEntries.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Character)))
-            {
-                subjectAgreement = SubjectAgreement.ThirdPersonSingular;
-            }
-
-            hasAny = ThirdPersonSingular.Any(entry => subjectEntriesAsStrings.Contains(entry));
-
-            if (hasAny)
-            {
-                subjectAgreement = SubjectAgreement.ThirdPersonSingular;
-            }
-
-            hasAny = Plural.Any(entry => subjectEntriesAsStrings.Contains(entry));
+            hasAny = Plural.Contains(subjectEntryAsString);
 
             if (hasAny)
             {
                 subjectAgreement = SubjectAgreement.Plural;
             }
-        }
-        else if (subjectEntriesAsStrings.Count > 1)
-        {
-            subjectAgreement = SubjectAgreement.Plural;
         }
 
         // Determine auxiliary insertion index
@@ -1505,8 +1545,7 @@ public class SentenceBuilder : MonoBehaviour
                 auxiliaryInsertionIndex = -1;
                 break;
             case (InterrogativeRole.DeterminerOfObject):
-                if (objectEntries.Count > 0)
-                    auxiliaryInsertionIndex = workingModel.IndexOf(objectEntries[objectEntries.Count - 1]) + 1;
+                auxiliaryInsertionIndex = workingModel.IndexOf(objectEntry) + 1;
                 break;
             default:
                 auxiliaryInsertionIndex = -1;
@@ -1549,8 +1588,8 @@ public class SentenceBuilder : MonoBehaviour
         {
             Interrogative = InterrogativeType.What,
             isCopular = verbEntry.Word.Text == "be" ? true : false,
-            Subject = subjectEntries[0] != null ? subjectEntries[0] : null,
-            Object = objectEntries[0] != null ? objectEntries[0] : null,
+            Subject = subjectEntry != null ? subjectEntry : null,
+            Object = objectEntry != null ? objectEntry : null,
             Verb = verbEntry != null ? verbEntry : null
         };
 
@@ -2019,7 +2058,10 @@ public class SentenceBuilder : MonoBehaviour
         sentenceModel.Clear();
 
         for (int i = transform.childCount - 1; i >= 0; i--)
-            Destroy(transform.GetChild(i).gameObject);
+        { 
+            if (transform.GetChild(i).gameObject != InvalidDropIndicator)
+                Destroy(transform.GetChild(i).gameObject);                
+        }
 
         currentSentenceAsString = string.Empty;
     }
