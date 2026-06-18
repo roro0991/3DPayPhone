@@ -128,10 +128,6 @@ public class SentenceBuilder : MonoBehaviour
             // Calculate insertion index
             int insertIndex = GetInsertionIndex(localPoint.x);
 
-            // Check for interrogative
-            if (word.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
-                insertIndex = 0;
-
             // Clamp to valid range
             insertIndex = Mathf.Clamp(insertIndex, 0, sentenceModel.Count);
 
@@ -142,12 +138,6 @@ public class SentenceBuilder : MonoBehaviour
                 Surface = word.sentenceWordEntry.Surface,
                 isPreview = true
             };
-
-            if (previewEntryCheck.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
-            {
-                previewEntryCheck.Word = WordDataBase.Instance.GetWord("what");
-                previewEntryCheck.Surface = previewEntryCheck.Word.Text;
-            }
 
             bool canInsert = CanInsertAt(sentenceModel, insertIndex, previewEntryCheck);
 
@@ -177,12 +167,6 @@ public class SentenceBuilder : MonoBehaviour
                 Surface = word.sentenceWordEntry.Surface,
                 isPreview = true
             };
-
-            if (word.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
-            {
-                previewEntry.Word = WordDataBase.Instance.GetWord("what");
-                previewEntry.Surface = previewEntry.Word.Text;
-            }
 
             currentPreviewEntry = previewEntry;            
 
@@ -286,6 +270,8 @@ public class SentenceBuilder : MonoBehaviour
                 return;
             }
 
+            // Temporarily removing plural/singular for nouns and verb form selection
+            /*
             if (entryData.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
             {
                 draggableWord.gameObject.SetActive(false);
@@ -299,13 +285,7 @@ public class SentenceBuilder : MonoBehaviour
                 nounMenu.SetActive(true);
                 return;
             }
-
-            if (entryData.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
-            {
-                draggableWord.gameObject.SetActive(false);
-                interrogativeMenu.SetActive(true);
-                return;
-            }
+            */
 
             ModelRects[entryData] = draggableWord;
 
@@ -451,7 +431,34 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     // Interrogative menu button methods
+
+    public void OpenInterrogativeMenu()
+    {
+        if (!interrogativeMenu.activeSelf)
+        {
+            if (interrogativeEntry != null)
+            {
+                sentenceModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative));
+                sentenceMutated = true;
+                CommitModelChange();
+                interrogativeEntry = null;
+                interrogativeMenu.SetActive(false);
+                return;
+            }
+            interrogativeMenu.SetActive(true);
+        }
+        else if (interrogativeMenu.activeSelf)
+        {
+            sentenceModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative));
+            sentenceMutated = true;
+            CommitModelChange();
+            interrogativeEntry = null;            
+            interrogativeMenu.SetActive(false);
+        }
+        
+    }
     
+    /*
     public void AddInterrogative()
     {
         if (interrogativeEntry != null)
@@ -460,6 +467,7 @@ public class SentenceBuilder : MonoBehaviour
             sentenceMutated = true;
             CommitModelChange();
             interrogativeEntry = null;
+            interrogativeMenu.SetActive(false);
             return;
         }
 
@@ -477,24 +485,15 @@ public class SentenceBuilder : MonoBehaviour
 
         interrogativeMenu.SetActive(true);
     }
+    */
 
-    public void CommitInterrogative(string interrogativeForm)
-    {        
-        switch (interrogativeForm)
+    public void CommitInterrogative()
+    {
+        SentenceWordEntry currentEntry = new SentenceWordEntry
         {
-            case "what":
-                interrogativeEntry.Word = WordDataBase.Instance.GetWord("what");
-                break;
-            case "who":
-                interrogativeEntry.Word = WordDataBase.Instance.GetWord("who");
-                break;
-            default:
-                break;
-        }
-
-        interrogativeEntry.Surface = interrogativeForm;
-        
-        SentenceWordEntry currentEntry = interrogativeEntry;
+            Word = interrogativeEntry.Word,
+            Surface = interrogativeEntry.Surface
+        };
 
         currentEntry.isPreview = false;
 
@@ -509,17 +508,42 @@ public class SentenceBuilder : MonoBehaviour
     }
     public void HoverInterrogativeButton(string interrogativeForm)
     {
+        if (interrogativeEntry == null)
+        {
+            interrogativeEntry = new SentenceWordEntry
+            {
+                Word = WordDataBase.Instance.GetWord("what"),
+                Surface = ("what")
+            };
+
+            currentPreviewIndex = 0;
+            sentenceModel.Insert(currentPreviewIndex, interrogativeEntry);
+            ApplyNormalizedPreview(sentenceModel, true);
+            sentenceHasPreviews = true;
+
+
+            Debug.Log("***PREVIEW GENERATED***");
+        }
+
+        RectTransform interrogativeRect = FindRectForEntry(interrogativeEntry);
+        DraggableWord interrogativeDraggable = interrogativeRect.GetComponent<DraggableWord>();
+
         switch (interrogativeForm)
         {
             case "what":
-                RebuildPreview("what");
+                ChangeEntryWord(interrogativeDraggable, "what");
+                //RebuildPreview("what");
                 break;
             case "who":
-                RebuildPreview("who");
+                ChangeEntryWord(interrogativeDraggable, "who");
+                //RebuildPreview("who");
                 break;
             default:
                 break;
         }
+
+        ApplyNormalizedPreview(sentenceModel, true);
+        sentenceHasPreviews = true;
     }
 
     // Return to bank button
@@ -667,6 +691,8 @@ public class SentenceBuilder : MonoBehaviour
             Surface = surface,
             isPreview = true
         };
+
+        Debug.Log("currentPreviewIndex: " + currentPreviewIndex);
 
         sentenceModel.RemoveAll(entry => entry.isPreview);
         sentenceModel.Insert(currentPreviewIndex, entry);
@@ -2103,6 +2129,8 @@ public class SentenceBuilder : MonoBehaviour
     }
     public void ClearStoredWords()
     {
+        if (interrogativeEntry != null)
+            interrogativeEntry = null;
         storedWordList.Clear();
     }
 }
