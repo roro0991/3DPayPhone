@@ -33,10 +33,6 @@ public class WordDataBase : MonoBehaviour
     {
         _words.Clear();
 
-        // ----------------- Unique Entires --------------
-
-        AddWord(new Word("[?]", PartsOfSpeech.Interrogative));
-
         // ----------------- Characters -----------------
 
         AddWord(new Word("anna", PartsOfSpeech.Character, wordID: WordID.Anna));

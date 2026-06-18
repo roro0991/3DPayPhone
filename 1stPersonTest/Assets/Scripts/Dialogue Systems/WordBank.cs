@@ -34,6 +34,7 @@ public class WordBank : MonoBehaviour
 
     private List<Coroutine> runningFades = new List<Coroutine>();
 
+
     // Methods for adding words to wordbank based on current contact called
     // These methods will possibly be replaced
 

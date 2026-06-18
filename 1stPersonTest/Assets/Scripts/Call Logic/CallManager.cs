@@ -131,7 +131,11 @@ public class CallManager : MonoBehaviour
             yield return new WaitForSeconds(2f);
 
             WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();
-            
+
+            wordBankComponent.AddWordsToWordBank(sentenceBuilder.storedWordList);
+            sentenceBuilder.ClearStoredWords();
+
+            /*
             if (currentContact.ContactResponse == "I don't understand.")
             {
                 // ?? Add previous words back into the bank (convert from string to Word)                                
@@ -146,7 +150,7 @@ public class CallManager : MonoBehaviour
                 //sentenceBuilder.ClearStoredWords();
                 wordBankComponent.Refresh();
             }
-            
+            */
         }
     }
 

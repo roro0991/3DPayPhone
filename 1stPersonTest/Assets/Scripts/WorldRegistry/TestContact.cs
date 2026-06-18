@@ -21,11 +21,11 @@ public class TestContact : Contact
 
     public override void PopulateWordBank()
     {
-        wordBank.AddWordToSentence("[?]");
         wordBank.AddWordToSentence("john");
         wordBank.AddWordToSentence("car");
         wordBank.AddWordToSentence("dog");
         wordBank.AddWordToSentence("drive");
+        wordBank.AddWordToSentence("eat");
     }
 
     public override string GenerateResponse(InterpretedQuery interpretedQuery)

@@ -5,12 +5,15 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class SentenceBuilder : MonoBehaviour
 {
+    private SentenceWordEntry interrogativeEntry = null;
+
     // Other scripts
     public WordBank wordBank;
 
@@ -165,6 +168,7 @@ public class SentenceBuilder : MonoBehaviour
             }
 
             currentPreviewIndex = insertIndex;
+            Debug.Log("currentPreviewIndex: " + currentPreviewIndex);
 
             // Create actual preview entry
             SentenceWordEntry previewEntry = new SentenceWordEntry
@@ -180,18 +184,18 @@ public class SentenceBuilder : MonoBehaviour
                 previewEntry.Surface = previewEntry.Word.Text;
             }
 
-            currentPreviewEntry = previewEntry;
+            currentPreviewEntry = previewEntry;            
 
             if (canInsert)
             {
                 // verb swap logic
                 if (previewEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
                     sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
-                    entry.activePOS != PartsOfSpeech.Auxiliary))
+                    entry.activePOS != PartsOfSpeech.Auxiliary && !entry.isPreview))
                 {
                     Debug.Log("verb swap logic triggered!");
                     var existingVerb = sentenceModel.Find(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
-                    entry.activePOS != PartsOfSpeech.Auxiliary);
+                    entry.activePOS != PartsOfSpeech.Auxiliary && !entry.isPreview);
 
                     deactivatedVerb = existingVerb;
                     Debug.Log("deactivedVerb no longer null.");
@@ -213,6 +217,7 @@ public class SentenceBuilder : MonoBehaviour
                     return;
                 }
 
+
                 // Insert preview into model
                 sentenceModel.Insert(insertIndex, previewEntry);
                 ApplyNormalizedPreview(sentenceModel, true);
@@ -226,8 +231,12 @@ public class SentenceBuilder : MonoBehaviour
                     ClearPreview();
                     if (deactivatedVerb != null)
                     {
-                        sentenceModel.Insert(deactivatedVerbIndex, deactivatedVerb);
+                        sentenceModel.Insert(deactivatedVerbIndex, deactivatedVerb);                        
+                        deactivatedVerb = null;
+                        deactivatedVerbIndex = -1;
+                        
                     }
+
                     ApplyNormalizedPreview(sentenceModel, false);
                 }
             }
@@ -239,7 +248,9 @@ public class SentenceBuilder : MonoBehaviour
                 ClearPreview();
                 if (deactivatedVerb != null)
                 {
-                    sentenceModel.Insert(deactivatedVerbIndex, deactivatedVerb);
+                    sentenceModel.Insert(deactivatedVerbIndex, deactivatedVerb);                    
+                    deactivatedVerb = null;
+                    deactivatedVerbIndex = -1;
                 }
                 ApplyNormalizedPreview(sentenceModel, false);
             }
@@ -301,7 +312,7 @@ public class SentenceBuilder : MonoBehaviour
             InsertWordEntryAt(entryData, currentPreviewIndex);
             ClearPreview();
 
-            // Clear deactivated verb and return to wordbank if swapped
+            // Clear deactivatedVerb and return to wordbank if swapped
             if (entryData.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
                 deactivatedVerb != null)
             {
@@ -440,31 +451,55 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     // Interrogative menu button methods
-    public void CommitInterrogative(string interrogativeForm)
+    
+    public void AddInterrogative()
     {
+        if (interrogativeEntry != null)
+        {
+            sentenceModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative));
+            sentenceMutated = true;
+            CommitModelChange();
+            interrogativeEntry = null;
+            return;
+        }
 
+        interrogativeEntry = new SentenceWordEntry
+        {
+            Word = WordDataBase.Instance.GetWord("what"),
+            Surface = ("what")
+        };
+        
+        currentPreviewIndex = 0;
+        sentenceModel.Insert(currentPreviewIndex, interrogativeEntry);
+        ApplyNormalizedPreview(sentenceModel, true);
+        sentenceHasPreviews = true;
+        Debug.Log("***PREVIEW GENERATED***");
+
+        interrogativeMenu.SetActive(true);
+    }
+
+    public void CommitInterrogative(string interrogativeForm)
+    {        
         switch (interrogativeForm)
         {
             case "what":
-                ChangeEntryWord(currentDraggable, "what");
+                interrogativeEntry.Word = WordDataBase.Instance.GetWord("what");
                 break;
             case "who":
-                ChangeEntryWord(currentDraggable, "who");
+                interrogativeEntry.Word = WordDataBase.Instance.GetWord("who");
                 break;
             default:
                 break;
         }
 
-        SentenceWordEntry currentEntry = currentDraggable.sentenceWordEntry;
-        RectTransform draggableRect = currentDraggable.GetComponent<RectTransform>();
-        currentDraggable.gameObject.SetActive(true);
+        interrogativeEntry.Surface = interrogativeForm;
+        
+        SentenceWordEntry currentEntry = interrogativeEntry;
 
-        ModelRects[currentEntry] = draggableRect;
+        currentEntry.isPreview = false;
 
         InsertWordEntryAt(currentEntry, currentPreviewIndex);
         ClearPreview();
-
-        currentDraggable.isInSentencePanel = true;
 
         sentenceMutated = true;
 
@@ -644,7 +679,8 @@ public class SentenceBuilder : MonoBehaviour
     private void InsertWordEntryAt(SentenceWordEntry entry, int index)
     {
         sentenceModel.Insert(index, entry);
-        storedWordList.Add(entry); // Add to backup list
+        if (!entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)) // Do not repopulate interrogatives
+            storedWordList.Add(entry); // Add to backup list
         sentenceMutated = true;
     }
     private void MoveWord(List<SentenceWordEntry> list, int oldIndex, int newIndex)
