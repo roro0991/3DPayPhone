@@ -25,6 +25,7 @@ public enum PartsOfSpeech
     Interrogative = 1 << 13,
     Character = 1 << 14,
     Auxiliary = 1 << 15,
+    Negation = 1 << 16,
 }
 
 

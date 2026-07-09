@@ -1,4 +1,5 @@
 using Dialogue.Core;
+using NUnit.Framework.Constraints;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
@@ -12,13 +13,15 @@ using UnityEngine.UI;
 
 public class SentenceBuilder : MonoBehaviour
 {
+    //Step one, you actually opened the project.
+    //Tomorrow, do something. Even one line of working code.
+
     private SentenceWordEntry interrogativeEntry = null;
 
     // Other scripts
     public WordBank wordBank;
 
     // Panels & Graphics
-    public GameObject InvalidDropIndicator;
     public GameObject verbMenu;
     public GameObject nounMenu;
     public GameObject interrogativeMenu;
@@ -56,6 +59,16 @@ public class SentenceBuilder : MonoBehaviour
 
     // Enums    
 
+    public enum InputMode
+    {
+        Query,
+        Verify,
+        Declare,
+        Challenge
+    }
+
+    InputMode CurrentInputMode = InputMode.Query;
+
     public enum SentenceTense
     {        
         Present,
@@ -63,6 +76,25 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     SentenceTense CurrentSentenceTense = SentenceTense.Present;
+
+    public enum SentenceNegation
+    {
+        Affirmative,
+        Negative
+    }
+
+    SentenceNegation CurrentSentenceNegation = SentenceNegation.Affirmative;
+
+    public enum InterrogativeMode
+    {
+        Who,
+        What,
+        Where,
+        When,
+        Why
+    }
+
+    InterrogativeMode CurrentInterrogativeMode = InterrogativeMode.What;
 
     public enum InterrogativeRole
     {
@@ -79,28 +111,9 @@ public class SentenceBuilder : MonoBehaviour
         ThirdPersonSingular, // He, She, It [including Character names]
         Plural, // We, They, You, You [plural]
     }
-    private void Start()
-    {
-        InvalidDropIndicator.SetActive(false);
-    }
 
     // ---------------- Hover & Drop Management ------------
 
-    private void PositionInvalidDropIndicator(int insertIndex)
-    {
-        Vector3 position;
-
-        if (insertIndex >= sentenceModel.Count)
-        {
-            position = wordList[wordList.Count - 1].transform.position;
-        }
-        else
-        {
-            position = wordList[insertIndex].transform.position;
-        }
-
-        InvalidDropIndicator.transform.position = position;
-    }
     public void HandleHoveringWord(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
     {
         GameObject dropTarget = eventData.pointerEnter;
@@ -115,6 +128,26 @@ public class SentenceBuilder : MonoBehaviour
 
             // Remove any existing preview words
             sentenceModel.RemoveAll(entry => entry.isPreview);
+
+            // Swap if dragging verb and sentence already contains a verb
+            if (word.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+                    sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+                    entry.activePOS != PartsOfSpeech.Auxiliary))
+            {
+                Debug.Log("verb swap triggered");
+                var existingVerb = sentenceModel.Find(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+                entry.activePOS != PartsOfSpeech.Auxiliary);
+
+                sentenceModel.Remove(existingVerb);
+
+                if (existingVerb.auxiliary != null)
+                {
+                    sentenceModel.Remove(existingVerb.auxiliary);
+                }
+
+                wordBank.CreateWordUI(existingVerb);
+                ApplyNormalizationResults(sentenceModel, true);
+            }
 
             // Convert pointer to localX
             Vector2 localPoint;
@@ -131,25 +164,15 @@ public class SentenceBuilder : MonoBehaviour
             // Clamp to valid range
             insertIndex = Mathf.Clamp(insertIndex, 0, sentenceModel.Count);
 
-            // --- INVALID DROP INDICATOR LOGIC (runs every frame) ---
+            // Check if valid drop
             SentenceWordEntry previewEntryCheck = new SentenceWordEntry
             {
                 Word = word.sentenceWordEntry.Word,
                 Surface = word.sentenceWordEntry.Surface,
                 isPreview = true
-            };
+            };            
 
             bool canInsert = CanInsertAt(sentenceModel, insertIndex, previewEntryCheck);
-
-            if (!canInsert)
-            {
-                InvalidDropIndicator.SetActive(true);
-                PositionInvalidDropIndicator(insertIndex);
-            }
-            else
-            {
-                InvalidDropIndicator.SetActive(false);
-            }
 
             // Prevent rebuild spam (ONLY affects preview, not indicator)
             if (insertIndex == currentPreviewIndex)
@@ -168,6 +191,19 @@ public class SentenceBuilder : MonoBehaviour
                 isPreview = true
             };
 
+            // Check verb against current sentence tense
+
+            if (CurrentSentenceTense == SentenceTense.Past &&
+                previewEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+            {
+                Word.VerbForms verbForm = previewEntry.Word.GetVerbForm();
+
+                if (previewEntry.Surface != verbForm.Past)
+                {
+                    previewEntry.Surface = verbForm.Past;
+                }
+            }
+
             currentPreviewEntry = previewEntry;            
 
             if (canInsert)
@@ -182,7 +218,8 @@ public class SentenceBuilder : MonoBehaviour
             {
                 if (sentenceHasPreviews)
                 {
-                    ClearPreview();                    
+                    ClearPreview();        
+                    
                     ApplyNormalizedPreview(sentenceModel, false);
                 }
             }
@@ -194,9 +231,6 @@ public class SentenceBuilder : MonoBehaviour
                 ClearPreview();                
                 ApplyNormalizedPreview(sentenceModel, false);
             }
-
-            // Ensure indicator is hidden when not hovering panel
-            InvalidDropIndicator.SetActive(false);
         }
     }
     public void HandleWordDropped(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
@@ -224,6 +258,19 @@ public class SentenceBuilder : MonoBehaviour
                 ClearPreview();
                 ApplyNormalizationResults(sentenceModel);
                 return;
+            }
+
+            // Check verb against tense state
+
+            if (CurrentSentenceTense == SentenceTense.Past &&
+                entryData.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
+            {
+                Word.VerbForms verbForm = entryData.Word.GetVerbForm();
+
+                if (entryData.Surface != verbForm.Past)
+                {
+                    entryData.Surface = verbForm.Past;
+                }
             }
 
             ModelRects[entryData] = draggableWord;
@@ -549,8 +596,9 @@ public class SentenceBuilder : MonoBehaviour
     }
 
     // Normalization Methods
-    public void SwapPastPresentVerb()
+    public void SwapPastPresentVerb() // Used for Button
     {
+
         if (CurrentSentenceTense == SentenceTense.Present)
         {
             CurrentSentenceTense = SentenceTense.Past;
@@ -562,7 +610,6 @@ public class SentenceBuilder : MonoBehaviour
 
         SwapVerbTense();
     }
-
     private void SwapVerbTense()
     {
         if (sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
@@ -585,6 +632,54 @@ public class SentenceBuilder : MonoBehaviour
 
             sentenceMutated = true;
             CommitModelChange();
+        }
+    }
+    public void ToggleNegation()
+    {
+        if (CurrentSentenceNegation == SentenceNegation.Affirmative)
+        {
+            CurrentSentenceNegation = SentenceNegation.Negative;
+        }
+        else if (CurrentSentenceNegation == SentenceNegation.Negative)
+        {
+            CurrentSentenceNegation = SentenceNegation.Affirmative;
+        }
+
+        NormalizeNegation();
+    }
+  
+    private void NormalizeNegation()
+    {
+        if (CurrentSentenceNegation == SentenceNegation.Negative)
+        {
+            if (!sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)))
+            {
+                return;
+            }
+
+            if (sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Negation)))
+            {
+                return;
+            }
+
+            if (sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Auxiliary)))
+            {
+                SentenceWordEntry auxiliaryWord =
+                    sentenceModel.FirstOrDefault(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Auxiliary));
+
+                int auxiliaryIndex = sentenceModel.IndexOf(auxiliaryWord);
+
+                // Instantiate negation adverb
+                SentenceWordEntry negationWord = new SentenceWordEntry
+                {
+                    Word = WordDataBase.Instance.GetWord("not"),
+                    Surface = "not"
+                };
+
+                InsertWordEntryAt(negationWord, auxiliaryIndex);
+                sentenceMutated = true;
+                CommitModelChange();
+            }
         }
     }
     private bool CanInsertAt(List<SentenceWordEntry> model, int insertIndex, SentenceWordEntry entry) // Initial grammar gate for insertion
@@ -626,17 +721,7 @@ public class SentenceBuilder : MonoBehaviour
                 //Debug.Log("Right word: " + rightWord.Surface);
                 break;
             }
-        }
-
-        // Cache existing object/subject role capable entries
-        List<SentenceWordEntry> objectSubjectCapable = new();
-
-        foreach (var capableEntry in model)
-        {
-            if (capableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
-                capableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Character))
-                objectSubjectCapable.Add(capableEntry);
-        }
+        }        
 
         // Prevent initial preview from interfering with checks
         if (model.Count == 1
@@ -646,30 +731,31 @@ public class SentenceBuilder : MonoBehaviour
             rightWord = null;
         }
 
+        switch (CurrentInputMode)
+        {
+            case InputMode.Query:
+                switch (CurrentInterrogativeMode)
+                {
+                    case InterrogativeMode.What:
+
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case InputMode.Verify:
+                break;
+            case InputMode.Declare:
+                break;
+            default:
+                break;
+        }
+
         // ----- OBJECT & SUBJECT ROLE LIMIT -----
         // Limit sentences to a maximum of 2 subject/object role capable entires
         int coreCount = model.Count(entry => IsCoreEntity(entry) && !entry.isPreview);
 
         if (IsCoreEntity(entry) && coreCount >= 2)
-        {
-            Debug.Log("too many object & subject capable entries");
-            return false;
-        }
-
-        bool hasSubjectPronoun = 
-            model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) && !entry.isPreview);
-        bool hasObjectPronoun = 
-            model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun) && !entry.isPreview);
-
-        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) 
-            && hasSubjectPronoun)
-        {
-            Debug.Log("too many object & subject capable entries");
-            return false;
-        }
-
-        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun)
-            && hasObjectPronoun)
         {
             Debug.Log("too many object & subject capable entries");
             return false;
@@ -699,17 +785,7 @@ public class SentenceBuilder : MonoBehaviour
 
         // ----- INTERROGATIVE PLACEMENT RULES -----
 
-        // Rule #1: Prevent multiple interrogatives
-        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
-            && sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) && !entry.isPreview))
-        {
-            //Debug.Log("MultipleInterrogatives");
-            return false;
-        }
-        // Rule #1.2: Allow insertion of sole interrogative anywhere
-        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
-            return true;
-        // Rule #1.3: Prevent insertion before interrogative 
+        // Rule #1: Prevent insertion before interrogative 
         if (rightWord != null && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) && !rightWord.isPreview)
         {
             //Debug.Log("InsertionBeforeInterrogative");
@@ -723,24 +799,10 @@ public class SentenceBuilder : MonoBehaviour
             (model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
             entry.isPreview && entry.activePOS != PartsOfSpeech.Auxiliary)
             ))
-            return false;
-
-        // Rule #2: Allow swapping verb | limit sentence to 1 verb token
-        if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
-            (model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)) &&
-            entry.activePOS != PartsOfSpeech.Auxiliary &&
-            !entry.isPreview))
         {
-            if (rightWord != null && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Verb) ||
-                leftWord != null && leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Verb))
-                return true;
-            else
-            {
-                Debug.Log("failed verb rule #1");
-                return false;
-            }
+            Debug.Log("sentence already contains a verb");
+            return false;
         }
-
 
         // Rule #3: Verbs only after nouns, characters, pronouns and interrogatives
         if ((!model.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
@@ -750,7 +812,6 @@ public class SentenceBuilder : MonoBehaviour
             && !(
                 leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
                 leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
-                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
                 leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
                 )))
         {
@@ -758,15 +819,13 @@ public class SentenceBuilder : MonoBehaviour
             return false;
         }
 
-        // Rule #4: Prevent non-interrogatives/characters/pronouns/nouns placed left of verbs
+        // Rule #4: Prevent non-interrogatives/characters/nouns placed left of verbs
         if (rightWord != null
             && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
             && !(
             entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
             entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) ||
-            entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
-            entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun) ||
-            entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun)
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.Character)
             ))
         {
             //Debug.Log("VerbNotAfterNounOrInt");
@@ -778,12 +837,10 @@ public class SentenceBuilder : MonoBehaviour
     private bool IsCoreEntity(SentenceWordEntry entry)
     {
         return entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun)
-            || entry.Word.HasPartOfSpeech(PartsOfSpeech.Character)
-            || entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)
-            || entry.Word.HasPartOfSpeech(PartsOfSpeech.ObjectPronoun);
+            || entry.Word.HasPartOfSpeech(PartsOfSpeech.Character);
     }
     private List<SentenceWordEntry> Normalize(List<SentenceWordEntry> rawModel) // If insertion gate passed, fixes remaining grammar
-    {
+    {        
         ConsoleClearer.ClearConsole();
 
         var workingModel = new List<SentenceWordEntry>(rawModel);        
@@ -797,13 +854,13 @@ public class SentenceBuilder : MonoBehaviour
         PairAdjectivesToNouns(workingModel);
 
         var articleEntriesToInsert = CollectArticlesToInsert(workingModel);
-        UpdateAndInsertArticles(workingModel, articleEntriesToInsert);
+        UpdateAndInsertArticles(workingModel, articleEntriesToInsert);        
 
-        NormalizeInterrogative(workingModel); // just force interrogative to start of sentence
-
-        NormalizeIfQuestion(workingModel);
+        NormalizeQuery(workingModel);
 
         NormalizeConjunctions(workingModel);
+
+        NormalizeNegation();
 
         NormalizeTrailingPunctuation(workingModel);         
 
@@ -1089,18 +1146,9 @@ public class SentenceBuilder : MonoBehaviour
 
         return articleEntry;
     }
-    private void NormalizeInterrogative(List<SentenceWordEntry> rawModel)
-    {
-        var foundInterrogative = rawModel.FirstOrDefault(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
-        && !entry.isPreview);
-
-        if (foundInterrogative != null &&
-            rawModel[0] != foundInterrogative)
-            MoveWord(rawModel, rawModel.IndexOf(foundInterrogative), 0);
-    }
-    
+             
     // Question Normalization Methods
-    private void NormalizeIfQuestion(List<SentenceWordEntry> workingModel)
+    private void NormalizeQuery(List<SentenceWordEntry> workingModel)
     {
         // Defensive checks
         if (workingModel == null)
@@ -1109,26 +1157,12 @@ public class SentenceBuilder : MonoBehaviour
             return;
         }
 
-        // Check for interrogative
-        SentenceWordEntry interrogative = null;
-        int interrogativeIndex = -1;
-        if (workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)))
-        {
-            interrogativeIndex = workingModel.FindIndex(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative));
-        }
-
-        if (interrogativeIndex == -1)
-        {
-            //Debug.Log("No interrogative found!");
+        if (CurrentInputMode != InputMode.Query)
             return;
-        }
 
-        interrogative = workingModel[interrogativeIndex];
-
-        switch (interrogative.Word.Text)
+        switch (CurrentInterrogativeMode)
         {
-            case "what":
-                //Debug.Log("reached what normalization");
+            case InterrogativeMode.What:
                 NormalizeWhatInterrogative(workingModel);
                 break;
             default:
@@ -1949,8 +1983,7 @@ public class SentenceBuilder : MonoBehaviour
 
         for (int i = transform.childCount - 1; i >= 0; i--)
         { 
-            if (transform.GetChild(i).gameObject != InvalidDropIndicator)
-                Destroy(transform.GetChild(i).gameObject);                
+            Destroy(transform.GetChild(i).gameObject);                
         }
 
         currentSentenceAsString = string.Empty;

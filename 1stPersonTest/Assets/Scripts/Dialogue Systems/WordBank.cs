@@ -19,6 +19,7 @@ public class SentenceWordEntry
     public SentenceWordEntry article; // this noun's article
     public SentenceWordEntry verb; // this noun's verb       
     public SentenceWordEntry auxiliary; // this verb's auxiliary
+    public SentenceWordEntry negation; // this verb's adverb of negation
     public Queue<SentenceWordEntry> adjectives = new();
 
     public bool isPreview = false;

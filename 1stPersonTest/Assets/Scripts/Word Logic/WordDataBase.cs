@@ -192,6 +192,9 @@ public class WordDataBase : MonoBehaviour
         // ----------------- Adverb -----------------
 
         AddWord(new Word("there", PartsOfSpeech.Adverb | PartsOfSpeech.SubjectPronoun | PartsOfSpeech.Interjection));
+        
+        // ----------------- Negation ---------------
+        AddWord(new Word("not", PartsOfSpeech.Negation));
 
         // ----------------- Adjectives -----------------
         AddWord(new Word("nice", PartsOfSpeech.Adjective));
