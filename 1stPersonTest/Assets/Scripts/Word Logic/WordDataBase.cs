@@ -63,7 +63,7 @@ public class WordDataBase : MonoBehaviour
         // ----------------- Pronouns -----------------
 
         AddWord(new Word("i", PartsOfSpeech.SubjectPronoun));
-        AddWord(new Word("you", PartsOfSpeech.SubjectPronoun | PartsOfSpeech.ObjectPronoun));
+        AddWord(new Word("you", PartsOfSpeech.SubjectPronoun | PartsOfSpeech.ObjectPronoun, entityID: "you"));
         AddWord(new Word("he", PartsOfSpeech.SubjectPronoun));
         AddWord(new Word("she", PartsOfSpeech.SubjectPronoun));
         AddWord(new Word("it", PartsOfSpeech.SubjectPronoun | PartsOfSpeech.ObjectPronoun));

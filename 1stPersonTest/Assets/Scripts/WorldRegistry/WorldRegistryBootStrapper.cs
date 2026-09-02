@@ -5,6 +5,7 @@ public class WorldRegistryBootStrapper : MonoBehaviour
 {
     public static WorldRegistry World;
 
+    public static Entity YouEntity;
     public static Entity JohnEntity;
     public static Entity CarEntity;
 
@@ -12,9 +13,11 @@ public class WorldRegistryBootStrapper : MonoBehaviour
     {
         World = new WorldRegistry();
 
-        JohnEntity = new Person { Id = "john", Name = "John" };
-        CarEntity = new ObjectEntity { Id = "car", Name = "Red Car" };        
+        YouEntity = new Person { Id = "you" };
+        JohnEntity = new Person { Id = "John", Name = "John", Occupation = "teacher" };
+        CarEntity = new ObjectEntity { Id = "car", Name = "Red Car" };
 
+        World.Register(YouEntity);
         World.Register(JohnEntity);
         World.Register(CarEntity);
     }

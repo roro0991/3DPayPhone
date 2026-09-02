@@ -53,6 +53,7 @@ public class InputInterpreter : MonoBehaviour
                 interpretedQuery.Interrogative = workingData.Interrogative;
                 interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
                 interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
+                interpretedQuery.Verb = workingData.Verb;
                 break;
             default:
                 break;

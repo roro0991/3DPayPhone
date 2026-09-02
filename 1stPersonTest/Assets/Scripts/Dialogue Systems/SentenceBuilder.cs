@@ -812,7 +812,8 @@ public class SentenceBuilder : MonoBehaviour
             && !(
                 leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
                 leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
-                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) ||
+                leftWord.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun)
                 )))
         {
             //Debug.Log("VerbNotAfterNounOrInt");

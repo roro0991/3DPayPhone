@@ -69,6 +69,22 @@ public abstract class Contact : MonoBehaviour
     public string HandleWhat(InterpretedQuery interpretedQuery)
     {
         if (interpretedQuery.Subject is Person person &&
+            person.Id == "you" &&
+            interpretedQuery.Verb.Surface is "do")
+        {
+            interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(ContactName);
+
+            if (interpretedQuery.Subject is Person person2)
+
+                ContactResponse = $"I am a {person2.Occupation}";
+        }
+        else
+        {
+            ContactResponse = "I don't have a job";
+        }
+
+        /*
+        if (interpretedQuery.Subject is Person person &&
             interpretedQuery.Target is ObjectEntity objectEntity)
         {
             ContactResponse = $"{person.Name} drives a {objectEntity.Name}.";
@@ -77,7 +93,7 @@ public abstract class Contact : MonoBehaviour
         {
             ContactResponse = "I don't know.";
         }
-
+        */
         return ContactResponse;
     }
 

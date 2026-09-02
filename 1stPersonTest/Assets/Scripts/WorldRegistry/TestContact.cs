@@ -9,7 +9,7 @@ public class TestContact : Contact
 {
     private void Start()
     {
-        ContactName = "John Smith";
+        ContactName = "John";
         OpeningLine = "Hello?";
         
     }
@@ -21,11 +21,8 @@ public class TestContact : Contact
 
     public override void PopulateWordBank()
     {
-        wordBank.AddWordToSentence("john");
-        wordBank.AddWordToSentence("car");
-        wordBank.AddWordToSentence("dog");
-        wordBank.AddWordToSentence("drive");
-        wordBank.AddWordToSentence("eat");
+        wordBank.AddWordToSentence("you");
+        wordBank.AddWordToSentence("do");
     }
 
     public override string GenerateResponse(InterpretedQuery interpretedQuery)
