@@ -119,7 +119,7 @@ public class WordDataBase : MonoBehaviour
             ThirdPerson = "Drives"
         };
 
-        var driveWord = new Word("drive", PartsOfSpeech.Verb);
+        var driveWord = new Word("drive", PartsOfSpeech.Verb, verbState: VerbStates.Action);
         driveWord.AddVerbForm(driveForms);
         AddWord(driveWord);
 
@@ -131,9 +131,21 @@ public class WordDataBase : MonoBehaviour
             PresentParticiple = "having",
             ThirdPerson = "has"
         };
-        var haveWord = new Word("have", PartsOfSpeech.Verb);
+        var haveWord = new Word("have", PartsOfSpeech.Verb, verbState: VerbStates.Action);
         haveWord.AddVerbForm(haveForms);
         AddWord(haveWord);
+
+        var liveForms = new Word.VerbForms
+        {
+            Base = "live",
+            Past = "lived",
+            PastParticiple = "lived",
+            PresentParticiple = "living",
+            ThirdPerson = "lives"
+        };
+        var liveWord = new Word("live", PartsOfSpeech.Verb, verbState: VerbStates.State);
+        liveWord.AddVerbForm(liveForms);
+        AddWord(liveWord);
 
         var doForms = new Word.VerbForms
         {

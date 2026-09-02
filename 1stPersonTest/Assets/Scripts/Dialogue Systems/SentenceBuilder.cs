@@ -24,7 +24,6 @@ public class SentenceBuilder : MonoBehaviour
     // Panels & Graphics
     public GameObject verbMenu;
     public GameObject nounMenu;
-    public GameObject interrogativeMenu;
 
     // RectTransforms
     public RectTransform sentencePanelRect;
@@ -102,7 +101,8 @@ public class SentenceBuilder : MonoBehaviour
         Subject,
         Object,
         DeterminerOfSubject,
-        DeterminerOfObject
+        DeterminerOfObject,
+        Adverb
     }
     public enum SubjectAgreement
     {
@@ -298,90 +298,51 @@ public class SentenceBuilder : MonoBehaviour
         CommitModelChange();
     }
 
-    // Interrogative menu button methods
-    public void OpenInterrogativeMenu()
+    // Interrogative toggling
+    public void ToggleInterrogatives()
     {
-        if (!interrogativeMenu.activeSelf)
+        if (sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)))
         {
-            if (interrogativeEntry != null)
+            SentenceWordEntry interrogativeEntry = sentenceModel[0];
+            string interWord = interrogativeEntry.Surface;
+            DraggableWord draggable = 
+                FindRectForEntry(interrogativeEntry).GetComponent<DraggableWord>();
+
+            switch (interWord)
             {
-                sentenceModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative));
-                sentenceMutated = true;
-                CommitModelChange();
-                interrogativeEntry = null;
-                interrogativeMenu.SetActive(false);
-                return;
+                case "What":
+                    ChangeEntryWord(draggable, "Where");
+                    CurrentInterrogativeMode = InterrogativeMode.Where;
+                    break;
+                case "Where":
+                    sentenceModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative));
+                    CurrentInputMode = InputMode.Declare;
+                    break;
+                default:
+                    break;
             }
-            interrogativeMenu.SetActive(true);
         }
-        else if (interrogativeMenu.activeSelf)
+        else
         {
-            sentenceModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative));
-            sentenceMutated = true;
-            CommitModelChange();
-            interrogativeEntry = null;            
-            interrogativeMenu.SetActive(false);
-        }
-        
-    }
-    public void CommitInterrogative()
-    {
-        SentenceWordEntry currentEntry = new SentenceWordEntry
-        {
-            Word = interrogativeEntry.Word,
-            Surface = interrogativeEntry.Surface
-        };
-
-        currentEntry.isPreview = false;
-
-        InsertWordEntryAt(currentEntry, currentPreviewIndex);
-        ClearPreview();
-
-        sentenceMutated = true;
-
-        CommitModelChange();
-
-        interrogativeMenu.SetActive(false);
-    }
-    public void HoverInterrogativeButton(string interrogativeForm)
-    {
-        if (interrogativeEntry == null)
-        {
-            interrogativeEntry = new SentenceWordEntry
+            SentenceWordEntry interrogative = new SentenceWordEntry
             {
                 Word = WordDataBase.Instance.GetWord("what"),
-                Surface = ("what")
+                Surface = "What"
             };
 
-            currentPreviewIndex = 0;
-            sentenceModel.Insert(currentPreviewIndex, interrogativeEntry);
-            ApplyNormalizedPreview(sentenceModel, true);
-            sentenceHasPreviews = true;
-
-
-            Debug.Log("***PREVIEW GENERATED***");
+            sentenceModel.Add(interrogative);
+            if (sentenceModel.IndexOf(interrogative) != 0)
+            {
+                int oldIndex = sentenceModel.IndexOf(interrogative);
+                MoveWord(sentenceModel, oldIndex, 0);
+            }
+            CurrentInputMode = InputMode.Query;
+            CurrentInterrogativeMode = InterrogativeMode.What;
         }
 
-        RectTransform interrogativeRect = FindRectForEntry(interrogativeEntry);
-        DraggableWord interrogativeDraggable = interrogativeRect.GetComponent<DraggableWord>();
-
-        switch (interrogativeForm)
-        {
-            case "what":
-                ChangeEntryWord(interrogativeDraggable, "what");
-                //RebuildPreview("what");
-                break;
-            case "who":
-                ChangeEntryWord(interrogativeDraggable, "who");
-                //RebuildPreview("who");
-                break;
-            default:
-                break;
-        }
-
-        ApplyNormalizedPreview(sentenceModel, true);
-        sentenceHasPreviews = true;
-    }
+        sentenceMutated = true;
+        CommitModelChange();
+    }    
 
     // Return to bank button
     public void ReturnToBankButton()
@@ -394,7 +355,6 @@ public class SentenceBuilder : MonoBehaviour
         ApplyNormalizationResults(sentenceModel, false);
         verbMenu.SetActive(false);
         nounMenu.SetActive(false);
-        interrogativeMenu.SetActive(false);
     }
 
     // Utility methods
@@ -482,6 +442,9 @@ public class SentenceBuilder : MonoBehaviour
         draggableRect.pivot = new Vector2(0.5f, 0.5f);
         draggableRect.position = eventData.position;
         sentenceMutated = true;
+        if (storedWordList.Contains(draggableEntry))
+            storedWordList.Remove(draggableEntry);
+
         CommitModelChange();
     }
     private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData = null)
@@ -520,25 +483,7 @@ public class SentenceBuilder : MonoBehaviour
         originalDraggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(newWord);
         originalDraggable.sentenceWordEntry.Surface = newWord;
     }
-    private void RebuildPreview(string surface)
-    {
-        var entry = new SentenceWordEntry()
-        {
-            Word = currentPreviewEntry.Word,
-            Surface = surface,
-            isPreview = true
-        };
-
-        Debug.Log("currentPreviewIndex: " + currentPreviewIndex);
-
-        sentenceModel.RemoveAll(entry => entry.isPreview);
-        sentenceModel.Insert(currentPreviewIndex, entry);
-
-        currentPreviewEntry = entry;
-
-        ApplyNormalizedPreview(sentenceModel, true);
-
-    }
+    
     private void InsertWordEntryAt(SentenceWordEntry entry, int index)
     {
         sentenceModel.Insert(index, entry);
@@ -820,14 +765,19 @@ public class SentenceBuilder : MonoBehaviour
             return false;
         }
 
-        // Rule #4: Prevent non-interrogatives/characters/nouns placed left of verbs
+        // Rule #4: Prevent non-interrogatives/
+        // characters/
+        // subjectpronouns/
+        // nouns
+        // placed left of verbs
         if (rightWord != null
             && rightWord.Word.HasPartOfSpeech(PartsOfSpeech.Verb)
             && !(
             entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun) ||
             entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) ||
-            entry.Word.HasPartOfSpeech(PartsOfSpeech.Character)
-            ))
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+            entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun
+            )))
         {
             //Debug.Log("VerbNotAfterNounOrInt");
             return false;
@@ -932,8 +882,16 @@ public class SentenceBuilder : MonoBehaviour
             {
                 var owningVerb = workingModel[i].owningVerb;
 
+                // Remove aux if it has no owningSubject
                 if (owningVerb.auxiliary == workingModel[i]
                     && owningVerb.owningSubject == null)
+                {
+                    owningVerb.auxiliary = null;
+                    workingModel.RemoveAt(i);
+                }
+                // Remove aux if it had owningInterrogative that was removed
+                else if (owningVerb.auxiliary.owningInterrogative != null &&
+                        !sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)))
                 {
                     owningVerb.auxiliary = null;
                     workingModel.RemoveAt(i);
@@ -1165,6 +1123,9 @@ public class SentenceBuilder : MonoBehaviour
         {
             case InterrogativeMode.What:
                 NormalizeWhatInterrogative(workingModel);
+                break;
+            case InterrogativeMode.Where:
+                NormalizeWhereInterrogative(workingModel);
                 break;
             default:
                 break;
@@ -1518,9 +1479,172 @@ public class SentenceBuilder : MonoBehaviour
             Verb = verbEntry != null ? verbEntry : null
         };
 
-        CreateAuxiliaryVerb(workingModel, pendingData);
+        CreateAuxiliaryVerb(workingModel, pendingData, interRole);
     }
-    private void CreateAuxiliaryVerb(List<SentenceWordEntry> workingModel, PendingAuxiliaryInsertion pendingAuxiliaryData)
+    private void NormalizeWhereInterrogative(List<SentenceWordEntry> workingModel)
+    {
+        // Defensive checks
+        if (workingModel == null || workingModel.Count == 0)
+        {
+            //Debug.Log("Where interrogative normalization cancelled!");
+            return;
+        }
+
+        if (!workingModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)
+            && entry.Word.Text == "where"))
+        {
+            //Debug.Log("Where interrogative normalization cancelled!");
+            return;
+        }
+
+        // Cache interrogative index for iteration
+        int interrogativeIndex = workingModel.FindIndex(entry => entry.Word.Text == "where");
+
+        InterrogativeRole interRole = InterrogativeRole.Adverb;
+
+        if (interrogativeIndex == -1)
+        {
+            //Debug.Log("interrogative index not found!");
+            return;
+        }
+
+        // Cache interrogative word data
+        var whatInterrogative = workingModel[interrogativeIndex];
+
+        // Question variables
+        SentenceWordEntry nounAfterInterrogative = new();
+        SentenceWordEntry subjectEntry = new();
+        SentenceWordEntry objectEntry = new();
+        SentenceWordEntry verbEntry = null;
+
+        for (int i = interrogativeIndex + 1; i < workingModel.Count; i++)
+        {
+            var entry = workingModel[i];
+
+            // skip to reach first noun or verb + skip trailing punctuation
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                continue;
+
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+                entry.activePOS != PartsOfSpeech.Auxiliary)
+            {
+                if (verbEntry != entry) 
+                    verbEntry = entry;
+
+                continue;
+            }
+
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun))
+            {
+                if (subjectEntry != entry)
+                    subjectEntry = entry;
+
+                continue;
+            }
+        }
+
+        // Determine subject agreement
+        if (subjectEntry == null)
+            return;
+
+        if (verbEntry == null)
+            return;
+
+        subjectEntry.isSubject = true;
+        objectEntry.isObject = true;
+
+        // Cache relationship ref between verb and subjects        
+        if (verbEntry.owningSubject != subjectEntry)
+        {
+            verbEntry.owningSubject = subjectEntry;
+        }
+
+        if (subjectEntry.verb != verbEntry)
+        {
+            subjectEntry.verb = verbEntry;
+            Debug.Log("verb: " + verbEntry.Surface + " has been added as " + subjectEntry.Surface + "'s verb.");
+        }
+
+        SubjectAgreement subjectAgreement = SubjectAgreement.Unknown;
+
+        List<string> ThirdPersonSingular = new List<string> { "he", "she", "it" };
+        List<string> Plural = new List<string> { "you", "we", "they" };
+
+        string subjectEntryAsString = subjectEntry.Word.Text;
+
+        if (subjectEntryAsString != string.Empty)
+        {
+            if (subjectEntryAsString == "i")
+            {
+                subjectAgreement = SubjectAgreement.FirstPersonSingular;
+            }
+
+            if (ThirdPersonSingular.Contains(subjectEntryAsString) ||
+                subjectEntry.Word.HasPartOfSpeech(PartsOfSpeech.Character))
+            {
+                subjectAgreement = SubjectAgreement.ThirdPersonSingular;
+            }
+
+            bool hasAny = new();
+
+            hasAny = Plural.Contains(subjectEntryAsString);
+
+            if (hasAny)
+            {
+                subjectAgreement = SubjectAgreement.Plural;
+            }
+        }
+
+        int auxiliaryInsertionIndex = interrogativeIndex + 1;
+
+        // Cache verb form
+        if (verbEntry == null)
+            return;
+        Word.VerbForms verbForms = new();
+        verbForms = verbEntry.Word.GetVerbForm();
+        if (verbForms == null)
+            return;
+
+        Word.VerbForms.VerbForm cachedForm;
+        bool found = verbForms.TryGetForm(verbEntry.Surface, out cachedForm);
+
+        // Reset cachedForm to Base for interrogative question
+        if (cachedForm == Word.VerbForms.VerbForm.ThirdPersonSingular)
+        {
+            verbEntry.Surface = verbForms.Base;
+            found = verbForms.TryGetForm(verbEntry.Surface, out cachedForm);
+        }
+
+        var pendingData = new PendingAuxiliaryInsertion
+        {
+            isQuestion = true,
+            auxInsertionIndex = auxiliaryInsertionIndex,
+            subjAgreement = subjectAgreement,
+            verb = verbEntry,
+            verbForm = cachedForm,
+        };
+
+        if (verbEntry.auxiliary != null)
+        {
+            Debug.Log("existing auxiliary for verb " + verbEntry.Surface + " is " + verbEntry.auxiliary.Surface);
+        }
+
+        currentQuestionData = new PlayerQuestionData
+        {
+            Interrogative = InterrogativeType.Where,
+            isCopular = verbEntry.Word.Text == "be" ? true : false,
+            Subject = subjectEntry != null ? subjectEntry : null,
+            Object = objectEntry != null ? objectEntry : null,
+            Verb = verbEntry != null ? verbEntry : null
+        };
+
+        CreateAuxiliaryVerb(workingModel, pendingData, interRole);
+    }
+    private void CreateAuxiliaryVerb(List<SentenceWordEntry> workingModel, PendingAuxiliaryInsertion pendingAuxiliaryData, InterrogativeRole intRole)
     {
         if (workingModel == null || workingModel.Count == 0)
             return;
@@ -1560,6 +1684,10 @@ public class SentenceBuilder : MonoBehaviour
             auxiliaryVerb.activePOS = PartsOfSpeech.Auxiliary;
             auxiliaryVerb.owningVerb = pendingAuxiliaryData.verb;
             auxiliaryVerb.owningVerb.auxiliary = auxiliaryVerb;
+
+            if (intRole == InterrogativeRole.Object &&
+                sentenceModel[0].Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+                auxiliaryVerb.owningInterrogative = sentenceModel[0];
 
         }
 
@@ -1916,7 +2044,13 @@ public class SentenceBuilder : MonoBehaviour
                 var text = rect.GetComponent<TMP_Text>();
                 if (entry.isPreview)
                     text.color = Color.gray;
+
+                if (rect.GetComponent<DraggableWord>().isDraggable)
+                {
+                    text.color = Color.green;
+                }
             }
+
         }
 
         // Ensure UI text matches entries' interntal data

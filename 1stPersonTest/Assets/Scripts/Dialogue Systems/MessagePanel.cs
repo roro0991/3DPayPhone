@@ -6,43 +6,35 @@ using System.Collections;
 
 public class MessagePanel : MonoBehaviour
 {
-    [Header("References")]
-    public GameObject messagePrefab;          // Your TMP prefab
+    [Header("References")]         // Your TMP prefab
     public Transform contentTransform;        // Scroll View Content
-    public ScrollRect scrollRect;
-
-    // Pool to store reusable message GameObjects
-    private readonly List<GameObject> messagePool = new List<GameObject>();
+    public TextMeshProUGUI playerInput;
+    public TextMeshProUGUI NPCResponse;    
 
     /// <summary>
     /// Adds a message to the panel, reusing pooled objects if available.
     /// </summary>
     public void AddMessage(string message, float typingDelay = 0.05f)
     {
-        GameObject newMessage;
+        if (playerInput.text != "")        
+            playerInput.text = "";
+       
 
-        if (messagePool.Count > 0)
-        {
-            newMessage = messagePool[messagePool.Count - 1];
-            messagePool.RemoveAt(messagePool.Count - 1);
-            newMessage.SetActive(true);
-        }
-        else
-        {
-            newMessage = Instantiate(messagePrefab, contentTransform);
-        }
+        if (NPCResponse.text != "")
+            NPCResponse.text = "";
 
-        TextMeshProUGUI tmpText = newMessage.GetComponent<TextMeshProUGUI>();
-        if (tmpText != null)
-        {
-            // Start typing coroutine
-            StartCoroutine(TypeText(tmpText, message, typingDelay));
-        }
+        if (message != "You: ")                   
+            StartCoroutine(TypeText(playerInput, message, typingDelay));
+              
+    }
 
-        // Update layout and scroll to bottom (consider updating at the end of typing as well)
-        Canvas.ForceUpdateCanvases();
-        scrollRect.verticalNormalizedPosition = 0f;
-        Canvas.ForceUpdateCanvases();
+    public void AddResponse(string response, float typingDelay = 0.05f)
+    {
+        if (NPCResponse.text != "")        
+            NPCResponse.text = "";
+
+        if (response != ": ")    
+            StartCoroutine(TypeText(NPCResponse, response, typingDelay));       
     }
 
     private IEnumerator TypeText(TextMeshProUGUI tmpText, string message, float delay = 0.05f)
@@ -55,8 +47,7 @@ public class MessagePanel : MonoBehaviour
 
             yield return null;  // Wait a frame for layout updates
 
-            LayoutRebuilder.ForceRebuildLayoutImmediate(contentTransform as RectTransform);
-            scrollRect.verticalNormalizedPosition = 0f;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentTransform as RectTransform);            
 
             yield return new WaitForSeconds(delay);
         }
@@ -67,25 +58,12 @@ public class MessagePanel : MonoBehaviour
     /// </summary>
     public void ClearMessagePanel()
     {
-        // Disable all message children and add them back to the pool
-        for (int i = contentTransform.childCount - 1; i >= 0; i--)
-        {
-            GameObject messageObj = contentTransform.GetChild(i).gameObject;
-            messageObj.SetActive(false);
-            messagePool.Add(messageObj);
-        }
+        if (playerInput.text != "")
+            playerInput.text = "";
+
+        if (NPCResponse.text != "")
+            NPCResponse.text = "";
     }
 
-    /// <summary>
-    /// Optional: Clear the pool and destroy pooled objects (if you want to free memory).
-    /// </summary>
-    public void ClearPool()
-    {
-        foreach (var pooledObj in messagePool)
-        {
-            Destroy(pooledObj);
-        }
-        messagePool.Clear();
-    }
 }
 

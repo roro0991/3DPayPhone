@@ -74,7 +74,7 @@ public class CallManager : MonoBehaviour
 
         // NPC opens with their first line + initial SentenceWords
         currentContact.SpeakFirstLine();
-        messagePanel.AddMessage(currentContact.ContactName + ": " + currentContact.ContactResponse);
+        messagePanel.AddResponse(currentContact.ContactName + ": " + currentContact.ContactResponse);
 
         WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();
         wordBankComponent.ClearWordBank();
@@ -127,7 +127,7 @@ public class CallManager : MonoBehaviour
 
         if (!string.IsNullOrWhiteSpace(currentContact.ContactResponse))
         {
-            messagePanel.AddMessage(currentContact.ContactName + ": " + currentContact.ContactResponse);
+            messagePanel.AddResponse(currentContact.ContactName + ": " + currentContact.ContactResponse);
             yield return new WaitForSeconds(2f);
 
             WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();

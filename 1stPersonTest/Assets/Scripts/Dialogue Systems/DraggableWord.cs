@@ -69,6 +69,15 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
 
         this.GetComponent<RectTransform>().position = eventData.position;
+        
+        TMP_Text text = this.GetComponent<TMP_Text>();
+        // Reset font color and style to default
+        if (text.fontStyle != FontStyles.Normal)
+            text.fontStyle = FontStyles.Normal;
+
+        if (text.color != Color.white)
+            text.color = Color.white;
+
         isBeingDragged = true;
         canvasGroup.blocksRaycasts = false;
     }

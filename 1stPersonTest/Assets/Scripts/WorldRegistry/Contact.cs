@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Dialogue.Core;
 using Game.World;
+using NUnit.Framework.Constraints;
 
 public abstract class Contact : MonoBehaviour
 {
@@ -66,34 +67,49 @@ public abstract class Contact : MonoBehaviour
     
     public abstract string GenerateResponse(InterpretedQuery interpretedQuery);
 
-    public string HandleWhat(InterpretedQuery interpretedQuery)
+    public string HandleInterrogativeQuery(InterpretedQuery interpretedQuery)
     {
-        if (interpretedQuery.Subject is Person person &&
-            person.Id == "you" &&
-            interpretedQuery.Verb.Surface is "do")
-        {
-            interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(ContactName);
+        InterrogativeType interrogative = interpretedQuery.Interrogative; 
+        Entity subject = interpretedQuery.Subject;
+        SentenceWordEntry verb = interpretedQuery.Verb;
 
-            if (interpretedQuery.Subject is Person person2)
+        Debug.Log("Interrogative: " + interrogative);
+        Debug.Log("Subject ID: " + subject.Id);
+        Debug.Log("Subject type: " + subject.GetType());
+        Debug.Log("Is Person: " + (subject is Person));
+        Debug.Log("Verb Surface: [" + verb.Surface + "]");
+        Debug.Log("Verb equals live: " + (verb.Surface == "live"));
 
-                ContactResponse = $"I am a {person2.Occupation}";
-        }
-        else
+        switch (interrogative)
         {
-            ContactResponse = "I don't have a job";
+            case InterrogativeType.What:
+                if (subject is Person &&
+                subject.Id == "you" &&
+                verb.Surface is "do")
+                {
+                    ContactResponse = $"I am a {((Person)WorldRegistryBootStrapper.World.Get(ContactName)).Occupation}";
+                }
+                else
+                {
+                    ContactResponse = "I don't have a job";
+                }
+                break;
+            case InterrogativeType.Where:
+                if (subject is Person &&
+                    subject.Id == "you" &&
+                    verb.Surface is "live")
+                {
+                    ContactResponse = $"I live in {((Person)WorldRegistryBootStrapper.World.Get(ContactName)).CityOfResidence}";
+                }
+                else
+                {
+                    ContactResponse = "I don't have a home";
+                }
+                break;
+            default:
+                break;
         }
 
-        /*
-        if (interpretedQuery.Subject is Person person &&
-            interpretedQuery.Target is ObjectEntity objectEntity)
-        {
-            ContactResponse = $"{person.Name} drives a {objectEntity.Name}.";
-        }
-        else
-        {
-            ContactResponse = "I don't know.";
-        }
-        */
         return ContactResponse;
     }
 

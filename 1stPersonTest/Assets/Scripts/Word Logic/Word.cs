@@ -28,6 +28,13 @@ public enum PartsOfSpeech
     Negation = 1 << 16,
 }
 
+public enum VerbStates
+{
+    None,
+    State,
+    Action
+}
+
 
 // Define a class to hold info about each word
 [System.Serializable]
@@ -38,6 +45,7 @@ public class Word
     public WordID WordID; // optional, default to WordID.None
     public string EntityID;
     public Intent Intent; // optional, default to Intent.None
+    public VerbStates VerbState; // state verb or action verb
 
     public List<NounForms> NounFormsList = new();
     public List<VerbForms> VerbFormsList = new();
@@ -46,13 +54,16 @@ public class Word
     public Word(string text,
         PartsOfSpeech partOfSpeech,
         Intent intent = Intent.None,
-        WordID wordID = WordID.None, string entityID = null)
+        WordID wordID = WordID.None,
+        string entityID = null,
+        VerbStates verbState = VerbStates.None)
     {
         Text = text;
         PartOfSpeech = partOfSpeech;
         Intent = intent;
         WordID = wordID;
         EntityID = entityID;
+        VerbState = verbState;
     }
 
     // ------------------- Nested Types -------------------

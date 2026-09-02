@@ -14,7 +14,7 @@ public class WorldRegistryBootStrapper : MonoBehaviour
         World = new WorldRegistry();
 
         YouEntity = new Person { Id = "you" };
-        JohnEntity = new Person { Id = "John", Name = "John", Occupation = "teacher" };
+        JohnEntity = new Person { Id = "john", Name = "John Smith", Occupation = "teacher", CityOfResidence = "Chicago" };
         CarEntity = new ObjectEntity { Id = "car", Name = "Red Car" };
 
         World.Register(YouEntity);

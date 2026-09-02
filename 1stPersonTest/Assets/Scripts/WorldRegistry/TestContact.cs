@@ -9,7 +9,7 @@ public class TestContact : Contact
 {
     private void Start()
     {
-        ContactName = "John";
+        ContactName = "john";
         OpeningLine = "Hello?";
         
     }
@@ -23,6 +23,7 @@ public class TestContact : Contact
     {
         wordBank.AddWordToSentence("you");
         wordBank.AddWordToSentence("do");
+        wordBank.AddWordToSentence("live");
     }
 
     public override string GenerateResponse(InterpretedQuery interpretedQuery)
@@ -30,7 +31,10 @@ public class TestContact : Contact
         switch (interpretedQuery.Interrogative)
         {
             case InterrogativeType.What:
-                ContactResponse = HandleWhat(interpretedQuery);
+                ContactResponse = HandleInterrogativeQuery(interpretedQuery);
+                break;
+            case InterrogativeType.Where:
+                ContactResponse = HandleInterrogativeQuery(interpretedQuery);
                 break;
             default:
                 break;

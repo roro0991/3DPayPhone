@@ -15,6 +15,4 @@ public class WorldRegistry
     {
         return entities.TryGetValue(Id, out var entity) ? entity : null;
     }
-
-
 }

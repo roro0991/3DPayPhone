@@ -55,11 +55,18 @@ public class InputInterpreter : MonoBehaviour
                 interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
                 interpretedQuery.Verb = workingData.Verb;
                 break;
+            case InterrogativeType.Where:
+                interpretedQuery.Interrogative = workingData.Interrogative;
+                interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
+                //interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
+                interpretedQuery.Verb = workingData.Verb;
+                break;
             default:
                 break;
         }
 
         Debug.Log("Interpreted query subject id: " + interpretedQuery.Subject.Id);
+        Debug.Log("interpreted query verb: " + interpretedQuery.Verb.Surface);
 
         return interpretedQuery;
     }
