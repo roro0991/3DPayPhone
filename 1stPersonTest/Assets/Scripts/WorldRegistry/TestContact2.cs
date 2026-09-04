@@ -1,21 +1,16 @@
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Windows.Speech;
-using Dialogue.Core;
-using NUnit.Framework.Constraints;
 
-public class TestContact : Contact
+public class TestContact2 : Contact
 {
     private void Start()
     {
-        ContactID = "john";
-        OpeningLine = "Hello?";
-        
+        ContactID = "sarah";
+        OpeningLine = "Who is it?";
+
     }
     public override void SpeakFirstLine()
     {
-        ContactResponse = OpeningLine;        
+        ContactResponse = OpeningLine;
     }
 
     public override void PopulateWordBank()
@@ -28,15 +23,7 @@ public class TestContact : Contact
     public override string GenerateResponse(InterpretedQuery interpretedQuery)
     {
         ContactResponse = HandleInterrogativeQuery(interpretedQuery);
-        
+
         return ContactResponse;
     }
 }
-
-
-
-
-
-
-
-

@@ -93,13 +93,10 @@ public class WordBank : MonoBehaviour
         }
         runningFades.Clear();
 
-        // Clear existing children
-        /*
         foreach (Transform child in transform)
         {
             Destroy(child.gameObject);
         }
-        */
 
         // Generate new words
         foreach (SentenceWordEntry word in wordsInQueue)

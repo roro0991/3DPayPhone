@@ -8771,11 +8771,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   addressBook: {fileID: 626518969}
   phoneNumberManager: {fileID: 1580422715}
-  SentenceWords: []
   ContactNumber: 
-  ContactName: 
+  ContactID: 
   OpeningLine: 
-  PlayerInput: 
   ContactResponse: 
   wordBank: {fileID: 1066638196}
 --- !u!1 &100881318
@@ -96412,7 +96410,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f74d330772880444bbe18276669295e3, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -117914,6 +117912,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 100674881}
+  - {fileID: 1572060383}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1238964899
@@ -119691,7 +119690,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f74d330772880444bbe18276669295e3, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -136544,6 +136543,7 @@ MonoBehaviour:
   DialogueAudioManager: {fileID: 1216552324}
   Contacts:
   - {fileID: 100674884}
+  - {fileID: 1572060384}
   CurrentState: 0
 --- !u!114 &1431152992
 MonoBehaviour:
@@ -136574,6 +136574,7 @@ MonoBehaviour:
   sfxManager: {fileID: 1467112660}
   phoneNumberManager: {fileID: 1580422715}
   testContact: {fileID: 100674884}
+  testContact2: {fileID: 1572060384}
   isCallInProgress: 0
 --- !u!1 &1431355359
 GameObject:
@@ -150198,6 +150199,57 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1571712324}
   m_CullTransparentMesh: 1
+--- !u!1 &1572060382
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1572060383}
+  - component: {fileID: 1572060384}
+  m_Layer: 0
+  m_Name: TestContact2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1572060383
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1572060382}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1236926299}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1572060384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1572060382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 223e2cffb4e4ce348a9dab982def9a21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TestContact2
+  addressBook: {fileID: 626518969}
+  phoneNumberManager: {fileID: 1580422715}
+  ContactNumber: 
+  ContactID: 
+  OpeningLine: 
+  ContactResponse: 
+  wordBank: {fileID: 1066638196}
 --- !u!1 &1572420919
 GameObject:
   m_ObjectHideFlags: 0
@@ -197703,7 +197755,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &2068334133
 MonoBehaviour:
   m_ObjectHideFlags: 0

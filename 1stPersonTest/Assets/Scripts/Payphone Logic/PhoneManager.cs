@@ -42,7 +42,7 @@ public class PhoneManager : MonoBehaviour
     private void Start()
     {
         // Start with receiver up for testing purposes
-        _currentState = State.RECEIVER_UP;            
+        _currentState = State.RECEIVER_DOWN;            
         ClearDisplay();
         StartCoroutine(AnimateMessage());
     }

@@ -9,15 +9,11 @@ public abstract class Contact : MonoBehaviour
     [SerializeField] private AddressBook addressBook;  // Must be assigned in Inspector
     [SerializeField] private PhoneNumberManager phoneNumberManager;
 
-    public Dictionary<ResponseKey, string> ResponsesByIntent = new Dictionary<ResponseKey, string>(); 
-
-    public List<SentenceWordEntry> SentenceWords = new List<SentenceWordEntry>();
     public string ContactNumber;
-    public string ContactName;
+    public string ContactID;
     private bool nameKnown;
     private bool numberKnown;    
     public string OpeningLine = string.Empty;
-    public string PlayerInput = string.Empty;
     public string ContactResponse = string.Empty;
 
     [SerializeField] public WordBank wordBank;
@@ -32,7 +28,7 @@ public abstract class Contact : MonoBehaviour
 
     public void DiscoverName(string name)
     {
-        ContactName = name;
+        ContactID = name;
         nameKnown = true;
         NotifyAddressBook();
     }
@@ -54,7 +50,7 @@ public abstract class Contact : MonoBehaviour
         if (addressBook != null)
         {
             var data = new ContactData(
-                nameKnown ? ContactName : "",
+                nameKnown ? ContactID : "",
                 numberKnown ? ContactNumber : ""
             );
 
@@ -73,13 +69,6 @@ public abstract class Contact : MonoBehaviour
         Entity subject = interpretedQuery.Subject;
         SentenceWordEntry verb = interpretedQuery.Verb;
 
-        Debug.Log("Interrogative: " + interrogative);
-        Debug.Log("Subject ID: " + subject.Id);
-        Debug.Log("Subject type: " + subject.GetType());
-        Debug.Log("Is Person: " + (subject is Person));
-        Debug.Log("Verb Surface: [" + verb.Surface + "]");
-        Debug.Log("Verb equals live: " + (verb.Surface == "live"));
-
         switch (interrogative)
         {
             case InterrogativeType.What:
@@ -87,7 +76,10 @@ public abstract class Contact : MonoBehaviour
                 subject.Id == "you" &&
                 verb.Surface is "do")
                 {
-                    ContactResponse = $"I am a {((Person)WorldRegistryBootStrapper.World.Get(ContactName)).Occupation}";
+                    string subjectID = ContactID;
+                    string factID = ContactID + "occupation";
+
+                    ContactResponse = $"I am a {WorldRegistryBootStrapper.NarrativeRegistry.Get(factID).Information}";
                 }
                 else
                 {
@@ -99,7 +91,9 @@ public abstract class Contact : MonoBehaviour
                     subject.Id == "you" &&
                     verb.Surface is "live")
                 {
-                    ContactResponse = $"I live in {((Person)WorldRegistryBootStrapper.World.Get(ContactName)).CityOfResidence}";
+                    string subjectId = ContactID;
+                    string factID = ContactID + "residence";
+                    ContactResponse = $"I live at {WorldRegistryBootStrapper.NarrativeRegistry.Get(factID).Information}";
                 }
                 else
                 {

@@ -11,6 +11,7 @@ public class CallTrigger : MonoBehaviour
 
     // Optional test contact for debugging
     [SerializeField] private Contact testContact;
+    [SerializeField] private Contact testContact2;
 
     // Call state
     private string numberToCall;
@@ -21,14 +22,21 @@ public class CallTrigger : MonoBehaviour
         // Optional: assign number for a test contact
         if (testContact != null)
         {
-            testContact.DiscoverName(testContact.ContactName); 
+            testContact.DiscoverName(testContact.ContactID);
             testContact.DiscoverNumber(phoneNumberManager); 
-            string assignedNumber = phoneNumberManager.AssignNumber(testContact);
-            Debug.Log($"TestContact '{testContact.ContactName}' assigned number: {assignedNumber}");
+            string testContactNumber = phoneNumberManager.AssignNumber(testContact);
+            Debug.Log($"TestContact '{testContact.ContactID}' assigned number: {testContactNumber}");            
+        }
+
+        if (testContact2 != null) {
+            testContact2.DiscoverName(testContact2.ContactID);
+            testContact2.DiscoverNumber(phoneNumberManager);
+            string testContact2Number = phoneNumberManager.AssignNumber(testContact2);
+            Debug.Log($"TestContact '{testContact2.ContactID}' assigned number: {testContact2Number}");
         }
 
         // enter call mode immediately for test purpose
-        callManager.EnterCallMode(0);
+        //callManager.EnterCallMode(0);
     }
 
     private void Update()
