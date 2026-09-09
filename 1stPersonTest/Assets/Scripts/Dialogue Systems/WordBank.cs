@@ -20,6 +20,7 @@ public class SentenceWordEntry
     public SentenceWordEntry article; // this noun's article
     public SentenceWordEntry verb; // this noun's verb       
     public SentenceWordEntry auxiliary; // this verb's auxiliary
+    public SentenceWordEntry preposition; // this word's preposition
     public SentenceWordEntry negation; // this verb's adverb of negation
     public Queue<SentenceWordEntry> adjectives = new();
 
@@ -93,10 +94,12 @@ public class WordBank : MonoBehaviour
         }
         runningFades.Clear();
 
+        /*
         foreach (Transform child in transform)
         {
             Destroy(child.gameObject);
         }
+        */
 
         // Generate new words
         foreach (SentenceWordEntry word in wordsInQueue)

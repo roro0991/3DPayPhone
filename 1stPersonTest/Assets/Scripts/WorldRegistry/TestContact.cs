@@ -23,6 +23,7 @@ public class TestContact : Contact
         wordBank.AddWordToSentence("you");
         wordBank.AddWordToSentence("do");
         wordBank.AddWordToSentence("live");
+        wordBank.AddWordToSentence("chicago");
     }
 
     public override string GenerateResponse(InterpretedQuery interpretedQuery)

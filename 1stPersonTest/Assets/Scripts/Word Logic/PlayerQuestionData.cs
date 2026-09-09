@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Dialogue.Core
 {
-    public enum InterrogativeType
+    public enum QueryWord
     {
         Who,
         What,
@@ -15,7 +15,7 @@ namespace Dialogue.Core
 
     public class PlayerQuestionData
     {
-        public InterrogativeType Interrogative;
+        public QueryWord QueryWord;
         public bool isCopular;
 
         public SentenceWordEntry Subject;

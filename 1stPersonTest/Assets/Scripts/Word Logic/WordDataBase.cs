@@ -82,6 +82,11 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word("ours", PartsOfSpeech.PossessivePronoun));
         AddWord(new Word("theirs", PartsOfSpeech.PossessivePronoun));
 
+
+        // ----------------- Locations -----------------
+
+        AddWord(new Word("chicago", PartsOfSpeech.Location, entityID: "chicago"));
+
         // ----------------- Nouns -----------------
         var appleForms = new Word.NounForms { Singular = "apple", Plural = "apples" };
         var appleWord = new Word("apple", PartsOfSpeech.Noun);
@@ -216,6 +221,7 @@ public class WordDataBase : MonoBehaviour
 
         // ----------------- Prepositions -----------------
         AddWord(new Word("to", PartsOfSpeech.Preposition));
+        AddWord(new Word("in", PartsOfSpeech.Preposition));
 
         // ----------------- Multi-role word example: run -----------------
         var runNoun = new Word.NounForms { Singular = "run", Plural = "runs" };

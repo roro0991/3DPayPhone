@@ -26,6 +26,7 @@ public enum PartsOfSpeech
     Character = 1 << 14,
     Auxiliary = 1 << 15,
     Negation = 1 << 16,
+    Location = 1 << 17
 }
 
 public enum VerbStates

@@ -65,13 +65,14 @@ public abstract class Contact : MonoBehaviour
 
     public string HandleInterrogativeQuery(InterpretedQuery interpretedQuery)
     {
-        InterrogativeType interrogative = interpretedQuery.Interrogative; 
+        QueryWord interrogative = interpretedQuery.Interrogative; 
         Entity subject = interpretedQuery.Subject;
+        Entity target = interpretedQuery.Target;
         SentenceWordEntry verb = interpretedQuery.Verb;
 
         switch (interrogative)
         {
-            case InterrogativeType.What:
+            case QueryWord.What:
                 if (subject is Person &&
                 subject.Id == "you" &&
                 verb.Surface is "do")
@@ -86,7 +87,7 @@ public abstract class Contact : MonoBehaviour
                     ContactResponse = "I don't have a job";
                 }
                 break;
-            case InterrogativeType.Where:
+            case QueryWord.Where:
                 if (subject is Person &&
                     subject.Id == "you" &&
                     verb.Surface is "live")

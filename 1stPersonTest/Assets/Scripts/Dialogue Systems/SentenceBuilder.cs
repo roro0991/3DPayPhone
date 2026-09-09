@@ -61,12 +61,11 @@ public class SentenceBuilder : MonoBehaviour
     public enum InputMode
     {
         Query,
-        Verify,
         Declare,
         Challenge
     }
 
-    InputMode CurrentInputMode = InputMode.Query;
+    InputMode CurrentInputMode = InputMode.Declare;
 
     public enum SentenceTense
     {        
@@ -84,16 +83,18 @@ public class SentenceBuilder : MonoBehaviour
 
     SentenceNegation CurrentSentenceNegation = SentenceNegation.Affirmative;
 
-    public enum InterrogativeMode
+    public enum QueryMode
     {
+        None,
         Who,
         What,
         Where,
         When,
-        Why
+        Why,
+        Polar
     }
 
-    InterrogativeMode CurrentInterrogativeMode = InterrogativeMode.What;
+    QueryMode CurrentQueryMode = QueryMode.None;
 
     public enum InterrogativeRole
     {
@@ -110,7 +111,7 @@ public class SentenceBuilder : MonoBehaviour
         FirstPersonSingular, // I
         ThirdPersonSingular, // He, She, It [including Character names]
         Plural, // We, They, You, You [plural]
-    }
+    }  
 
     // ---------------- Hover & Drop Management ------------
 
@@ -301,43 +302,49 @@ public class SentenceBuilder : MonoBehaviour
     // Interrogative toggling
     public void ToggleInterrogatives()
     {
-        if (sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)))
+        if (CurrentInputMode == InputMode.Query)
         {
-            SentenceWordEntry interrogativeEntry = sentenceModel[0];
-            string interWord = interrogativeEntry.Surface;
+            SentenceWordEntry queryEntry = sentenceModel[0];
+            string queryWord = queryEntry.Word.Text;
             DraggableWord draggable = 
-                FindRectForEntry(interrogativeEntry).GetComponent<DraggableWord>();
+                FindRectForEntry(queryEntry).GetComponent<DraggableWord>();
 
-            switch (interWord)
+            switch (queryWord)
             {
-                case "What":
-                    ChangeEntryWord(draggable, "Where");
-                    CurrentInterrogativeMode = InterrogativeMode.Where;
+                case "what":
+                    ChangeEntryWord(draggable, "where");
+                    CurrentQueryMode = QueryMode.Where;
                     break;
-                case "Where":
-                    sentenceModel.RemoveAll(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative));
+                case "where":
+                    ChangeEntryWord(draggable, "do");
+                    queryEntry.activePOS = PartsOfSpeech.Auxiliary;
+                    CurrentQueryMode = QueryMode.Polar;
+                    break;
+                case "do":
+                    sentenceModel.Remove(queryEntry);
+                    CurrentQueryMode = QueryMode.None;
                     CurrentInputMode = InputMode.Declare;
                     break;
                 default:
                     break;
             }
         }
-        else
+        else if (CurrentInputMode == InputMode.Declare)
         {
-            SentenceWordEntry interrogative = new SentenceWordEntry
+            SentenceWordEntry queryWord = new SentenceWordEntry
             {
                 Word = WordDataBase.Instance.GetWord("what"),
                 Surface = "What"
             };
 
-            sentenceModel.Add(interrogative);
-            if (sentenceModel.IndexOf(interrogative) != 0)
+            sentenceModel.Add(queryWord);
+            if (sentenceModel.IndexOf(queryWord) != 0)
             {
-                int oldIndex = sentenceModel.IndexOf(interrogative);
+                int oldIndex = sentenceModel.IndexOf(queryWord);
                 MoveWord(sentenceModel, oldIndex, 0);
             }
             CurrentInputMode = InputMode.Query;
-            CurrentInterrogativeMode = InterrogativeMode.What;
+            CurrentQueryMode = QueryMode.What;
         }
 
         sentenceMutated = true;
@@ -386,6 +393,25 @@ public class SentenceBuilder : MonoBehaviour
 
 
         // sever grammatical connections
+
+        if (draggableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Location))
+        {
+            if (draggableEntry.isObject)
+                draggableEntry.isObject = false;
+
+            if (draggableEntry.preposition != null)
+            {
+                var prepositionEntry = draggableEntry.preposition;
+
+                if (prepositionEntry.owningNoun == draggableEntry)
+                    prepositionEntry.owningNoun = null;
+
+                draggableEntry.preposition = null;
+
+                sentenceModel.Remove(prepositionEntry);
+            }
+        }
+
         if (draggableEntry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
         {
             if (draggableEntry.isSubject)
@@ -676,26 +702,6 @@ public class SentenceBuilder : MonoBehaviour
             rightWord = null;
         }
 
-        switch (CurrentInputMode)
-        {
-            case InputMode.Query:
-                switch (CurrentInterrogativeMode)
-                {
-                    case InterrogativeMode.What:
-
-                        break;
-                    default:
-                        break;
-                }
-                break;
-            case InputMode.Verify:
-                break;
-            case InputMode.Declare:
-                break;
-            default:
-                break;
-        }
-
         // ----- OBJECT & SUBJECT ROLE LIMIT -----
         // Limit sentences to a maximum of 2 subject/object role capable entires
         int coreCount = model.Count(entry => IsCoreEntity(entry) && !entry.isPreview);
@@ -805,7 +811,9 @@ public class SentenceBuilder : MonoBehaviour
         PairAdjectivesToNouns(workingModel);
 
         var articleEntriesToInsert = CollectArticlesToInsert(workingModel);
-        UpdateAndInsertArticles(workingModel, articleEntriesToInsert);        
+        UpdateAndInsertArticles(workingModel, articleEntriesToInsert);
+
+        NormalizePrepositions(workingModel);
 
         NormalizeQuery(workingModel);
 
@@ -1119,17 +1127,113 @@ public class SentenceBuilder : MonoBehaviour
         if (CurrentInputMode != InputMode.Query)
             return;
 
-        switch (CurrentInterrogativeMode)
+        switch (CurrentQueryMode)
         {
-            case InterrogativeMode.What:
+            case QueryMode.What:
                 NormalizeWhatInterrogative(workingModel);
                 break;
-            case InterrogativeMode.Where:
+            case QueryMode.Where:
                 NormalizeWhereInterrogative(workingModel);
                 break;
             default:
                 break;
         }
+    }
+    private void NormalizeDoQuery(List<SentenceWordEntry> workingModel)
+    {
+        // Defensive Checks
+        if (workingModel == null || workingModel.Count == 0)
+            return;
+
+        if (workingModel[0].Word.Text != "do" &&
+            workingModel[0].activePOS != PartsOfSpeech.Auxiliary)
+            return;
+
+        // Cache query word index for iteration
+        int queryWordIndex = workingModel.FindIndex(entry => entry.Word.Text == "do" &&
+                                                    entry.activePOS == PartsOfSpeech.Auxiliary);
+
+        if (queryWordIndex == -1)
+            return;
+
+        // Cache query word data
+
+        var queryWord = workingModel[queryWordIndex];
+
+        // Query variables
+        SentenceWordEntry subjectEntry = null;
+        SentenceWordEntry objectEntry = null;
+        SentenceWordEntry verbEntry = null;
+
+        // Determine subjectEntry, objectEntry, verbEntry
+        for (int i = queryWordIndex + 1; i < workingModel.Count; i++)
+        {
+            var entry = workingModel[i];
+
+            // skip to reach first noun or verb + skip trailing punctuation
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Article))
+                continue;
+
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.SubjectPronoun))
+            {
+                if (subjectEntry == null)
+                {
+                    subjectEntry = entry;
+                }
+                continue;
+            }
+
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+                entry.activePOS != PartsOfSpeech.Auxiliary)
+            {
+                if (verbEntry != entry)
+                {
+                    verbEntry = entry;
+                }
+                continue;
+            }
+
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            {
+                if (verbEntry != null &&
+                    objectEntry == null)
+                {
+                    objectEntry = entry;
+                }
+                continue;
+            }
+        }
+
+        // Determine subject agreement
+        if (subjectEntry == null)
+            return;
+
+        if (verbEntry == null)
+            return;
+
+        subjectEntry.isSubject = true;
+        objectEntry.isObject = true;
+
+        // Cache relationship re between verb and subjects
+        if (verbEntry.owningSubject != subjectEntry)
+            verbEntry.owningSubject = subjectEntry;
+
+        if (subjectEntry.verb != verbEntry)
+            subjectEntry.verb = verbEntry;
+
+        currentQuestionData = new PlayerQuestionData
+        {
+            QueryWord = QueryWord.Do,
+            isCopular = verbEntry.Word.Text == "be" ? true : false,
+            Subject = subjectEntry != null ? subjectEntry : null,
+            Object = objectEntry != null ? objectEntry : null,
+            Verb = verbEntry != null ? verbEntry : null
+        };
     }
     private void NormalizeWhatInterrogative(List<SentenceWordEntry> workingModel)
     {
@@ -1170,7 +1274,7 @@ public class SentenceBuilder : MonoBehaviour
         SentenceWordEntry objectEntry = new();
         SentenceWordEntry verbEntry = null;
 
-        // Determine Interrogative Role
+        // Determine Interrogative Role, subjectEntry, objectEntry, verbEntry
         for (int i = interrogativeIndex + 1; i < workingModel.Count; i++)
         {
             var entry = workingModel[i];
@@ -1472,7 +1576,7 @@ public class SentenceBuilder : MonoBehaviour
 
         currentQuestionData = new PlayerQuestionData
         {
-            Interrogative = InterrogativeType.What,
+            QueryWord = QueryWord.What,
             isCopular = verbEntry.Word.Text == "be" ? true : false,
             Subject = subjectEntry != null ? subjectEntry : null,
             Object = objectEntry != null ? objectEntry : null,
@@ -1611,6 +1715,13 @@ public class SentenceBuilder : MonoBehaviour
 
         Word.VerbForms.VerbForm cachedForm;
         bool found = verbForms.TryGetForm(verbEntry.Surface, out cachedForm);
+        if (CurrentSentenceTense == SentenceTense.Past &&
+            verbForms.Past == verbForms.PastParticiple)
+        {
+            Debug.Log("past form and pastpariciple is same");
+            Debug.Log("prioritizing past form");
+            cachedForm = Word.VerbForms.VerbForm.Past;
+        }
 
         // Reset cachedForm to Base for interrogative question
         if (cachedForm == Word.VerbForms.VerbForm.ThirdPersonSingular)
@@ -1635,12 +1746,15 @@ public class SentenceBuilder : MonoBehaviour
 
         currentQuestionData = new PlayerQuestionData
         {
-            Interrogative = InterrogativeType.Where,
+            QueryWord = QueryWord.Where,
             isCopular = verbEntry.Word.Text == "be" ? true : false,
             Subject = subjectEntry != null ? subjectEntry : null,
             Object = objectEntry != null ? objectEntry : null,
             Verb = verbEntry != null ? verbEntry : null
         };
+        
+        Debug.Log("verbForm = " + pendingData.verbForm);
+        
 
         CreateAuxiliaryVerb(workingModel, pendingData, interRole);
     }
@@ -1727,11 +1841,12 @@ public class SentenceBuilder : MonoBehaviour
                 }
                 break;
             case Word.VerbForms.VerbForm.Past:
+                Debug.Log("auxiliary converted to past");
                 auxiliaryVerb.Word = WordDataBase.Instance.GetWord("do");
                 auxiliaryVerb.Surface = "did";
                 pendingAuxiliaryData.verb.Surface = verbForms.Base;
-                break;
-            case Word.VerbForms.VerbForm.PastParticiple:
+                break;                          
+            case Word.VerbForms.VerbForm.PastParticiple:                
                 if (subjectAgreement == SubjectAgreement.Plural ||
                     subjectAgreement == SubjectAgreement.FirstPersonSingular)
                 {
@@ -1742,8 +1857,8 @@ public class SentenceBuilder : MonoBehaviour
                 {
                     auxiliaryVerb.Word = WordDataBase.Instance.GetWord("have");
                     auxiliaryVerb.Surface = "has";
-                }
-                break;
+                }                
+                break;            
             default:
                 break;
         }
@@ -1763,6 +1878,54 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         workingModel.Insert(auxiliaryInsertionIndex, auxiliaryVerb);
+    }
+    
+    private void NormalizePrepositions(List<SentenceWordEntry> workingModel)
+    {
+        // Defensive Check
+        if (workingModel == null || workingModel.Count == 0)
+            return;
+        
+        // Remove only loose prepositions
+        List<int> prepositionIndices = new();
+
+        for (int i = 0; i < workingModel.Count; i++)
+        {
+            if (workingModel[i].Word.HasPartOfSpeech(PartsOfSpeech.Preposition))
+                prepositionIndices.Add(i);
+        } 
+
+        for (int i = prepositionIndices.Count - 1; i >= 0; i--)
+        {
+            int prepositionIndex = prepositionIndices[i];
+
+            var prepositionEntry = workingModel[prepositionIndex];
+
+            if (prepositionEntry.owningNoun == null)
+            {
+                workingModel.RemoveAt(prepositionIndex);
+                continue;
+            }
+        }        
+
+        // Add preposition 'in' for locations
+
+        var locationEntry = workingModel.FirstOrDefault(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Location));
+
+        if (locationEntry == null)
+            return;
+
+        int locationIndex = workingModel.IndexOf(locationEntry);
+
+        var inWord = WordDataBase.Instance.GetWord("in");
+
+        SentenceWordEntry preposition = new();
+        preposition.Word = inWord;
+        preposition.Surface = inWord.Text;
+        preposition.owningNoun = locationEntry;
+        locationEntry.preposition = preposition;
+
+        workingModel.Insert(locationIndex, preposition);
     }
     private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
     {
@@ -1888,12 +2051,10 @@ public class SentenceBuilder : MonoBehaviour
         // if no content words, do nothing
         if (!rawModel.Any(entry =>
             !entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation)))
-            return;
-
-        var firstWord = rawModel[0];
+            return;        
 
         string punctuation =
-            firstWord.Word.PartOfSpeech == PartsOfSpeech.Interrogative
+            CurrentInputMode == InputMode.Query
             ? "?"
             : ".";
 
@@ -2115,6 +2276,9 @@ public class SentenceBuilder : MonoBehaviour
     {
         wordList.Clear();
         sentenceModel.Clear();
+
+        if (CurrentInputMode != InputMode.Declare)
+            CurrentInputMode = InputMode.Declare;
 
         for (int i = transform.childCount - 1; i >= 0; i--)
         { 

@@ -6,9 +6,9 @@ using Game.World;
 
 public class InterpretedQuery
 {
-    public InterrogativeType Interrogative;        
+    public QueryWord Interrogative;        
     public Entity Subject;
-    public Entity Target;
+    public Entity Target;    
     public SentenceWordEntry Verb;
 }
 
@@ -43,22 +43,28 @@ public class InputInterpreter : MonoBehaviour
             return null;
         }
 
-        InterrogativeType interrogative = workingData.Interrogative;
+        QueryWord interrogative = workingData.QueryWord;
             
         InterpretedQuery interpretedQuery = new InterpretedQuery();
 
         switch (interrogative)
         {
-            case InterrogativeType.What:
-                interpretedQuery.Interrogative = workingData.Interrogative;
+            case QueryWord.What:
+                interpretedQuery.Interrogative = workingData.QueryWord;
                 interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
                 interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
                 interpretedQuery.Verb = workingData.Verb;
                 break;
-            case InterrogativeType.Where:
-                interpretedQuery.Interrogative = workingData.Interrogative;
+            case QueryWord.Where:
+                interpretedQuery.Interrogative = workingData.QueryWord;
                 interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
                 //interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
+                interpretedQuery.Verb = workingData.Verb;
+                break;
+            case QueryWord.Do:
+                interpretedQuery.Interrogative = workingData.QueryWord;
+                interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
+                interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
                 interpretedQuery.Verb = workingData.Verb;
                 break;
             default:
