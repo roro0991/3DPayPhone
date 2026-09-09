@@ -26,7 +26,7 @@ public class TestContact : Contact
         wordBank.AddWordToSentence("chicago");
     }
 
-    public override string GenerateResponse(InterpretedQuery interpretedQuery)
+    public override string GenerateResponse(InterpretedInputData interpretedQuery)
     {
         ContactResponse = HandleInterrogativeQuery(interpretedQuery);
         

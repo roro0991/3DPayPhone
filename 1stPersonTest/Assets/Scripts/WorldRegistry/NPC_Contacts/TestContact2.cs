@@ -20,7 +20,7 @@ public class TestContact2 : Contact
         wordBank.AddWordToSentence("live");
     }
 
-    public override string GenerateResponse(InterpretedQuery interpretedQuery)
+    public override string GenerateResponse(InterpretedInputData interpretedQuery)
     {
         ContactResponse = HandleInterrogativeQuery(interpretedQuery);
 

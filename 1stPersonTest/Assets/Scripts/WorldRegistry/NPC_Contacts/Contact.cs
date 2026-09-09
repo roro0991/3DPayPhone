@@ -61,18 +61,18 @@ public abstract class Contact : MonoBehaviour
 
     public abstract void SpeakFirstLine();
     
-    public abstract string GenerateResponse(InterpretedQuery interpretedQuery);
+    public abstract string GenerateResponse(InterpretedInputData interpretedQuery);
 
-    public string HandleInterrogativeQuery(InterpretedQuery interpretedQuery)
+    public string HandleInterrogativeQuery(InterpretedInputData interpretedQuery)
     {
-        QueryWord interrogative = interpretedQuery.Interrogative; 
+        QueryMode interrogative = interpretedQuery.QueryMode; 
         Entity subject = interpretedQuery.Subject;
         Entity target = interpretedQuery.Target;
         SentenceWordEntry verb = interpretedQuery.Verb;
 
         switch (interrogative)
         {
-            case QueryWord.What:
+            case QueryMode.Int_What:
                 if (subject is Person &&
                 subject.Id == "you" &&
                 verb.Surface is "do")
@@ -87,7 +87,7 @@ public abstract class Contact : MonoBehaviour
                     ContactResponse = "I don't have a job";
                 }
                 break;
-            case QueryWord.Where:
+            case QueryMode.Int_Where:
                 if (subject is Person &&
                     subject.Id == "you" &&
                     verb.Surface is "live")

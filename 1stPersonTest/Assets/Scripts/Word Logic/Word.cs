@@ -43,9 +43,7 @@ public class Word
 {
     public string Text; // e.g., "run"    
     public PartsOfSpeech PartOfSpeech; // bitflags for multiple roles
-    public WordID WordID; // optional, default to WordID.None
     public string EntityID;
-    public Intent Intent; // optional, default to Intent.None
     public VerbStates VerbState; // state verb or action verb
 
     public List<NounForms> NounFormsList = new();
@@ -54,15 +52,11 @@ public class Word
     // -------------------- Constructors --------------------
     public Word(string text,
         PartsOfSpeech partOfSpeech,
-        Intent intent = Intent.None,
-        WordID wordID = WordID.None,
         string entityID = null,
         VerbStates verbState = VerbStates.None)
     {
         Text = text;
         PartOfSpeech = partOfSpeech;
-        Intent = intent;
-        WordID = wordID;
         EntityID = entityID;
         VerbState = verbState;
     }

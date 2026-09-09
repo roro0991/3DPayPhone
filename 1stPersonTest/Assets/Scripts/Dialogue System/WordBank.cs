@@ -200,7 +200,11 @@ public class WordBank : MonoBehaviour
     public void ClearWordBank()
     {
         wordsInQueue.Clear();
-        GenerateWords();
+        foreach (Transform child in transform)
+        {
+            Destroy(child.gameObject);
+        }
+        //GenerateWords();
     }
 
 }

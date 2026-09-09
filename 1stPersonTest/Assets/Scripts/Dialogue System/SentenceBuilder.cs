@@ -42,7 +42,7 @@ public class SentenceBuilder : MonoBehaviour
     public SentenceWordEntry currentPreviewEntry;
 
     // Question Data    
-    public PlayerQuestionData currentQuestionData;
+    public WorkingInputData currentQuestionData;
 
     // Floats | Ints | Vectors
     public Vector2 startPosition = Vector2.zero;
@@ -56,23 +56,14 @@ public class SentenceBuilder : MonoBehaviour
     private bool sentenceHasPreviews;
     private bool sentenceMutated;    
 
-    // Enums    
-
-    public enum InputMode
-    {
-        Query,
-        Declare,
-        Challenge
-    }
-
-    InputMode CurrentInputMode = InputMode.Declare;
+    InputMode CurrentInputMode = InputMode.Statement;
+    QueryMode CurrentQueryMode = QueryMode.None;
 
     public enum SentenceTense
     {        
         Present,
         Past
     }
-
     SentenceTense CurrentSentenceTense = SentenceTense.Present;
 
     public enum SentenceNegation
@@ -80,21 +71,8 @@ public class SentenceBuilder : MonoBehaviour
         Affirmative,
         Negative
     }
+    SentenceNegation CurrentSentenceNegation = SentenceNegation.Affirmative;  
 
-    SentenceNegation CurrentSentenceNegation = SentenceNegation.Affirmative;
-
-    public enum QueryMode
-    {
-        None,
-        Who,
-        What,
-        Where,
-        When,
-        Why,
-        Polar
-    }
-
-    QueryMode CurrentQueryMode = QueryMode.None;
 
     public enum InterrogativeRole
     {
@@ -105,6 +83,7 @@ public class SentenceBuilder : MonoBehaviour
         DeterminerOfObject,
         Adverb
     }
+
     public enum SubjectAgreement
     {
         Unknown,
@@ -313,23 +292,23 @@ public class SentenceBuilder : MonoBehaviour
             {
                 case "what":
                     ChangeEntryWord(draggable, "where");
-                    CurrentQueryMode = QueryMode.Where;
+                    CurrentQueryMode = QueryMode.Int_Where;
                     break;
                 case "where":
                     ChangeEntryWord(draggable, "do");
                     queryEntry.activePOS = PartsOfSpeech.Auxiliary;
-                    CurrentQueryMode = QueryMode.Polar;
+                    CurrentQueryMode = QueryMode.Polar_Do;
                     break;
                 case "do":
                     sentenceModel.Remove(queryEntry);
                     CurrentQueryMode = QueryMode.None;
-                    CurrentInputMode = InputMode.Declare;
+                    CurrentInputMode = InputMode.Statement;
                     break;
                 default:
                     break;
             }
         }
-        else if (CurrentInputMode == InputMode.Declare)
+        else if (CurrentInputMode == InputMode.Statement)
         {
             SentenceWordEntry queryWord = new SentenceWordEntry
             {
@@ -344,7 +323,7 @@ public class SentenceBuilder : MonoBehaviour
                 MoveWord(sentenceModel, oldIndex, 0);
             }
             CurrentInputMode = InputMode.Query;
-            CurrentQueryMode = QueryMode.What;
+            CurrentQueryMode = QueryMode.Int_What;
         }
 
         sentenceMutated = true;
@@ -1119,21 +1098,21 @@ public class SentenceBuilder : MonoBehaviour
     {
         // Defensive checks
         if (workingModel == null)
-        {
-            //Debug.Log("Verb normalization cancelled!");
-            return;
-        }
-
+            return;       
         if (CurrentInputMode != InputMode.Query)
             return;
 
+        // Direct query to appropriate normalizer
         switch (CurrentQueryMode)
         {
-            case QueryMode.What:
+            case QueryMode.Int_What:
                 NormalizeWhatInterrogative(workingModel);
                 break;
-            case QueryMode.Where:
+            case QueryMode.Int_Where:
                 NormalizeWhereInterrogative(workingModel);
+                break;
+            case QueryMode.Polar_Do:
+                NormalizeDoQuery(workingModel);
                 break;
             default:
                 break;
@@ -1226,10 +1205,10 @@ public class SentenceBuilder : MonoBehaviour
         if (subjectEntry.verb != verbEntry)
             subjectEntry.verb = verbEntry;
 
-        currentQuestionData = new PlayerQuestionData
+        currentQuestionData = new WorkingInputData
         {
-            QueryWord = QueryWord.Do,
-            isCopular = verbEntry.Word.Text == "be" ? true : false,
+            InputMode = InputMode.Query,
+            QueryMode = QueryMode.Polar_Do,
             Subject = subjectEntry != null ? subjectEntry : null,
             Object = objectEntry != null ? objectEntry : null,
             Verb = verbEntry != null ? verbEntry : null
@@ -1574,10 +1553,10 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("existing auxiliary for verb " + verbEntry.Surface + " is " + verbEntry.auxiliary.Surface);
         }
 
-        currentQuestionData = new PlayerQuestionData
+        currentQuestionData = new WorkingInputData
         {
-            QueryWord = QueryWord.What,
-            isCopular = verbEntry.Word.Text == "be" ? true : false,
+            InputMode = InputMode.Query,
+            QueryMode = QueryMode.Int_What,
             Subject = subjectEntry != null ? subjectEntry : null,
             Object = objectEntry != null ? objectEntry : null,
             Verb = verbEntry != null ? verbEntry : null
@@ -1744,10 +1723,10 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("existing auxiliary for verb " + verbEntry.Surface + " is " + verbEntry.auxiliary.Surface);
         }
 
-        currentQuestionData = new PlayerQuestionData
+        currentQuestionData = new WorkingInputData
         {
-            QueryWord = QueryWord.Where,
-            isCopular = verbEntry.Word.Text == "be" ? true : false,
+            InputMode = InputMode.Query,
+            QueryMode = QueryMode.Int_Where,
             Subject = subjectEntry != null ? subjectEntry : null,
             Object = objectEntry != null ? objectEntry : null,
             Verb = verbEntry != null ? verbEntry : null
@@ -2277,8 +2256,8 @@ public class SentenceBuilder : MonoBehaviour
         wordList.Clear();
         sentenceModel.Clear();
 
-        if (CurrentInputMode != InputMode.Declare)
-            CurrentInputMode = InputMode.Declare;
+        if (CurrentInputMode != InputMode.Statement)
+            CurrentInputMode = InputMode.Statement;
 
         for (int i = transform.childCount - 1; i >= 0; i--)
         { 
