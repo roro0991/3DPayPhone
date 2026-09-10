@@ -22,8 +22,8 @@ public class TestContact : Contact
     {
         wordBank.AddWordToSentence("you");
         wordBank.AddWordToSentence("do");
-        wordBank.AddWordToSentence("live");
-        wordBank.AddWordToSentence("chicago");
+        wordBank.AddWordToSentence("work");
+        wordBank.AddWordToSentence("anna");
     }
 
     public override string GenerateResponse(InterpretedInputData interpretedQuery)

@@ -67,20 +67,29 @@ public abstract class Contact : MonoBehaviour
     {
         QueryMode interrogative = interpretedQuery.QueryMode; 
         Entity subject = interpretedQuery.Subject;
-        Entity target = interpretedQuery.Target;
+        Entity target = interpretedQuery.Object;
         SentenceWordEntry verb = interpretedQuery.Verb;
 
         switch (interrogative)
         {
             case QueryMode.Int_What:
-                if (subject is Person &&
+                if (subject is PersonEntity &&
                 subject.Id == "you" &&
                 verb.Surface is "do")
                 {
                     string subjectID = ContactID;
-                    string factID = ContactID + "occupation";
+                    Entity character = WorldRegistryBootStrapper.World.Get(ContactID);
+                    if (character is PersonEntity person)
+                    {
 
-                    ContactResponse = $"I am a {WorldRegistryBootStrapper.NarrativeRegistry.Get(factID).Information}";
+                        Entity characterJob = WorldRegistryBootStrapper.World.Get(person.Job.Id);
+
+                        if (characterJob is JobEntity job)
+                        {
+                            ContactResponse = $"I am {job.JobTitle}.";
+                        }
+                    }
+
                 }
                 else
                 {
@@ -88,17 +97,51 @@ public abstract class Contact : MonoBehaviour
                 }
                 break;
             case QueryMode.Int_Where:
-                if (subject is Person &&
+                if (subject is PersonEntity &&
                     subject.Id == "you" &&
-                    verb.Surface is "live")
+                    verb.Surface is "work")
                 {
                     string subjectId = ContactID;
-                    string factID = ContactID + "residence";
-                    ContactResponse = $"I live at {WorldRegistryBootStrapper.NarrativeRegistry.Get(factID).Information}";
+                    Entity character = WorldRegistryBootStrapper.World.Get(ContactID);
+                    if (character is PersonEntity person)
+                    {
+                        Entity characterOccupation = WorldRegistryBootStrapper.World.Get(person.Job.Id);
+                        
+                        if (characterOccupation is JobEntity job)
+                        {
+                            Entity characterCompany = WorldRegistryBootStrapper.World.Get(job.Company.Id);
+
+                            if (characterCompany is CompanyEntity company)
+                            {
+                                ContactResponse = $"I work at {company.CompanyName}.";
+                            }
+                        }
+
+                    }
+                }
+                else if (subject is PersonEntity && verb.Surface is "work")
+                {
+                    string subjectId = ContactID;
+                    Entity character = WorldRegistryBootStrapper.World.Get(subject.Id);
+                    if (character is PersonEntity person)
+                    {
+                        Entity characterOccupation = WorldRegistryBootStrapper.World.Get(person.Job.Id);
+
+                        if (characterOccupation is JobEntity job)
+                        {
+                            Entity characterCompany = WorldRegistryBootStrapper.World.Get(job.Company.Id);
+
+                            if (characterCompany is CompanyEntity company)
+                            {
+                                ContactResponse = $"{person.Name} works at {company.CompanyName}.";
+                            }
+                        }
+
+                    }
                 }
                 else
                 {
-                    ContactResponse = "I don't have a home";
+                    ContactResponse = "I don't have a job";
                 }
                 break;
             default:

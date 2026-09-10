@@ -3,13 +3,15 @@ using UnityEngine;
 using System.Collections.Generic;
 using Dialogue.Core;
 using Game.World;
+using Game.Facts;
 
 public class InterpretedInputData
 {
     public InputMode InputMode;
     public QueryMode QueryMode;        
     public Entity Subject;
-    public Entity Target;    
+    public Entity Object;
+    public Topic Topic;
     public SentenceWordEntry Verb;
 }
 
@@ -56,7 +58,7 @@ public class InputInterpreter : MonoBehaviour
                 case QueryMode.Int_What:
                     interpretedQuery.QueryMode = workingData.QueryMode;
                     interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
-                    interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
+                    interpretedQuery.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
                     interpretedQuery.Verb = workingData.Verb;
                     break;
                 case QueryMode.Int_Where:
@@ -68,7 +70,7 @@ public class InputInterpreter : MonoBehaviour
                 case QueryMode.Polar_Do:
                     interpretedQuery.QueryMode = workingData.QueryMode;
                     interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
-                    interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
+                    interpretedQuery.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
                     interpretedQuery.Verb = workingData.Verb;
                     break;
                 default:

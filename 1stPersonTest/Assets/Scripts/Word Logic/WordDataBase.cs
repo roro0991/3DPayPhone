@@ -35,7 +35,7 @@ public class WordDataBase : MonoBehaviour
 
         // ----------------- Characters -----------------
 
-        AddWord(new Word("anna", PartsOfSpeech.Character));
+        AddWord(new Word("anna", PartsOfSpeech.Character, entityID: "anna"));
         AddWord(new Word("john", PartsOfSpeech.Character, entityID: "john"));
 
         // ----------------- Interrogatives -----------------
@@ -187,6 +187,18 @@ public class WordDataBase : MonoBehaviour
         var meetWord = new Word("meet", PartsOfSpeech.Verb);
         meetWord.AddVerbForm(meetForms);
         AddWord(meetWord);
+
+        var workForms = new Word.VerbForms
+        {
+            Base = "work",
+            Past = "worked",
+            PastParticiple = "worked",
+            PresentParticiple = "working",
+            ThirdPerson = "works"
+        };
+        var workWord = new Word("work", PartsOfSpeech.Verb);
+        workWord.AddVerbForm(workForms);
+        AddWord(workWord);
 
         var beForms = new Word.VerbForms
         {
