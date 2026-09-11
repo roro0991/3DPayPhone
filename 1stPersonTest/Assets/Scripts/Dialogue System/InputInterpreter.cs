@@ -11,7 +11,7 @@ public class InterpretedInputData
     public QueryMode QueryMode;        
     public Entity Subject;
     public Entity Object;
-    public Topic Topic;
+    public Information Topic;
     public SentenceWordEntry Verb;
 }
 

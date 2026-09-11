@@ -1,18 +1,33 @@
 using Game.Facts;
 using System.Collections.Generic;
 using UnityEngine;
+using Game.World;
 
 public class NarrativeRegistry
 {
-    private Dictionary<string, Topic> facts = new();
+    private Dictionary<string, Information> information = new();
 
-    public void Register(Topic fact)
+    public void Register(Information info)
     {
-        facts[fact.FactID] = fact;
+        information[info.InfoID] = info;
     }
 
-    public Topic Get(string factID)
+    public Information Get(string infoID)
     {
-        return facts.TryGetValue(factID, out var fact) ? fact : null;
+        return information.TryGetValue(infoID, out var fact) ? fact : null;
+    }
+
+    public Information Find(Entity subject, Relationship relationship)
+    {
+        foreach (Information info in information.Values)
+        {
+            if (info.Subject == subject &&
+                info.Relationship == relationship)
+            {
+                return info;
+            }
+        }
+
+        return null;
     }
 }

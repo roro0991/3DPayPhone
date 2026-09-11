@@ -1,34 +1,29 @@
 using UnityEngine;
 using Game.World;
+using System.Collections.Generic;
 
 namespace Game.Facts
 {
-    public class Topic
-    {
-        public string FactID;
-        public string EntityID;
-        public Information Information;
-    }
-
     public class Information
     {
+        public string InfoID;
+        public Dictionary<string, KnowledgeState> NPC_Knowledge;
         public Entity Subject;
-        public Entity Location;
-        public string Time;
+        public Relationship Relationship;
+        public Entity Object;
     }
 
     public enum KnowledgeState
     {
         Unknown,
-        Known,
-        FalseBelief
+        Known
     }
 
     public enum Relationship
     {
+        WorksAs,
         WorksAt,
         WorksWith,
         LivesAt
     }
-
 }

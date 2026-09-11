@@ -1,8 +1,7 @@
-using System.Collections.Generic;
 using UnityEngine;
 using Dialogue.Core;
 using Game.World;
-using NUnit.Framework.Constraints;
+using Game.Facts;
 
 public abstract class Contact : MonoBehaviour
 {
@@ -78,18 +77,26 @@ public abstract class Contact : MonoBehaviour
                 verb.Surface is "do")
                 {
                     string subjectID = ContactID;
-                    Entity character = WorldRegistryBootStrapper.World.Get(ContactID);
-                    if (character is PersonEntity person)
+
+                    subject = WorldRegistryBootStrapper.World.Get(ContactID);
+                    Relationship relationship = Relationship.WorksAs;
+
+                    Information info = WorldRegistryBootStrapper.NarrativeRegistry.Find(subject, relationship);
+
+                    if (info.NPC_Knowledge.TryGetValue(ContactID, out KnowledgeState knowledgeState))
                     {
-
-                        Entity characterJob = WorldRegistryBootStrapper.World.Get(person.Job.Id);
-
-                        if (characterJob is JobEntity job)
+                        if (knowledgeState == KnowledgeState.Known)
                         {
-                            ContactResponse = $"I am {job.JobTitle}.";
+                            if (info.Object is JobEntity job)
+                            {
+                                ContactResponse = $"I work as a {job.JobTitle}.";
+                            }
                         }
-                    }
-
+                        else if (knowledgeState == KnowledgeState.Unknown)
+                        {
+                            ContactResponse = "I don't know.";
+                        }
+                    }                                                            
                 }
                 else
                 {
@@ -101,47 +108,34 @@ public abstract class Contact : MonoBehaviour
                     subject.Id == "you" &&
                     verb.Surface is "work")
                 {
-                    string subjectId = ContactID;
-                    Entity character = WorldRegistryBootStrapper.World.Get(ContactID);
-                    if (character is PersonEntity person)
+                    string subjectID = ContactID;
+
+                    subject = WorldRegistryBootStrapper.World.Get(ContactID);
+                    Relationship relationship = Relationship.WorksAt;
+
+                    Information info = WorldRegistryBootStrapper.NarrativeRegistry.Find(subject, relationship);
+
+                    if (info.Object is CompanyEntity company)
                     {
-                        Entity characterOccupation = WorldRegistryBootStrapper.World.Get(person.Job.Id);
-                        
-                        if (characterOccupation is JobEntity job)
-                        {
-                            Entity characterCompany = WorldRegistryBootStrapper.World.Get(job.Company.Id);
-
-                            if (characterCompany is CompanyEntity company)
-                            {
-                                ContactResponse = $"I work at {company.CompanyName}.";
-                            }
-                        }
-
+                        ContactResponse = $"I work at {company.CompanyName}.";
                     }
                 }
                 else if (subject is PersonEntity && verb.Surface is "work")
                 {
-                    string subjectId = ContactID;
-                    Entity character = WorldRegistryBootStrapper.World.Get(subject.Id);
-                    if (character is PersonEntity person)
+                    subject = WorldRegistryBootStrapper.World.Get(subject.Id);
+
+                    Relationship relationship = Relationship.WorksAt;
+
+                    Information info = WorldRegistryBootStrapper.NarrativeRegistry.Find(subject, relationship);
+
+                    if (subject is PersonEntity person && info.Object is CompanyEntity company)
                     {
-                        Entity characterOccupation = WorldRegistryBootStrapper.World.Get(person.Job.Id);
-
-                        if (characterOccupation is JobEntity job)
-                        {
-                            Entity characterCompany = WorldRegistryBootStrapper.World.Get(job.Company.Id);
-
-                            if (characterCompany is CompanyEntity company)
-                            {
-                                ContactResponse = $"{person.Name} works at {company.CompanyName}.";
-                            }
-                        }
-
+                        ContactResponse = $"{person.Name} works at {company.CompanyName}.";
                     }
                 }
                 else
                 {
-                    ContactResponse = "I don't have a job";
+                    ContactResponse = "I don't know.";
                 }
                 break;
             default:
