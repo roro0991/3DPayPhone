@@ -3,7 +3,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using Dialogue.Core;
 using Game.World;
-using Game.Facts;
+using Game.Info;
 
 public class InterpretedInputData
 {

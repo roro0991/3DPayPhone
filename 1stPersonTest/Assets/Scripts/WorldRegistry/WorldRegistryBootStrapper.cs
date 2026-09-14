@@ -1,5 +1,5 @@
 using Game.World;
-using Game.Facts;
+using Game.Info;
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -12,14 +12,18 @@ public class WorldRegistryBootStrapper : MonoBehaviour
 
     public static Entity Job_Accountant;
     public static Entity Job_Manager;
+    public static Entity Job_Plumber;
 
     public static Entity JohnEntity;
-    public static Information John_Job;
-    public static Information John_Employer;
+    public static Information Info_John_Job;
+    public static Information Info_John_Employer;
 
     public static Entity AnnaEntity;
-    public static Information Anna_Job;
-    public static Information Anna_Employer;
+    public static Information Info_Anna_Job;
+    public static Information Info_Anna_Employer;
+    public static Information Belief_John_Job;
+
+    public static Information Info_Anna_Belief_John_Job;
 
     public static Entity ABC_Company;
 
@@ -40,14 +44,20 @@ public class WorldRegistryBootStrapper : MonoBehaviour
 
         Job_Accountant = new JobEntity
         {
-            Id = "johnoccupation",
+            Id = "accountantoccupation",
             JobTitle = "an accountant",
         };
 
         Job_Manager = new JobEntity
         {
-            Id = "annaoccupation",
+            Id = "manageroccupation",
             JobTitle = "a manager"
+        };
+
+        Job_Plumber = new JobEntity
+        {
+            Id = "plumberoccupation",
+            JobTitle = "a plumber"
         };
 
         JohnEntity = new PersonEntity
@@ -56,22 +66,20 @@ public class WorldRegistryBootStrapper : MonoBehaviour
             Name = "John Smith"
         };
 
-        John_Job = new Information
+        Info_John_Job = new Information
         {
-            InfoID = "john_job",
             NPC_Knowledge = new Dictionary<string, KnowledgeState>
             {
                 {"john", KnowledgeState.Known},
-                {"anna", KnowledgeState.Known}
+                {"anna", KnowledgeState.Unknown}
             },
             Subject = JohnEntity,
             Relationship = Relationship.WorksAs,
             Object = Job_Accountant
         };
 
-        John_Employer = new Information
+        Info_John_Employer = new Information
         {
-            InfoID = "john_employer",
             NPC_Knowledge = new Dictionary<string, KnowledgeState>
             {
                 {"john", KnowledgeState.Known},
@@ -82,17 +90,14 @@ public class WorldRegistryBootStrapper : MonoBehaviour
             Object = ABC_Company
         };
 
-
-
         AnnaEntity = new PersonEntity
         {
             Id = "anna",
             Name = "Anna Jones"
         };
 
-        Anna_Job = new Information
+        Info_Anna_Job = new Information
         {
-            InfoID = "anna_job",
             NPC_Knowledge = new Dictionary<string, KnowledgeState>
             {
                 {"john", KnowledgeState.Known},
@@ -103,9 +108,8 @@ public class WorldRegistryBootStrapper : MonoBehaviour
             Object = Job_Manager
         };
 
-        Anna_Employer = new Information
+        Info_Anna_Employer = new Information
         {
-            InfoID = "anna_employer",
             NPC_Knowledge = new Dictionary<string, KnowledgeState>
             {
                 {"john", KnowledgeState.Known},
@@ -116,10 +120,37 @@ public class WorldRegistryBootStrapper : MonoBehaviour
             Object = ABC_Company
         };
 
-        NarrativeRegistry.Register(John_Job);
-        NarrativeRegistry.Register(John_Employer);
-        NarrativeRegistry.Register(Anna_Job);
-        NarrativeRegistry.Register(Anna_Employer);
+        Belief_John_Job = new Information
+        {
+            NPC_Knowledge = new Dictionary<string, KnowledgeState>()
+            {
+                {"john", KnowledgeState.Known},
+                {"anna", KnowledgeState.Known},
+            },
+            Subject = JohnEntity,
+            Relationship = Relationship.WorksAs,
+            Object = Job_Plumber
+        };
+
+        Info_Anna_Belief_John_Job = new Information
+        {
+            NPC_Knowledge = new Dictionary<string, KnowledgeState>
+            {
+                {"john", KnowledgeState.Known},
+                {"anna", KnowledgeState.Known},
+            },
+            Subject = AnnaEntity,
+            Relationship = Relationship.Believes,
+            Object = Belief_John_Job
+        };
+
+
+
+        NarrativeRegistry.Register(Info_John_Job);
+        NarrativeRegistry.Register(Info_John_Employer);
+        NarrativeRegistry.Register(Info_Anna_Job);
+        NarrativeRegistry.Register(Info_Anna_Employer);
+        NarrativeRegistry.Register(Info_Anna_Belief_John_Job);
 
         World.Register(YouEntity);
         World.Register(ABC_Company);
@@ -127,5 +158,6 @@ public class WorldRegistryBootStrapper : MonoBehaviour
         World.Register(Job_Accountant);
         World.Register(AnnaEntity);
         World.Register(Job_Manager);
+        World.Register(Job_Plumber);
     }
 }

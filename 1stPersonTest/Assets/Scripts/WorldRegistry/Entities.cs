@@ -1,10 +1,11 @@
 using Ink.Parsed;
 using UnityEngine;
 using System.Collections.Generic;
+using Game.Info;
 
 namespace Game.World
 {
-    public class Entity
+    public class Entity : NarrativeNode
     {
         public string Id;
     }

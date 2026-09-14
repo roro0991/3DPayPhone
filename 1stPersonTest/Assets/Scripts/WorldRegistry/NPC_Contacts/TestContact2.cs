@@ -2,9 +2,9 @@ using UnityEngine;
 
 public class TestContact2 : Contact
 {
-    private void Start()
+    private void Awake()
     {
-        ContactID = "sarah";
+        ContactID = "anna";
         OpeningLine = "Who is it?";
 
     }
@@ -17,7 +17,7 @@ public class TestContact2 : Contact
     {
         wordBank.AddWordToSentence("you");
         wordBank.AddWordToSentence("do");
-        wordBank.AddWordToSentence("live");
+        wordBank.AddWordToSentence("john");
     }
 
     public override string GenerateResponse(InterpretedInputData interpretedQuery)

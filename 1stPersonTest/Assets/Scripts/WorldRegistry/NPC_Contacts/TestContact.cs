@@ -7,7 +7,7 @@ using NUnit.Framework.Constraints;
 
 public class TestContact : Contact
 {
-    private void Start()
+    private void Awake()
     {
         ContactID = "john";
         OpeningLine = "Hello?";

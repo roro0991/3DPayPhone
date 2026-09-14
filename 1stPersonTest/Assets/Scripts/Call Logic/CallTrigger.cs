@@ -25,14 +25,15 @@ public class CallTrigger : MonoBehaviour
             testContact.DiscoverName(testContact.ContactID);
             testContact.DiscoverNumber(phoneNumberManager); 
             string testContactNumber = phoneNumberManager.AssignNumber(testContact);
-            Debug.Log($"TestContact '{testContact.ContactID}' assigned number: {testContactNumber}");            
+            Debug.Log($"TestContact: '{testContact.ContactID}' assigned number: {testContactNumber}");            
         }
 
-        if (testContact2 != null) {
+        if (testContact2 != null) 
+        {
             testContact2.DiscoverName(testContact2.ContactID);
             testContact2.DiscoverNumber(phoneNumberManager);
             string testContact2Number = phoneNumberManager.AssignNumber(testContact2);
-            Debug.Log($"TestContact '{testContact2.ContactID}' assigned number: {testContact2Number}");
+            Debug.Log($"TestContact2: '{testContact2.ContactID}' assigned number: {testContact2Number}");
         }
 
         // enter call mode immediately for test purpose

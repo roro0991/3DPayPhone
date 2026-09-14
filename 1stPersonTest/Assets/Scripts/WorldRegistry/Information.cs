@@ -2,15 +2,19 @@ using UnityEngine;
 using Game.World;
 using System.Collections.Generic;
 
-namespace Game.Facts
+namespace Game.Info
 {
-    public class Information
+    public class Information : NarrativeNode
     {
-        public string InfoID;
         public Dictionary<string, KnowledgeState> NPC_Knowledge;
         public Entity Subject;
         public Relationship Relationship;
-        public Entity Object;
+        public NarrativeNode Object;
+    }
+
+    public abstract class NarrativeNode
+    {
+        
     }
 
     public enum KnowledgeState
@@ -24,6 +28,7 @@ namespace Game.Facts
         WorksAs,
         WorksAt,
         WorksWith,
-        LivesAt
+        LivesAt,
+        Believes
     }
 }

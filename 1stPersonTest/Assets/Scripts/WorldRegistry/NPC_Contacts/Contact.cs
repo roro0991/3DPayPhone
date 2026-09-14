@@ -1,7 +1,7 @@
 using UnityEngine;
 using Dialogue.Core;
 using Game.World;
-using Game.Facts;
+using Game.Info;
 
 public abstract class Contact : MonoBehaviour
 {
@@ -10,6 +10,7 @@ public abstract class Contact : MonoBehaviour
 
     public string ContactNumber;
     public string ContactID;
+    public Entity ContactEntity;
     private bool nameKnown;
     private bool numberKnown;    
     public string OpeningLine = string.Empty;
@@ -29,6 +30,9 @@ public abstract class Contact : MonoBehaviour
     {
         ContactID = name;
         nameKnown = true;
+
+        ContactEntity = WorldRegistryBootStrapper.World.Get(ContactID);    
+
         NotifyAddressBook();
     }
 
@@ -76,8 +80,6 @@ public abstract class Contact : MonoBehaviour
                 subject.Id == "you" &&
                 verb.Surface is "do")
                 {
-                    string subjectID = ContactID;
-
                     subject = WorldRegistryBootStrapper.World.Get(ContactID);
                     Relationship relationship = Relationship.WorksAs;
 
@@ -94,13 +96,55 @@ public abstract class Contact : MonoBehaviour
                         }
                         else if (knowledgeState == KnowledgeState.Unknown)
                         {
-                            ContactResponse = "I don't know.";
+                            ContactResponse = "I don't have a job.";
                         }
                     }                                                            
                 }
-                else
+                else if (subject is PersonEntity && verb.Surface is "do")
                 {
-                    ContactResponse = "I don't have a job";
+                    subject = WorldRegistryBootStrapper.World.Get(subject.Id);
+
+                    Relationship relationship = Relationship.WorksAs;
+
+                    Information info = WorldRegistryBootStrapper.NarrativeRegistry.Find(subject, relationship);
+
+                    if (info.NPC_Knowledge.TryGetValue(ContactID, out KnowledgeState knowledgeState))
+                    {
+                        if (knowledgeState == KnowledgeState.Known)
+                        {
+                            if (subject is PersonEntity person && info.Object is JobEntity job)
+                            {
+                                ContactResponse = $"{person.Name} works as {job.JobTitle}.";
+                            }
+                        }
+                        else if (knowledgeState == KnowledgeState.Unknown)
+                        {
+                            // Check for a false belief in absence of knowledge of fact
+
+                            Debug.Log($"ContactID: {ContactID}");
+                            Debug.Log($"ContactEntity: {ContactEntity}");
+                            Debug.Log($"Info subject: {info.Subject}");
+                            Debug.Log($"Info object: {info.Object}");
+
+                            Information belief = 
+                                WorldRegistryBootStrapper.NarrativeRegistry.FindBelief(ContactEntity, subject, Relationship.WorksAs);
+
+                            if (belief != null)
+                            {
+                                if (subject is PersonEntity person && belief.Object is Information infoOfBelief)
+                                {
+                                    if (infoOfBelief.Object is JobEntity job)
+                                    {
+                                        ContactResponse = $"I believe {person.Name} works as {job.JobTitle}.";
+                                    }
+                                }
+                            }
+                            else if (subject is PersonEntity person)
+                            {
+                                ContactResponse = $"I don't know {person.Name}'s job.";
+                            }
+                        }
+                    }
                 }
                 break;
             case QueryMode.Int_Where:
@@ -108,8 +152,6 @@ public abstract class Contact : MonoBehaviour
                     subject.Id == "you" &&
                     verb.Surface is "work")
                 {
-                    string subjectID = ContactID;
-
                     subject = WorldRegistryBootStrapper.World.Get(ContactID);
                     Relationship relationship = Relationship.WorksAt;
 
