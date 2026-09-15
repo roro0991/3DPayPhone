@@ -10,17 +10,26 @@ public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     private Word.NounForms nounForms;
 
     private Canvas canvas;
-    private CanvasGroup canvasGroup;
+    public CanvasGroup canvasGroup;
 
     public bool isDraggable = true;
     public bool isBeingDragged = false;
     public bool isInSentencePanel = false;
     public bool isOverSentencePanel;
 
+    public enum DraggableOrigin
+    {
+        WordBank,
+        Journal
+    }
+
+    public DraggableOrigin ThisDraggableOrigin;
+
     private SentenceBuilder sentenceBuilder;    
 
     private void Awake()
     {
+        ThisDraggableOrigin = DraggableOrigin.WordBank;
         sentenceBuilder = FindFirstObjectByType<SentenceBuilder>();
 
         rectTransform = GetComponent<RectTransform>();

@@ -8,6 +8,7 @@ public class SentenceWordEntry
 {
     public Word Word; // semantic object
     public string Surface; // the actual form used (ie. dog vs dogs)
+    public DraggableWord.DraggableOrigin Origin;
     public PartsOfSpeech activePOS;
 
     // Relationship references

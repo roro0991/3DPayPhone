@@ -10,6 +10,7 @@ TagManager:
   - notepad
   - WordBankPanel
   - SentencePanel
+  - Journal
   layers:
   - Default
   - TransparentFX

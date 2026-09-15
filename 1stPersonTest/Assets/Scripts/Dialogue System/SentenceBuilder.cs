@@ -94,7 +94,7 @@ public class SentenceBuilder : MonoBehaviour
 
     // ---------------- Hover & Drop Management ------------
 
-    public void HandleHoveringWord(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
+    public void HandleHoveringWord(DraggableWord wordDraggable, PointerEventData eventData) // Called from DraggableWord.cs
     {
         GameObject dropTarget = eventData.pointerEnter;
 
@@ -110,7 +110,7 @@ public class SentenceBuilder : MonoBehaviour
             sentenceModel.RemoveAll(entry => entry.isPreview);
 
             // Swap if dragging verb and sentence already contains a verb
-            if (word.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+            if (wordDraggable.sentenceWordEntry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
                     sentenceModel.Any(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
                     entry.activePOS != PartsOfSpeech.Auxiliary))
             {
@@ -147,8 +147,8 @@ public class SentenceBuilder : MonoBehaviour
             // Check if valid drop
             SentenceWordEntry previewEntryCheck = new SentenceWordEntry
             {
-                Word = word.sentenceWordEntry.Word,
-                Surface = word.sentenceWordEntry.Surface,
+                Word = wordDraggable.sentenceWordEntry.Word,
+                Surface = wordDraggable.sentenceWordEntry.Surface,
                 isPreview = true
             };            
 
@@ -166,8 +166,8 @@ public class SentenceBuilder : MonoBehaviour
             // Create actual preview entry
             SentenceWordEntry previewEntry = new SentenceWordEntry
             {
-                Word = word.sentenceWordEntry.Word,
-                Surface = word.sentenceWordEntry.Surface,
+                Word = wordDraggable.sentenceWordEntry.Word,
+                Surface = wordDraggable.sentenceWordEntry.Surface,
                 isPreview = true
             };
 
@@ -213,28 +213,37 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
     }
-    public void HandleWordDropped(DraggableWord word, PointerEventData eventData) // Called from DraggableWord.cs
+    public void HandleWordDropped(DraggableWord wordDraggable, PointerEventData eventData) // Called from DraggableWord.cs
     {
-        if (word == null)
+        if (wordDraggable == null)
             return;
 
-        currentDraggable = word;
+        currentDraggable = wordDraggable;
 
-        RectTransform draggableWord = word.GetComponent<RectTransform>();
-        var entryData = word.sentenceWordEntry;
+        RectTransform draggableRect = wordDraggable.GetComponent<RectTransform>();
+        var entryData = wordDraggable.sentenceWordEntry;
 
         GameObject dropTarget = eventData.pointerEnter;
 
         if (dropTarget != null && dropTarget.transform.IsChildOf(sentencePanelRect))
         {
-            draggableWord.transform.SetParent(transform, false);
+            draggableRect.transform.SetParent(transform, false);
 
             // ? CRITICAL: Validate drop commit
             if (!CanInsertAt(sentenceModel, currentPreviewIndex, entryData))
             {
                 Debug.Log("Drop rejected by grammar validation");
 
-                ReturnWordToBank(draggableWord, word, false, eventData);
+                if (wordDraggable.ThisDraggableOrigin == DraggableWord.DraggableOrigin.Journal)
+                {
+                    Debug.Log("***** Journal Draggable Destroyed! *****");
+                    Destroy(wordDraggable.gameObject);
+                    ClearPreview();
+                    ApplyNormalizationResults(sentenceModel);
+                    return;
+                }
+
+                ReturnWordToBank(draggableRect, wordDraggable, false, eventData);
                 ClearPreview();
                 ApplyNormalizationResults(sentenceModel);
                 return;
@@ -253,26 +262,40 @@ public class SentenceBuilder : MonoBehaviour
                 }
             }
 
-            ModelRects[entryData] = draggableWord;
+            ModelRects[entryData] = draggableRect;
 
             InsertWordEntryAt(entryData, currentPreviewIndex);
             ClearPreview();
 
-            word.isInSentencePanel = true;
+            wordDraggable.isInSentencePanel = true;
 
             sentenceMutated = true;
         }
         else if (dropTarget != null && dropTarget.CompareTag("WordBankPanel"))
         {
-            ReturnWordToBank(draggableWord, word, true, eventData);
-            word.isInSentencePanel = false;
+            if (wordDraggable.ThisDraggableOrigin == DraggableWord.DraggableOrigin.Journal)
+            {
+                Debug.Log("***** Journal Draggable Destroyed! *****");
+                Destroy(wordDraggable.gameObject);
+                return;
+            }
+
+            ReturnWordToBank(draggableRect, wordDraggable, true, eventData);
+            wordDraggable.isInSentencePanel = false;
         }
         else
         {
-            ReturnWordToBank(draggableWord, word, false, eventData);
+            if (wordDraggable.ThisDraggableOrigin == DraggableWord.DraggableOrigin.Journal)
+            {
+                Debug.Log("***** Journal Draggable Destroyed! *****");
+                Destroy(wordDraggable.gameObject);
+                return;
+            }
+
+            ReturnWordToBank(draggableRect, wordDraggable, false, eventData);
 
             sentenceModel.Remove(entryData);
-            word.isInSentencePanel = false;
+            wordDraggable.isInSentencePanel = false;
         }
 
         CommitModelChange();
@@ -492,7 +515,8 @@ public class SentenceBuilder : MonoBehaviour
     private void InsertWordEntryAt(SentenceWordEntry entry, int index)
     {
         sentenceModel.Insert(index, entry);
-        if (!entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative)) // Do not repopulate interrogatives
+        if (!entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) &&
+            entry.Origin != DraggableWord.DraggableOrigin.Journal) // Do not repopulate interrogatives
             storedWordList.Add(entry); // Add to backup list
         sentenceMutated = true;
     }
