@@ -82,6 +82,12 @@ public class WordDataBase : MonoBehaviour
         AddWord(new Word("ours", PartsOfSpeech.PossessivePronoun));
         AddWord(new Word("theirs", PartsOfSpeech.PossessivePronoun));
 
+        // ----------------- Jobs -----------------
+
+        var accountantForms = new Word.NounForms { Singular = "accountant", Plural = "accountants" };
+        var accountantWord = new Word("accountant", PartsOfSpeech.Noun, entityID: "accountantoccupation");
+        accountantWord.AddNounForm(accountantForms);
+        AddWord(accountantWord);
 
         // ----------------- Locations -----------------
 
@@ -234,6 +240,7 @@ public class WordDataBase : MonoBehaviour
         // ----------------- Prepositions -----------------
         AddWord(new Word("to", PartsOfSpeech.Preposition));
         AddWord(new Word("in", PartsOfSpeech.Preposition));
+        AddWord(new Word("as", PartsOfSpeech.Preposition));
 
         // ----------------- Multi-role word example: run -----------------
         var runNoun = new Word.NounForms { Singular = "run", Plural = "runs" };

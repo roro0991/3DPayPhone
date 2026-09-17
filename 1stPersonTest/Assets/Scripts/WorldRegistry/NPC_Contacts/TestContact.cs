@@ -28,9 +28,17 @@ public class TestContact : Contact
 
     public override string GenerateResponse(InterpretedInputData interpretedQuery)
     {
-        ContactResponse = HandleInterrogativeQuery(interpretedQuery);
-        
-        return ContactResponse;
+        if (interpretedQuery.InputMode == InputMode.Query)
+        {
+            ContactResponse = HandleInterrogativeQuery(interpretedQuery);
+        }
+        else if (interpretedQuery.InputMode == InputMode.Statement)
+        {
+            ContactResponse = HandleDeclarative(interpretedQuery);
+        }
+
+
+            return ContactResponse;
     }
 }
 

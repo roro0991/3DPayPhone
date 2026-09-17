@@ -66,6 +66,56 @@ public abstract class Contact : MonoBehaviour
     
     public abstract string GenerateResponse(InterpretedInputData interpretedQuery);
 
+    public string HandleDeclarative(InterpretedInputData interpretedStatement)
+    {
+        Entity subject = interpretedStatement.Subject;
+        Entity target = interpretedStatement.Object;
+        SentenceWordEntry verb = interpretedStatement.Verb;
+
+        Debug.Log("subject: " + subject.Id);
+        Debug.Log("object: " + target.Id);
+        Debug.Log("verb: " + verb.Word.Text);
+
+        Relationship relationship = new();
+
+        if (subject is PersonEntity)
+        {
+            switch (verb.Word.Text)
+            {
+                case "work":
+                    relationship = Relationship.WorksAs;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        Information info = WorldRegistryBootStrapper.NarrativeRegistry.Find(subject, relationship);
+
+        if (info != null)
+        {
+            if (info.Object != null &&
+                info.Object == target)
+            {
+                if (info.NPC_Knowledge.TryGetValue(ContactID, out KnowledgeState knowledgeState))
+                {
+                    if (knowledgeState == KnowledgeState.Unknown)
+                    {
+                        info.NPC_Knowledge[ContactID] = KnowledgeState.Known;
+                        ContactResponse = "I didn't know that. Thanks for telling me.";
+                    }
+                    else if (knowledgeState == KnowledgeState.Known)
+                    {
+                        ContactResponse = "I already knew that.";
+                    }
+                }
+            }
+
+        }
+
+        return ContactResponse;
+    }
+
     public string HandleInterrogativeQuery(InterpretedInputData interpretedQuery)
     {
         QueryMode interrogative = interpretedQuery.QueryMode; 

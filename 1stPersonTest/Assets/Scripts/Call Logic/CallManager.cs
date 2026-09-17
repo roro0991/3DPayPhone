@@ -106,7 +106,7 @@ public class CallManager : MonoBehaviour
         if (sentenceBuilder.wordList.Count == 0)
             return;
 
-        InterpretedInputData interpretedQuery = inputInterpreter.InterpretPlayerInput(sentenceBuilder.currentQuestionData);        
+        InterpretedInputData interpretedQuery = inputInterpreter.InterpretPlayerInput(sentenceBuilder.CurrentInputData);        
 
         currentContact.GenerateResponse(interpretedQuery);
         StartCoroutine(ReadPlayerInputSequence());

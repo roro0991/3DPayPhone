@@ -46,57 +46,64 @@ public class InputInterpreter : MonoBehaviour
             return null;
         }
         
-        InterpretedInputData interpretedQuery = new InterpretedInputData();
+        InterpretedInputData interpretedInputData = new InterpretedInputData();
+
+        if (workingData.InputMode == InputMode.Statement)
+        {
+            interpretedInputData.InputMode = InputMode.Statement;
+            interpretedInputData.QueryMode = QueryMode.None;
+            interpretedInputData.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
+            interpretedInputData.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
+            interpretedInputData.Verb = workingData.Verb;
+        }
 
         if (workingData.InputMode == InputMode.Query)
         {
             QueryMode queryMode = workingData.QueryMode;
             
-
             switch (queryMode)
             {
                 case QueryMode.Int_What:
-                    interpretedQuery.QueryMode = workingData.QueryMode;
-                    interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
-                    interpretedQuery.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
-                    interpretedQuery.Verb = workingData.Verb;
+                    interpretedInputData.QueryMode = workingData.QueryMode;
+                    interpretedInputData.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
+                    interpretedInputData.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
+                    interpretedInputData.Verb = workingData.Verb;
                     break;
                 case QueryMode.Int_Where:
-                    interpretedQuery.QueryMode = workingData.QueryMode;
-                    interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
+                    interpretedInputData.QueryMode = workingData.QueryMode;
+                    interpretedInputData.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
                     //interpretedQuery.Target = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);
-                    interpretedQuery.Verb = workingData.Verb;
+                    interpretedInputData.Verb = workingData.Verb;
                     break;
                 case QueryMode.Polar_Do:
-                    interpretedQuery.QueryMode = workingData.QueryMode;
-                    interpretedQuery.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
-                    interpretedQuery.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
-                    interpretedQuery.Verb = workingData.Verb;
+                    interpretedInputData.QueryMode = workingData.QueryMode;
+                    interpretedInputData.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
+                    interpretedInputData.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
+                    interpretedInputData.Verb = workingData.Verb;
                     break;
                 default:
                     break;
             }
         }
 
-        if (workingData.InputMode == InputMode.Statement)
-        {
-            // Statement logic will go here. workingInputData will include
-            // a reference to current entity target so they player can ask
-            // follow-up questions. For example, if the player asked
-            // "Did you lie about your identity?" and the NPC responds in
-            // the negative, the player can simply respond with "I don't
-            // believe you". 
+        
+        // Statement logic will go here. workingInputData will include
+        // a reference to current entity target so they player can ask
+        // follow-up questions. For example, if the player asked
+        // "Did you lie about your identity?" and the NPC responds in
+        // the negative, the player can simply respond with "I don't
+        // believe you". 
 
-            // Similar logic should be added to queries allowing the player
-            // to ask follow up questions. For example, if the player asks
-            // "Did you lie about your identity?" and the nPC responds in the
-            // affirmative, the player can simply ask, "Why?"
-        }
+        // Similar logic should be added to queries allowing the player
+        // to ask follow up questions. For example, if the player asks
+        // "Did you lie about your identity?" and the nPC responds in the
+        // affirmative, the player can simply ask, "Why?"
+        
 
-        Debug.Log("Interpreted query subject id: " + interpretedQuery.Subject.Id);
-        Debug.Log("interpreted query verb: " + interpretedQuery.Verb.Surface);
+        Debug.Log("Interpreted query subject id: " + interpretedInputData.Subject.Id);
+        Debug.Log("interpreted query verb: " + interpretedInputData.Verb.Surface);
 
-        return interpretedQuery;
+        return interpretedInputData;
     }
 
 }

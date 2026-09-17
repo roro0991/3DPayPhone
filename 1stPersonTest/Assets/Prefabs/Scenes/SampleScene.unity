@@ -25968,6 +25968,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 265676183}
   m_CullTransparentMesh: 1
+--- !u!1 &267843423
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 1714195000919557072, guid: d20756136bf76c24f978e48cfbc1d0ec, type: 3}
+  m_PrefabInstance: {fileID: 252463539}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1425867754}
+  - component: {fileID: 1425867756}
+  - component: {fileID: 1425867755}
+  m_Layer: 5
+  m_Name: InvalidDropIndicator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
 --- !u!1 &268373637
 GameObject:
   m_ObjectHideFlags: 0
@@ -106895,16 +106913,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83c24eaab83414247a2f3afb54bd2393, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  wordBank: {fileID: 1066638196}
+  WordBank: {fileID: 1066638196}
   verbMenu: {fileID: 0}
   nounMenu: {fileID: 0}
-  sentencePanelRect: {fileID: 1130818335}
-  draggableWordPrefab: {fileID: 2872183537982447878, guid: 059e7ad3762379547838921a3020e8ad, type: 3}
+  SentencePanelRect: {fileID: 1130818335}
+  DraggableWordPrefab: {fileID: 2872183537982447878, guid: 059e7ad3762379547838921a3020e8ad, type: 3}
   wordList: []
   sentenceModel: []
   storedWordList: []
-  currentDraggable: {fileID: 0}
-  currentPreviewEntry:
+  CurrentDraggable: {fileID: 0}
+  CurrentPreviewEntry:
     Word:
       Text: 
       PartOfSpeech: 0
@@ -106919,8 +106937,8 @@ MonoBehaviour:
     isObject: 0
     isSubject: 0
   startPosition: {x: -475, y: 0}
-  spacing: 10
-  currentSentenceAsString: 
+  Spacing: 10
+  CurrentSentenceAsString: 
 --- !u!1 &1136568994
 GameObject:
   m_ObjectHideFlags: 0
@@ -133873,11 +133891,60 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1425371983}
   m_CullTransparentMesh: 1
---- !u!224 &1425867754 stripped
+--- !u!224 &1425867754
 RectTransform:
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 4861816293179164979, guid: d20756136bf76c24f978e48cfbc1d0ec, type: 3}
   m_PrefabInstance: {fileID: 252463539}
   m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 267843423}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -1731.6588}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1130818335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -1619.989, y: -267.8166}
+  m_SizeDelta: {x: 20.4, y: 77.8}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1425867755
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 768440150608802633, guid: d20756136bf76c24f978e48cfbc1d0ec, type: 3}
+  m_PrefabInstance: {fileID: 252463539}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 267843423}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1344c3c82d62a2a41a3576d8abb8e3ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RawImage
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 0.6933962, b: 0.6933962, a: 0.3137255}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Texture: {fileID: 0}
+  m_UVRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+--- !u!222 &1425867756
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 1833283430187905132, guid: d20756136bf76c24f978e48cfbc1d0ec, type: 3}
+  m_PrefabInstance: {fileID: 252463539}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 267843423}
+  m_CullTransparentMesh: 1
 --- !u!1 &1425948554
 GameObject:
   m_ObjectHideFlags: 0

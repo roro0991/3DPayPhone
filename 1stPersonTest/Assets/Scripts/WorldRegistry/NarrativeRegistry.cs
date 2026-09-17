@@ -22,7 +22,7 @@ public class NarrativeRegistry
                 info.Relationship == relationship)
             {
                 return info;
-            }
+            }            
         }
 
         return null;

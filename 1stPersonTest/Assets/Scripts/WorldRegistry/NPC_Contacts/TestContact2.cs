@@ -1,4 +1,5 @@
 using UnityEngine;
+using Dialogue.Core;
 
 public class TestContact2 : Contact
 {
@@ -17,12 +18,21 @@ public class TestContact2 : Contact
     {
         wordBank.AddWordToSentence("you");
         wordBank.AddWordToSentence("do");
-        wordBank.AddWordToSentence("john");
+        wordBank.AddWordToSentence("work");
+        wordBank.AddWordToSentence("accountant");
     }
 
     public override string GenerateResponse(InterpretedInputData interpretedQuery)
     {
-        ContactResponse = HandleInterrogativeQuery(interpretedQuery);
+        if (interpretedQuery.InputMode == InputMode.Query)
+        {
+            ContactResponse = HandleInterrogativeQuery(interpretedQuery);
+        }
+        else if (interpretedQuery.InputMode == InputMode.Statement)
+        {
+            ContactResponse = HandleDeclarative(interpretedQuery);
+        }
+
 
         return ContactResponse;
     }

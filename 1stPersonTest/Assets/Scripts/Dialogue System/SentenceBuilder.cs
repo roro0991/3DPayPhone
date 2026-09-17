@@ -16,20 +16,20 @@ public class SentenceBuilder : MonoBehaviour
     //Step one, you actually opened the project.
     //Tomorrow, do something. Even one line of working code.
 
-    private SentenceWordEntry interrogativeEntry = null;
+    private SentenceWordEntry InterrogativeEntry = null;
 
     // Other scripts
-    public WordBank wordBank;
+    public WordBank WordBank;
 
     // Panels & Graphics
     public GameObject verbMenu;
     public GameObject nounMenu;
 
     // RectTransforms
-    public RectTransform sentencePanelRect;
+    public RectTransform SentencePanelRect;
 
     // Prefabs
-    public GameObject draggableWordPrefab;
+    public GameObject DraggableWordPrefab;
 
     // Lists & Dictionaries
     public List<RectTransform> wordList = new List<RectTransform>(); // sentence word gameobjects
@@ -38,23 +38,23 @@ public class SentenceBuilder : MonoBehaviour
     private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
 
     // Entries & Draggables
-    public DraggableWord currentDraggable;
-    public SentenceWordEntry currentPreviewEntry;
+    public DraggableWord CurrentDraggable;
+    public SentenceWordEntry CurrentPreviewEntry;
 
     // Question Data    
-    public WorkingInputData currentQuestionData;
+    public WorkingInputData CurrentInputData;
 
     // Floats | Ints | Vectors
     public Vector2 startPosition = Vector2.zero;
-    public float spacing = 10f;
-    private int currentPreviewIndex = -1;
+    public float Spacing = 10f;
+    private int CurrentPreviewIndex = -1;
 
     // Strings
-    public string currentSentenceAsString;
+    public string CurrentSentenceAsString;
 
     // Bools
-    private bool sentenceHasPreviews;
-    private bool sentenceMutated;    
+    private bool SentenceHasPreviews;
+    private bool SentenceHasMutated;    
 
     InputMode CurrentInputMode = InputMode.Statement;
     QueryMode CurrentQueryMode = QueryMode.None;
@@ -98,7 +98,7 @@ public class SentenceBuilder : MonoBehaviour
     {
         GameObject dropTarget = eventData.pointerEnter;
 
-        if (dropTarget != null && dropTarget.transform.IsChildOf(sentencePanelRect))
+        if (dropTarget != null && dropTarget.transform.IsChildOf(SentencePanelRect))
         {
             // Edge case: dragging the very first word into an empty sentence panel.
             if (sentenceModel.Count == 1 && sentenceModel[0].isPreview)
@@ -125,7 +125,7 @@ public class SentenceBuilder : MonoBehaviour
                     sentenceModel.Remove(existingVerb.auxiliary);
                 }
 
-                wordBank.CreateWordUI(existingVerb);
+                WordBank.CreateWordUI(existingVerb);
                 ApplyNormalizationResults(sentenceModel, true);
             }
 
@@ -155,13 +155,13 @@ public class SentenceBuilder : MonoBehaviour
             bool canInsert = CanInsertAt(sentenceModel, insertIndex, previewEntryCheck);
 
             // Prevent rebuild spam (ONLY affects preview, not indicator)
-            if (insertIndex == currentPreviewIndex)
+            if (insertIndex == CurrentPreviewIndex)
             {
                 return;
             }
 
-            currentPreviewIndex = insertIndex;
-            Debug.Log("currentPreviewIndex: " + currentPreviewIndex);
+            CurrentPreviewIndex = insertIndex;
+            Debug.Log("currentPreviewIndex: " + CurrentPreviewIndex);
 
             // Create actual preview entry
             SentenceWordEntry previewEntry = new SentenceWordEntry
@@ -184,19 +184,19 @@ public class SentenceBuilder : MonoBehaviour
                 }
             }
 
-            currentPreviewEntry = previewEntry;            
+            CurrentPreviewEntry = previewEntry;            
 
             if (canInsert)
             {
                 // Insert preview into model
                 sentenceModel.Insert(insertIndex, previewEntry);
                 ApplyNormalizedPreview(sentenceModel, true);
-                sentenceHasPreviews = true;
+                SentenceHasPreviews = true;
                 Debug.Log("***PREVIEW GENERATED***");
             }
             else
             {
-                if (sentenceHasPreviews)
+                if (SentenceHasPreviews)
                 {
                     ClearPreview();        
                     
@@ -206,7 +206,7 @@ public class SentenceBuilder : MonoBehaviour
         }
         else
         {
-            if (sentenceHasPreviews)
+            if (SentenceHasPreviews)
             {
                 ClearPreview();                
                 ApplyNormalizedPreview(sentenceModel, false);
@@ -218,19 +218,19 @@ public class SentenceBuilder : MonoBehaviour
         if (wordDraggable == null)
             return;
 
-        currentDraggable = wordDraggable;
+        CurrentDraggable = wordDraggable;
 
         RectTransform draggableRect = wordDraggable.GetComponent<RectTransform>();
         var entryData = wordDraggable.sentenceWordEntry;
 
         GameObject dropTarget = eventData.pointerEnter;
 
-        if (dropTarget != null && dropTarget.transform.IsChildOf(sentencePanelRect))
+        if (dropTarget != null && dropTarget.transform.IsChildOf(SentencePanelRect))
         {
             draggableRect.transform.SetParent(transform, false);
 
             // ? CRITICAL: Validate drop commit
-            if (!CanInsertAt(sentenceModel, currentPreviewIndex, entryData))
+            if (!CanInsertAt(sentenceModel, CurrentPreviewIndex, entryData))
             {
                 Debug.Log("Drop rejected by grammar validation");
 
@@ -264,12 +264,12 @@ public class SentenceBuilder : MonoBehaviour
 
             ModelRects[entryData] = draggableRect;
 
-            InsertWordEntryAt(entryData, currentPreviewIndex);
+            InsertWordEntryAt(entryData, CurrentPreviewIndex);
             ClearPreview();
 
             wordDraggable.isInSentencePanel = true;
 
-            sentenceMutated = true;
+            SentenceHasMutated = true;
         }
         else if (dropTarget != null && dropTarget.CompareTag("WordBankPanel"))
         {
@@ -349,16 +349,16 @@ public class SentenceBuilder : MonoBehaviour
             CurrentQueryMode = QueryMode.Int_What;
         }
 
-        sentenceMutated = true;
+        SentenceHasMutated = true;
         CommitModelChange();
     }    
 
     // Return to bank button
     public void ReturnToBankButton()
     {
-        currentDraggable.gameObject.SetActive(true);
-        var draggableRect = currentDraggable.GetComponent<RectTransform>();
-        ReturnWordToBank(draggableRect, currentDraggable, false);
+        CurrentDraggable.gameObject.SetActive(true);
+        var draggableRect = CurrentDraggable.GetComponent<RectTransform>();
+        ReturnWordToBank(draggableRect, CurrentDraggable, false);
         sentenceModel.RemoveAll(entry => entry.isPreview);
         sentenceModel = Normalize(sentenceModel);
         ApplyNormalizationResults(sentenceModel, false);
@@ -469,7 +469,7 @@ public class SentenceBuilder : MonoBehaviour
 
         draggableRect.pivot = new Vector2(0.5f, 0.5f);
         draggableRect.position = eventData.position;
-        sentenceMutated = true;
+        SentenceHasMutated = true;
         if (storedWordList.Contains(draggableEntry))
             storedWordList.Remove(draggableEntry);
 
@@ -477,7 +477,7 @@ public class SentenceBuilder : MonoBehaviour
     }
     private void ReturnWordToBank(RectTransform draggableWord, DraggableWord word, bool droppedInWB, PointerEventData eventData = null)
     {
-        WordBank wb = wordBank;
+        WordBank wb = WordBank;
 
         if (wb == null)
             return;
@@ -518,7 +518,7 @@ public class SentenceBuilder : MonoBehaviour
         if (!entry.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative) &&
             entry.Origin != DraggableWord.DraggableOrigin.Journal) // Do not repopulate interrogatives
             storedWordList.Add(entry); // Add to backup list
-        sentenceMutated = true;
+        SentenceHasMutated = true;
     }
     private void MoveWord(List<SentenceWordEntry> list, int oldIndex, int newIndex)
     {
@@ -535,13 +535,13 @@ public class SentenceBuilder : MonoBehaviour
     // Preview Methods
     private void ClearPreview()
     {
-        if (!sentenceHasPreviews)
+        if (!SentenceHasPreviews)
             return;
 
         Debug.Log("previews cleared");
 
         sentenceModel.RemoveAll(entry => entry.isPreview);
-        sentenceHasPreviews = false;
+        SentenceHasPreviews = false;
 
         // Remove preview RectTransforms from the UI and dictionary
         foreach (var kvp in ModelRects.Where(kvp => kvp.Key.isPreview).ToList())
@@ -560,7 +560,7 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         // Reset preview tracking
-        currentPreviewIndex = -1;
+        CurrentPreviewIndex = -1;
         Debug.Log("Previews removed");
     }
     private void ApplyNormalizedPreview(List<SentenceWordEntry> model, bool isPreview)
@@ -604,7 +604,7 @@ public class SentenceBuilder : MonoBehaviour
                 entry.Surface = verbForms.Past;
             }
 
-            sentenceMutated = true;
+            SentenceHasMutated = true;
             CommitModelChange();
         }
     }
@@ -651,7 +651,7 @@ public class SentenceBuilder : MonoBehaviour
                 };
 
                 InsertWordEntryAt(negationWord, auxiliaryIndex);
-                sentenceMutated = true;
+                SentenceHasMutated = true;
                 CommitModelChange();
             }
         }
@@ -817,6 +817,8 @@ public class SentenceBuilder : MonoBehaviour
         UpdateAndInsertArticles(workingModel, articleEntriesToInsert);
 
         NormalizePrepositions(workingModel);
+
+        NormalizeDeclarative(workingModel);
 
         NormalizeQuery(workingModel);
 
@@ -1116,7 +1118,177 @@ public class SentenceBuilder : MonoBehaviour
 
         return articleEntry;
     }
-             
+         
+    // Statement Normalization
+
+    private void NormalizeDeclarative(List<SentenceWordEntry> workingModel)
+    {
+        // Defensive Checks
+        if (CurrentInputMode != InputMode.Statement)
+            return;
+
+        if (workingModel == null)
+            return;
+
+        // WorkingInputData Variables
+        SentenceWordEntry subjectEntry = null;
+        SentenceWordEntry objectEntry = null;
+        SentenceWordEntry verbEntry = null;
+
+        // Determine subjectEntry, objectEntry, verbEntry
+
+        for (int i = 0; i < workingModel.Count; i++)
+        {
+            var entry = workingModel[i];
+
+            // skip to reach first noun or verb + skipp trailing punctuation
+
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Adjective) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Punctuation) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Adverb) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Article))                
+                continue;
+
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Character) ||
+                entry.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            {
+                if (verbEntry != null)
+                {
+                    if (workingModel.IndexOf(entry) < workingModel.IndexOf(verbEntry))
+                    {
+                        if (subjectEntry != entry)
+                        {
+                            subjectEntry = entry;
+                            continue;
+                        }
+                    }
+                    else if (workingModel.IndexOf(entry) > workingModel.IndexOf(verbEntry))
+                    {
+                        if (objectEntry != entry)
+                        {
+                            objectEntry = entry;
+                            continue;
+                        }
+                    }
+                }
+                else if (verbEntry == null)
+                {
+                    if (subjectEntry != null)
+                    {
+                        if (workingModel.IndexOf(entry) < workingModel.IndexOf(subjectEntry))
+                        {
+                            objectEntry = subjectEntry;
+                            subjectEntry = entry;
+                            continue;
+                        }
+                        else if (workingModel.IndexOf(entry) > workingModel.IndexOf(subjectEntry))
+                        {
+                            if (objectEntry != entry)
+                            {
+                                objectEntry = entry;
+                                continue;
+                            }
+                        }
+                    }
+                    else if (subjectEntry == null)
+                    {
+                        Debug.Log("subject found!");
+                        subjectEntry = entry;
+                        continue;
+                    }
+                }
+            }
+
+            if (entry.Word.HasPartOfSpeech(PartsOfSpeech.Verb) &&
+                entry.activePOS != PartsOfSpeech.Auxiliary)
+            {
+                if (verbEntry != entry)
+                {
+                    verbEntry = entry;
+                    continue;
+                }
+            }            
+        }
+
+        // Defensive checks
+        if (subjectEntry == null)
+            return;
+
+        if (verbEntry == null)
+            return;
+
+        if (objectEntry == null)
+            return;
+
+        Debug.Log("Declarative subject is: " + subjectEntry.Word.Text);
+        Debug.Log("Declarative object is: " + objectEntry.Word.Text);
+        Debug.Log("Declarative verb is: " + verbEntry.Word.Text);
+
+        // Determine subject agreement
+
+        subjectEntry.isSubject = true;
+        objectEntry.isObject = true;
+
+        // Cache relationship ref between verb and subjects
+        if (verbEntry.owningSubject != subjectEntry)
+            verbEntry.owningSubject = subjectEntry;
+
+        if (subjectEntry.verb != verbEntry)
+        {
+            subjectEntry.verb = verbEntry;
+            Debug.Log($"verb: {verbEntry.Surface} has been added as {subjectEntry.Surface}'s verb.");
+        }
+
+        SubjectAgreement subjectAgreement = SubjectAgreement.Unknown;
+
+        List<string> ThirdPersonSingular = new List<string> { "he", "she", "it" };
+        List<string> Plural = new List<string> { "you", "we", "they" };
+
+        string subjectEntryAsString = subjectEntry.Word.Text;
+
+        if (subjectEntryAsString != string.Empty)
+        {
+            if (subjectEntryAsString == "i")
+                subjectAgreement = SubjectAgreement.FirstPersonSingular;
+
+            if (ThirdPersonSingular.Contains(subjectEntryAsString) ||
+                subjectEntry.Word.HasPartOfSpeech(PartsOfSpeech.Character))
+                subjectAgreement = SubjectAgreement.ThirdPersonSingular;
+        }
+
+        bool hasAny = new();
+
+        hasAny = Plural.Contains(subjectEntryAsString);
+
+        if (hasAny)
+            subjectAgreement = SubjectAgreement.Plural;
+
+        // Cache verb form
+        if (verbEntry == null)
+            return;
+
+        Word.VerbForms verbForms = new();
+        verbForms = verbEntry.Word.GetVerbForm();
+        if (verbForms == null)
+            return;
+
+        // Set correct verb form
+        if (subjectAgreement == SubjectAgreement.ThirdPersonSingular)
+            verbEntry.Surface = verbForms.ThirdPerson;
+        else if (subjectAgreement == SubjectAgreement.Plural ||
+            subjectAgreement == SubjectAgreement.FirstPersonSingular)
+            verbEntry.Surface = verbForms.Base;
+
+        CurrentInputData = new WorkingInputData
+        {
+            InputMode = InputMode.Statement,
+            QueryMode = QueryMode.None,
+            Subject = subjectEntry != null ? subjectEntry : null,
+            Object = objectEntry != null ? objectEntry : null,
+            Verb = verbEntry != null ? verbEntry : null
+        };
+    }
+
     // Question Normalization Methods
     private void NormalizeQuery(List<SentenceWordEntry> workingModel)
     {
@@ -1144,6 +1316,9 @@ public class SentenceBuilder : MonoBehaviour
     }
     private void NormalizeDoQuery(List<SentenceWordEntry> workingModel)
     {
+        if (CurrentInputMode != InputMode.Query)
+            return;
+
         // Defensive Checks
         if (workingModel == null || workingModel.Count == 0)
             return;
@@ -1229,7 +1404,7 @@ public class SentenceBuilder : MonoBehaviour
         if (subjectEntry.verb != verbEntry)
             subjectEntry.verb = verbEntry;
 
-        currentQuestionData = new WorkingInputData
+        CurrentInputData = new WorkingInputData
         {
             InputMode = InputMode.Query,
             QueryMode = QueryMode.Polar_Do,
@@ -1241,6 +1416,9 @@ public class SentenceBuilder : MonoBehaviour
     private void NormalizeWhatInterrogative(List<SentenceWordEntry> workingModel)
     {
         // Defensive checks
+        if (CurrentInputMode != InputMode.Query)
+            return;
+
         if (workingModel == null || workingModel.Count == 0)
         {
             //Debug.Log("What interrogative normalization cancelled!");
@@ -1577,7 +1755,7 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("existing auxiliary for verb " + verbEntry.Surface + " is " + verbEntry.auxiliary.Surface);
         }
 
-        currentQuestionData = new WorkingInputData
+        CurrentInputData = new WorkingInputData
         {
             InputMode = InputMode.Query,
             QueryMode = QueryMode.Int_What,
@@ -1591,6 +1769,9 @@ public class SentenceBuilder : MonoBehaviour
     private void NormalizeWhereInterrogative(List<SentenceWordEntry> workingModel)
     {
         // Defensive checks
+        if (CurrentInputMode != InputMode.Query)
+            return;
+
         if (workingModel == null || workingModel.Count == 0)
         {
             //Debug.Log("Where interrogative normalization cancelled!");
@@ -1747,7 +1928,7 @@ public class SentenceBuilder : MonoBehaviour
             Debug.Log("existing auxiliary for verb " + verbEntry.Surface + " is " + verbEntry.auxiliary.Surface);
         }
 
-        currentQuestionData = new WorkingInputData
+        CurrentInputData = new WorkingInputData
         {
             InputMode = InputMode.Query,
             QueryMode = QueryMode.Int_Where,
@@ -1915,20 +2096,20 @@ public class SentenceBuilder : MonoBehaviour
 
         var locationEntry = workingModel.FirstOrDefault(entry => entry.Word.HasPartOfSpeech(PartsOfSpeech.Location));
 
-        if (locationEntry == null)
-            return;
+        if (locationEntry != null)
+        {
+            int locationIndex = workingModel.IndexOf(locationEntry);
 
-        int locationIndex = workingModel.IndexOf(locationEntry);
+            var inWord = WordDataBase.Instance.GetWord("in");
 
-        var inWord = WordDataBase.Instance.GetWord("in");
+            SentenceWordEntry preposition = new();
+            preposition.Word = inWord;
+            preposition.Surface = inWord.Text;
+            preposition.owningNoun = locationEntry;
+            locationEntry.preposition = preposition;
 
-        SentenceWordEntry preposition = new();
-        preposition.Word = inWord;
-        preposition.Surface = inWord.Text;
-        preposition.owningNoun = locationEntry;
-        locationEntry.preposition = preposition;
-
-        workingModel.Insert(locationIndex, preposition);
+            workingModel.Insert(locationIndex, preposition);
+        }        
     }
     private void NormalizeConjunctions(List<SentenceWordEntry> workingModel)
     {
@@ -2114,11 +2295,11 @@ public class SentenceBuilder : MonoBehaviour
     // UI Methods
     private void CommitModelChange() // Commit sentence mutations for UI update
     {
-        if (!sentenceMutated)
+        if (!SentenceHasMutated)
             return;
         sentenceModel = Normalize(sentenceModel);
         ApplyNormalizationResults(sentenceModel);
-        sentenceMutated = false;
+        SentenceHasMutated = false;
         UpdateSentenceString();
     }
     private void ApplyNormalizationResults(List<SentenceWordEntry> workingModel, bool isPreviewMode = false) // Update UI from normalized model
@@ -2158,7 +2339,7 @@ public class SentenceBuilder : MonoBehaviour
             }
 
             // Instantiate prefabs for sentenceModel elements that require them
-            RectTransform word = Instantiate(draggableWordPrefab, transform).GetComponent<RectTransform>();
+            RectTransform word = Instantiate(DraggableWordPrefab, transform).GetComponent<RectTransform>();
 
             // Set word data to model data
             var draggable = word.GetComponent<DraggableWord>();
@@ -2249,7 +2430,7 @@ public class SentenceBuilder : MonoBehaviour
             rect.pivot = new Vector2(0f, 0.5f);
             rect.anchoredPosition = new Vector2(currentX, startPosition.y);
 
-            currentX += rect.rect.width * rect.localScale.x + spacing;
+            currentX += rect.rect.width * rect.localScale.x + Spacing;
         }
     }
     private void UpdateSentenceString()
@@ -2272,9 +2453,9 @@ public class SentenceBuilder : MonoBehaviour
                 sb.Append(w.Surface + " ");
         }
 
-        currentSentenceAsString = sb.ToString().Trim();
+        CurrentSentenceAsString = sb.ToString().Trim();
     }
-    public string GetSentenceAsString() => currentSentenceAsString;
+    public string GetSentenceAsString() => CurrentSentenceAsString;
     public void ClearSentence()
     {
         wordList.Clear();
@@ -2288,12 +2469,12 @@ public class SentenceBuilder : MonoBehaviour
             Destroy(transform.GetChild(i).gameObject);                
         }
 
-        currentSentenceAsString = string.Empty;
+        CurrentSentenceAsString = string.Empty;
     }
     public void ClearStoredWords()
     {
-        if (interrogativeEntry != null)
-            interrogativeEntry = null;
+        if (InterrogativeEntry != null)
+            InterrogativeEntry = null;
         storedWordList.Clear();
     }
 }
