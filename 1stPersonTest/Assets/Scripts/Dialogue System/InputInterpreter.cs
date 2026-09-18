@@ -60,13 +60,23 @@ public class InputInterpreter : MonoBehaviour
         if (workingData.InputMode == InputMode.Query)
         {
             QueryMode queryMode = workingData.QueryMode;
-            
+            Debug.Log("subject: " + workingData.Subject.Word.Text);
+            Debug.Log("object: " + workingData.Object.Word.Text);
+            Debug.Log("verb: " + workingData.Verb.Word.Text);
+
             switch (queryMode)
             {
                 case QueryMode.Int_What:
                     interpretedInputData.QueryMode = workingData.QueryMode;
                     interpretedInputData.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
-                    interpretedInputData.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
+                    if (workingData.Object.Word.HasPartOfSpeech(PartsOfSpeech.Interrogative))
+                    {
+                        interpretedInputData.Object = null;                    
+                    }
+                    else
+                    {
+                        interpretedInputData.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.Text);                    
+                    }
                     interpretedInputData.Verb = workingData.Verb;
                     break;
                 case QueryMode.Int_Where:
