@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
-public class JournalClickable : MonoBehaviour, IBeginDragHandler, IDragHandler
+public class EntityClickable : MonoBehaviour, IBeginDragHandler, IDragHandler
 {
     public GameObject Journal;
     public GameObject DraggableWordPrefab;

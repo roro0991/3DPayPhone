@@ -10,6 +10,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using static UnityEngine.EventSystems.EventTrigger;
 
 public class SentenceBuilder : MonoBehaviour
 {
@@ -48,6 +49,7 @@ public class SentenceBuilder : MonoBehaviour
     public Vector2 startPosition = Vector2.zero;
     public float Spacing = 10f;
     private int CurrentPreviewIndex = -1;
+    private int InfoEntryCount = 0;
 
     // Strings
     public string CurrentSentenceAsString;
@@ -299,6 +301,44 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         CommitModelChange();
+    }
+
+    public void HandleHoveringInfo(InfoDraggable infoDraggable, PointerEventData eventData)
+    {
+        GameObject dropTarget = eventData.pointerEnter;
+
+        if (dropTarget != null && dropTarget.transform.IsChildOf(SentencePanelRect))
+        {            
+            if (InfoEntryCount <= infoDraggable.InfoEntries.Count - 1)
+            {
+                for (int i = infoDraggable.InfoEntries.Count - 1; i >= 0; i--)
+                {
+                    SentenceWordEntry entry = infoDraggable.InfoEntries[i];
+
+                    SentenceWordEntry previewEntry = new SentenceWordEntry
+                    {
+                        Word = entry.Word,
+                        Surface = entry.Surface,
+                        isPreview = true
+                    };
+
+                    sentenceModel.Insert(0, previewEntry);
+                    InfoEntryCount++;
+                }
+            }
+
+            ApplyNormalizedPreview(sentenceModel, true);
+            SentenceHasPreviews = true;
+            Debug.Log("***PREVIEW GENERATED***");
+        }
+        else
+        {
+            if (SentenceHasPreviews)
+            {
+                ClearPreview();
+                ApplyNormalizedPreview(sentenceModel, false);
+            }
+        }
     }
 
     // Interrogative toggling
