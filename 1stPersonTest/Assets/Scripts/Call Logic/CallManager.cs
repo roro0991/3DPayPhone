@@ -103,7 +103,7 @@ public class CallManager : MonoBehaviour
     {
         if (CurrentState != Call_State.IN_CALL) return;
 
-        if (sentenceBuilder.wordList.Count == 0)
+        if (sentenceBuilder.wordRectList.Count == 0)
             return;
 
         InterpretedInputData interpretedQuery = inputInterpreter.InterpretPlayerInput(sentenceBuilder.CurrentInputData);        
@@ -117,7 +117,7 @@ public class CallManager : MonoBehaviour
         var wdb = WordDataBase.Instance;
         float delay = sentenceBuilder.GetSentenceAsString().Length * 0.15f;
 
-        if (sentenceBuilder.wordList.Count > 0)
+        if (sentenceBuilder.wordRectList.Count > 0)
         {
             messagePanel.AddMessage("You: " + sentenceBuilder.GetSentenceAsString());
             sentenceBuilder.ClearSentence();

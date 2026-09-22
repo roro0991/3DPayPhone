@@ -38,5 +38,7 @@ public class InfoDraggable : MonoBehaviour, IDragHandler, IEndDragHandler
     {
         CanvasGroup.blocksRaycasts = true;
         GameObject dropTarget = eventData.pointerEnter;
+
+        SentenceBuilder.HandleInfoDropped(this, eventData);
     }
 }

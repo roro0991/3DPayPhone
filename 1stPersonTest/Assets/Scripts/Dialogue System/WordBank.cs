@@ -34,6 +34,7 @@ public class WordBank : MonoBehaviour
 {
 
     public List<SentenceWordEntry> wordsInQueue = new List<SentenceWordEntry>(); // store Word objects now        
+    public List<RectTransform> DraggableRects = new List<RectTransform>();
     public GameObject draggableWordPrefab;
 
     private List<Coroutine> runningFades = new List<Coroutine>();
@@ -149,6 +150,8 @@ public class WordBank : MonoBehaviour
         }
 
         RectTransform newRect = newWord.GetComponent<RectTransform>();
+        DraggableRects.Add(newRect);
+
         if (newRect != null)
         {
             newRect.anchoredPosition = GetRandomPositionWithinParent();
@@ -205,6 +208,7 @@ public class WordBank : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
+        DraggableRects.Clear();
         //GenerateWords();
     }
 

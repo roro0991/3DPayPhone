@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using TMPro;
 using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -33,8 +34,10 @@ public class SentenceBuilder : MonoBehaviour
     public GameObject DraggableWordPrefab;
 
     // Lists & Dictionaries
-    public List<RectTransform> wordList = new List<RectTransform>(); // sentence word gameobjects
+    public List<RectTransform> wordRectList = new List<RectTransform>(); // sentence word gameobjects
     public List<SentenceWordEntry> sentenceModel = new List<SentenceWordEntry>(); // sentence word data
+    private List<SentenceWordEntry> storedInput = new List<SentenceWordEntry>(); // stored input for restoration
+    private List<RectTransform> StoredRect = new List<RectTransform>(); // stored input rect for restoration
     public List<SentenceWordEntry> storedWordList = new List<SentenceWordEntry>(); // for wordbank repopulation
     private Dictionary<SentenceWordEntry, RectTransform> ModelRects = new Dictionary<SentenceWordEntry, RectTransform>();
 
@@ -56,7 +59,8 @@ public class SentenceBuilder : MonoBehaviour
 
     // Bools
     private bool SentenceHasPreviews;
-    private bool SentenceHasMutated;    
+    private bool SentenceHasMutated;
+    private bool InputIsStored = false;
 
     InputMode CurrentInputMode = InputMode.Statement;
     QueryMode CurrentQueryMode = QueryMode.None;
@@ -309,6 +313,25 @@ public class SentenceBuilder : MonoBehaviour
 
         if (dropTarget != null && dropTarget.transform.IsChildOf(SentencePanelRect))
         {            
+            if (sentenceModel.Count != 0 && InputIsStored == false)
+            {
+                // Deactivate and store existing input for restoration
+                foreach (var entry in sentenceModel)
+                {
+                    RectTransform entryRect = FindRectForEntry(entry);
+                    wordRectList.Remove(entryRect);
+                    StoredRect.Add(entryRect);
+                    storedInput.Add(entry);
+                }
+
+                foreach (var rect in StoredRect)
+                {
+                    rect.gameObject.SetActive(false);
+                }
+                sentenceModel.Clear();
+                InputIsStored = true;
+            }
+
             if (InfoEntryCount <= infoDraggable.InfoEntries.Count - 1)
             {
                 for (int i = infoDraggable.InfoEntries.Count - 1; i >= 0; i--)
@@ -337,8 +360,31 @@ public class SentenceBuilder : MonoBehaviour
             {
                 ClearPreview();
                 ApplyNormalizedPreview(sentenceModel, false);
+                InfoEntryCount = 0;
+            }
+
+            if (storedInput.Count != 0 && InputIsStored == true)
+            {
+                foreach (var entry in storedInput)
+                {
+                    sentenceModel.Add(entry);                    
+                }
+
+                foreach (RectTransform rect in StoredRect)
+                {
+                    rect.gameObject.SetActive(true);
+                    wordRectList.Add(rect);
+                }
+                storedInput.Clear();
+                StoredRect.Clear();
+                InputIsStored = false;
             }
         }
+    }
+
+    public void HandleInfoDropped(InfoDraggable infoDraggable, PointerEventData eventData)
+    {
+        // drop logic goes here.
     }
 
     // Interrogative toggling
@@ -502,9 +548,9 @@ public class SentenceBuilder : MonoBehaviour
 
         // remove rect to prevent destruction by normalization
         if (ModelRects.TryGetValue(draggableEntry, out RectTransform draggableRect)
-            && wordList.Contains(draggableRect))
+            && wordRectList.Contains(draggableRect))
         {
-            wordList.Remove(draggableRect);
+            wordRectList.Remove(draggableRect);
         }
 
         draggableRect.pivot = new Vector2(0.5f, 0.5f);
@@ -589,8 +635,8 @@ public class SentenceBuilder : MonoBehaviour
             RectTransform rect = kvp.Value;
 
             // Remove from wordList to prevent it from being rebuilt
-            if (wordList.Contains(rect))
-                wordList.Remove(rect);
+            if (wordRectList.Contains(rect))
+                wordRectList.Remove(rect);
 
             // Destroy the UI element
             Destroy(rect.gameObject);
@@ -2322,7 +2368,7 @@ public class SentenceBuilder : MonoBehaviour
     }
     private RectTransform FindRectForEntry(SentenceWordEntry entry) // Helper method for ModelDictionary
     {
-        foreach (RectTransform rect in wordList)
+        foreach (RectTransform rect in wordRectList)
         {
             var draggable = rect.GetComponent<DraggableWord>();
             if (draggable != null && draggable.sentenceWordEntry == entry)
@@ -2346,9 +2392,9 @@ public class SentenceBuilder : MonoBehaviour
     {
         // Collect UI rects to remove
         List<RectTransform> uiRectsToRemove = new List<RectTransform>();
-        if (wordList.Count > 0)
+        if (wordRectList.Count > 0)
         {
-            foreach (RectTransform uiRect in wordList)
+            foreach (RectTransform uiRect in wordRectList)
             {
                 SentenceWordEntry uiEntry = uiRect.GetComponent<DraggableWord>().sentenceWordEntry;
                 if (uiEntry != null)
@@ -2364,7 +2410,7 @@ public class SentenceBuilder : MonoBehaviour
         foreach (RectTransform uiRect in uiRectsToRemove)
         {
             Debug.Log("rect destroyed");
-            wordList.Remove(uiRect);
+            wordRectList.Remove(uiRect);
             Destroy(uiRect.gameObject);
         }
 
@@ -2373,8 +2419,8 @@ public class SentenceBuilder : MonoBehaviour
             // Add sentenceModel rects not present in wordList.
             if (ModelRects.TryGetValue(entry, out RectTransform existingRect))
             {
-                if (!wordList.Contains(existingRect))
-                    wordList.Add(existingRect);
+                if (!wordRectList.Contains(existingRect))
+                    wordRectList.Add(existingRect);
                 continue;
             }
 
@@ -2405,7 +2451,7 @@ public class SentenceBuilder : MonoBehaviour
             LayoutRebuilder.ForceRebuildLayoutImmediate(word.GetComponent<RectTransform>());
 
             // Add instantiated prefab to wordList
-            wordList.Add(word);
+            wordRectList.Add(word);
             ModelRects[entry] = word;
 
         }
@@ -2439,9 +2485,9 @@ public class SentenceBuilder : MonoBehaviour
         }
 
         // Ensure UI text matches entries' interntal data
-        for (int i = 0; i < wordList.Count; i++)
+        for (int i = 0; i < wordRectList.Count; i++)
         {
-            var committed = wordList[i];
+            var committed = wordRectList[i];
             var committedText = committed.GetComponent<TMP_Text>();
             var committedDraggable = committed.GetComponent<DraggableWord>();
 
@@ -2454,18 +2500,18 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
 
-        wordList = reorderedRects;
+        wordRectList = reorderedRects;
 
         UpdateModelDictionary();
         UpdateWordPositions();
     }
     private void UpdateWordPositions()
     {
-        if (wordList.Count == 0) return;
+        if (wordRectList.Count == 0) return;
 
         float currentX = startPosition.x;
 
-        foreach (var rect in wordList)
+        foreach (var rect in wordRectList)
         {
             rect.pivot = new Vector2(0f, 0.5f);
             rect.anchoredPosition = new Vector2(currentX, startPosition.y);
@@ -2477,7 +2523,7 @@ public class SentenceBuilder : MonoBehaviour
     {
         List<SentenceWordEntry> wordDataList = new List<SentenceWordEntry>();
 
-        foreach (RectTransform rect in wordList)
+        foreach (RectTransform rect in wordRectList)
         {
             wordDataList.Add(rect.GetComponent<DraggableWord>().
                 sentenceWordEntry);
@@ -2498,7 +2544,7 @@ public class SentenceBuilder : MonoBehaviour
     public string GetSentenceAsString() => CurrentSentenceAsString;
     public void ClearSentence()
     {
-        wordList.Clear();
+        wordRectList.Clear();
         sentenceModel.Clear();
 
         if (CurrentInputMode != InputMode.Statement)
