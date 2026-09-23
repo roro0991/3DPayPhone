@@ -141,7 +141,7 @@ public abstract class Contact : MonoBehaviour
                         {
                             if (info.Object is JobEntity job)
                             {
-                                ContactResponse = $"I work as a {job.JobTitle}.";
+                                ContactResponse = $"I work as {job.JobTitle}.";
                             }
                         }
                         else if (knowledgeState == KnowledgeState.Unknown)

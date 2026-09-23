@@ -30,13 +30,13 @@ public class InfoDraggable : MonoBehaviour, IDragHandler, IEndDragHandler
         RectTransform.anchoredPosition += eventData.delta / Canvas.scaleFactor;
 
         GameObject hover = eventData.pointerEnter;
+        CanvasGroup.blocksRaycasts = false;
 
         SentenceBuilder.HandleHoveringInfo(this, eventData);
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        CanvasGroup.blocksRaycasts = true;
         GameObject dropTarget = eventData.pointerEnter;
 
         SentenceBuilder.HandleInfoDropped(this, eventData);

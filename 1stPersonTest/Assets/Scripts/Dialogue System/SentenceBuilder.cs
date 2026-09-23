@@ -52,7 +52,6 @@ public class SentenceBuilder : MonoBehaviour
     public Vector2 startPosition = Vector2.zero;
     public float Spacing = 10f;
     private int CurrentPreviewIndex = -1;
-    private int InfoEntryCount = 0;
 
     // Strings
     public string CurrentSentenceAsString;
@@ -219,7 +218,7 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
     }
-    public void HandleWordDropped(DraggableWord wordDraggable, PointerEventData eventData) // Called from DraggableWord.cs
+    public void HandleWordDropped(DraggableWord wordDraggable, PointerEventData eventData) // Called from DraggableWord.
     {
         if (wordDraggable == null)
             return;
@@ -311,9 +310,17 @@ public class SentenceBuilder : MonoBehaviour
     {
         GameObject dropTarget = eventData.pointerEnter;
 
-        if (dropTarget != null && dropTarget.transform.IsChildOf(SentencePanelRect))
-        {            
-            if (sentenceModel.Count != 0 && InputIsStored == false)
+        bool hoverSentencePanel = dropTarget != null && dropTarget.transform.IsChildOf(SentencePanelRect);        
+
+        Debug.Log("Pointer Enter: " +
+        (eventData.pointerEnter != null
+        ? eventData.pointerEnter.transform.name
+        : "NULL"));
+        
+
+        if (hoverSentencePanel)
+        {        
+            if (sentenceModel.Count != 0 && !sentenceModel.Any(entry => entry.isPreview) && InputIsStored == false)
             {
                 // Deactivate and store existing input for restoration
                 foreach (var entry in sentenceModel)
@@ -331,8 +338,9 @@ public class SentenceBuilder : MonoBehaviour
                 sentenceModel.Clear();
                 InputIsStored = true;
             }
+            
 
-            if (InfoEntryCount <= infoDraggable.InfoEntries.Count - 1)
+            if (!SentenceHasPreviews)
             {
                 for (int i = infoDraggable.InfoEntries.Count - 1; i >= 0; i--)
                 {
@@ -345,22 +353,23 @@ public class SentenceBuilder : MonoBehaviour
                         isPreview = true
                     };
 
-                    sentenceModel.Insert(0, previewEntry);
-                    InfoEntryCount++;
+                    sentenceModel.Insert(0, previewEntry);                    
                 }
+                SentenceHasPreviews = true;
             }
 
             ApplyNormalizedPreview(sentenceModel, true);
             SentenceHasPreviews = true;
             Debug.Log("***PREVIEW GENERATED***");
         }
+        
         else
         {
             if (SentenceHasPreviews)
             {
                 ClearPreview();
                 ApplyNormalizedPreview(sentenceModel, false);
-                InfoEntryCount = 0;
+                SentenceHasPreviews = false;
             }
 
             if (storedInput.Count != 0 && InputIsStored == true)
@@ -380,11 +389,88 @@ public class SentenceBuilder : MonoBehaviour
                 InputIsStored = false;
             }
         }
+        
     }
 
     public void HandleInfoDropped(InfoDraggable infoDraggable, PointerEventData eventData)
     {
-        // drop logic goes here.
+        if (infoDraggable == null)
+            return;
+
+        bool infoInput = false;
+
+        GameObject dropTarget = eventData.pointerEnter;
+
+        if (dropTarget != null && dropTarget.transform.IsChildOf(SentencePanelRect))
+        {
+            // Clear StoredInput & StoredRect if present
+            if (storedInput.Count != 0)
+                storedInput.Clear();
+
+
+            if (StoredRect.Count != 0)
+            {
+                foreach (RectTransform rect in StoredRect)
+                {
+                    Destroy(rect.gameObject);
+                }
+                StoredRect.Clear();
+            }
+
+            // Clear Preview
+            ClearPreview();
+
+            for (int i = infoDraggable.InfoEntries.Count - 1; i >= 0; i--)
+            {
+                if (infoInput)
+                    return;
+
+                SentenceWordEntry infoEntry = infoDraggable.InfoEntries[i];                
+
+                var matchingRect = WordBank.DraggableRects.
+                    FirstOrDefault(rect => rect.GetComponent<DraggableWord>().sentenceWordEntry.Word == infoEntry.Word);
+
+                // check for matching draggables in wordbank
+                if (matchingRect != null)
+                {
+                    matchingRect.transform.SetParent(transform, false);
+                    WordBank.DraggableRects.Remove(matchingRect);
+                    var matchingEntry = matchingRect.GetComponent<DraggableWord>().sentenceWordEntry;
+
+                    ModelRects[matchingEntry] = matchingRect;
+                    InsertWordEntryAt(matchingEntry, 0);
+                    matchingRect.GetComponent<DraggableWord>().isInSentencePanel = true;
+                }
+                else
+                {
+
+                    // create new entity draggable for journal entities
+                    if (infoEntry.Origin == DraggableWord.DraggableOrigin.Journal)
+                    {
+                        GameObject newWord = Instantiate(DraggableWordPrefab, transform);
+                        RectTransform newWordRect = newWord.GetComponent<RectTransform>();
+
+                        var newWordDraggable = newWord.GetComponent<DraggableWord>();
+                        newWordDraggable.ThisDraggableOrigin = DraggableWord.DraggableOrigin.Journal;
+                        newWordDraggable.sentenceWordEntry.Surface = infoEntry.Surface;
+                        newWordDraggable.sentenceWordEntry.Word = WordDataBase.Instance.GetWord(infoEntry.Word.Text);
+                        newWordDraggable.sentenceWordEntry.Origin = DraggableWord.DraggableOrigin.Journal;
+
+                        ModelRects[newWordDraggable.sentenceWordEntry] = newWordRect;
+                        InsertWordEntryAt(newWordDraggable.sentenceWordEntry, 0);
+                        newWordDraggable.isInSentencePanel = true;
+                    }
+                    
+                }
+            }
+
+            CommitModelChange();
+            Destroy(infoDraggable.gameObject);
+        }
+        else
+        {
+            Destroy(infoDraggable.gameObject);
+        }
     }
 
     // Interrogative toggling
@@ -569,6 +655,9 @@ public class SentenceBuilder : MonoBehaviour
             return;
 
         draggableWord.transform.SetParent(wb.transform, false);
+        if (!WordBank.DraggableRects.Contains(draggableWord))
+            WordBank.DraggableRects.Add(draggableWord);
+
         draggableWord.pivot = new Vector2(0.5f, 0.5f);
 
         if (droppedInWB == false)

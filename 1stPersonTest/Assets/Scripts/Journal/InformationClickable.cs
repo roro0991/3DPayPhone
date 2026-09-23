@@ -11,7 +11,7 @@ public class InformationClickable : MonoBehaviour, IBeginDragHandler, IDragHandl
     public GameObject Journal;
     public GameObject InfoDraggablePrefab;
     public string InformationAsString;
-    public List<SentenceWordEntry> InformationEntries = new List<SentenceWordEntry>();    
+    public List<SentenceWordEntry> InformationEntries = new List<SentenceWordEntry>();
 
     private void Awake()
     {
@@ -23,6 +23,7 @@ public class InformationClickable : MonoBehaviour, IBeginDragHandler, IDragHandl
         SentenceWordEntry firstEntry = new SentenceWordEntry();
         firstEntry.Word = WordDataBase.Instance.GetWord("john");
         firstEntry.Surface = "john";
+        firstEntry.Origin = DraggableWord.DraggableOrigin.Journal;
         SentenceWordEntry secondEntry = new SentenceWordEntry();
         secondEntry.Word = WordDataBase.Instance.GetWord("work");
         secondEntry.Surface = "work";
