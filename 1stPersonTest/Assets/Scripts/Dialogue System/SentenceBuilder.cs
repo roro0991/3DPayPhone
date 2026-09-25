@@ -356,13 +356,11 @@ public class SentenceBuilder : MonoBehaviour
                     sentenceModel.Insert(0, previewEntry);                    
                 }
                 SentenceHasPreviews = true;
+                ApplyNormalizedPreview(sentenceModel, true);
+                Debug.Log("***PREVIEW GENERATED***");
             }
 
-            ApplyNormalizedPreview(sentenceModel, true);
-            SentenceHasPreviews = true;
-            Debug.Log("***PREVIEW GENERATED***");
-        }
-        
+        }        
         else
         {
             if (SentenceHasPreviews)
@@ -388,8 +386,7 @@ public class SentenceBuilder : MonoBehaviour
                 StoredRect.Clear();
                 InputIsStored = false;
             }
-        }
-        
+        }        
     }
 
     public void HandleInfoDropped(InfoDraggable infoDraggable, PointerEventData eventData)
@@ -1110,6 +1107,7 @@ public class SentenceBuilder : MonoBehaviour
                 articleEntry.owningNoun.article = null;
                 articleEntry.owningNoun = null;
                 workingModel.RemoveAt(i);
+                
                 continue;
             }
 
@@ -1168,11 +1166,22 @@ public class SentenceBuilder : MonoBehaviour
             bool precededByInterrogative = false;
 
             if (!wordData.Word.HasPartOfSpeech(PartsOfSpeech.Noun))
+            {
+                Debug.Log("article candidate not noun!");
                 continue;
+            }
             if (!wordData.Word.IsSingular(wordData.Surface))
+            {
+                Debug.Log("article candidate not singular!");
                 continue;
+            }
             if (wordData.article != null)
+            {
+                Debug.Log("article candidate's article not null!");
+                Debug.Log("article candidate's ARTICLE: " +
+    (wordData.article != null ? wordData.article.Surface : "NULL"));
                 continue;
+            }
 
             int nounIndex = workingModel.IndexOf(wordData);
 
@@ -1204,6 +1213,13 @@ public class SentenceBuilder : MonoBehaviour
                 nounData = wordData,
                 articleAnchor = articleAnchor
             });
+        }
+
+        Debug.Log("ARTICLE CANDIDATES: " + articleEntriesToInsert.Count);
+
+        foreach (var pending in articleEntriesToInsert)
+        {
+            Debug.Log("ARTICLE CANDIDATE: " + pending.nounData.Surface);
         }
 
         return articleEntriesToInsert;
@@ -1259,9 +1275,16 @@ public class SentenceBuilder : MonoBehaviour
             }
         }
 
+        Debug.Log("UPDATE ARTICLES CALLED");
+
         foreach (var pending in articlesToInsert)
         {
+            Debug.Log("PROCESSING ARTICLE FOR: " + pending.nounData.Surface);
+            Debug.Log("ARTICLE ANCHOR: " + pending.articleAnchor.Surface);
+
             int anchorIndex = workingModel.IndexOf(pending.articleAnchor);
+
+            Debug.Log("ANCHOR INDEX: " + anchorIndex);
 
             if (anchorIndex < 0)
                 continue; // noun no longer exists - safety check
@@ -1287,9 +1310,9 @@ public class SentenceBuilder : MonoBehaviour
         articleEntry.owningNoun = pending.nounData;
         pending.nounData.article = articleEntry;
 
-        //Debug.Log("inserted article: " + article);
-        //Debug.Log("article's owning noun: " + wordData.Surface);
-        //Debug.Log("aritcleAnchor for " + pending.nounData.Surface + " is " + pending.articleAnchor.Surface);
+        Debug.Log("inserted article: " + article);
+        Debug.Log("article's owning noun: " + articleEntry.owningNoun.Surface);
+        Debug.Log("aritcleAnchor for " + pending.nounData.Surface + " is " + pending.articleAnchor.Surface);
 
         return articleEntry;
     }

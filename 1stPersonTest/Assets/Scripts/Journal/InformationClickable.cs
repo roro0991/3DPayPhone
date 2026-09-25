@@ -30,11 +30,12 @@ public class InformationClickable : MonoBehaviour, IBeginDragHandler, IDragHandl
         SentenceWordEntry thirdEntry = new SentenceWordEntry();
         thirdEntry.Surface = "accountant";
         thirdEntry.Word = WordDataBase.Instance.GetWord("accountant");
+        thirdEntry.article = null;
 
         InformationEntries.Add(firstEntry);
         InformationEntries.Add(secondEntry);
-        InformationEntries.Add(thirdEntry);
-        
+        InformationEntries.Add(thirdEntry);        
+
     }
 
     public void OnBeginDrag(PointerEventData eventData)

@@ -25,6 +25,17 @@ public class InfoDraggable : MonoBehaviour, IDragHandler, IEndDragHandler
         SentenceBuilder = FindFirstObjectByType<SentenceBuilder>();
     }
 
+    private void Start()
+    {
+        SentenceWordEntry accountantEntry =
+    InfoEntries.Find(entry => entry.Surface == "accountant");
+
+        Debug.Log("Accountant article: " +
+            (accountantEntry.article != null
+                ? accountantEntry.article.Surface
+                : "NULL"));
+    }
+
     public void OnDrag(PointerEventData eventData)
     {
         RectTransform.anchoredPosition += eventData.delta / Canvas.scaleFactor;
