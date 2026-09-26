@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using TMPro;
+using Dialogue.Core;
 
 public class InfoDraggable : MonoBehaviour, IDragHandler, IEndDragHandler
 {
@@ -28,7 +29,7 @@ public class InfoDraggable : MonoBehaviour, IDragHandler, IEndDragHandler
     private void Start()
     {
         SentenceWordEntry accountantEntry =
-    InfoEntries.Find(entry => entry.Surface == "accountant");
+        InfoEntries.Find(entry => entry.Surface == "accountant");
 
         Debug.Log("Accountant article: " +
             (accountantEntry.article != null

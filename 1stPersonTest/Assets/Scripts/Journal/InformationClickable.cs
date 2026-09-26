@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using TMPro;
-using UnityEditor;
+using Dialogue.Core;
 
 public class InformationClickable : MonoBehaviour, IBeginDragHandler, IDragHandler
 {

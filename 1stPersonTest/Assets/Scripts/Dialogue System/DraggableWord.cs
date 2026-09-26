@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using Dialogue.Core;
 
 public class DraggableWord : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
