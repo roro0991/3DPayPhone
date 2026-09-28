@@ -1566,7 +1566,11 @@ public class SentenceBuilder : MonoBehaviour
             return;
 
         subjectEntry.isSubject = true;
-        objectEntry.isObject = true;
+
+        if (objectEntry != null)
+        {
+            objectEntry.isObject = true;
+        }
 
         // Cache relationship re between verb and subjects
         if (verbEntry.owningSubject != subjectEntry)

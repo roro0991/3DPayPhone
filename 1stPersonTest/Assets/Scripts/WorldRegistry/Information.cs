@@ -7,6 +7,7 @@ namespace Game.Info
     public class Information : NarrativeNode
     {
         public Dictionary<string, KnowledgeState> NPC_Knowledge;
+        public Dictionary<string, Dictionary<string, KnowledgeState>> Knowledge_About_Knowledge;
         public Entity Subject;
         public Relationship Relationship;
         public NarrativeNode Object;

@@ -2,11 +2,13 @@ using UnityEngine;
 using Dialogue.Core;
 using Game.World;
 using Game.Info;
+using System.Collections.Generic;
 
 public abstract class Contact : MonoBehaviour
 {
     [SerializeField] private AddressBook addressBook;  // Must be assigned in Inspector
     [SerializeField] private PhoneNumberManager phoneNumberManager;
+    [SerializeField] private InputInterpreter InputInterpreter;
 
     public string ContactNumber;
     public string ContactID;
@@ -15,6 +17,8 @@ public abstract class Contact : MonoBehaviour
     private bool numberKnown;    
     public string OpeningLine = string.Empty;
     public string ContactResponse = string.Empty;
+
+    public NarrativeNode Current_Topic;
 
     [SerializeField] public WordBank wordBank;
 
@@ -120,11 +124,38 @@ public abstract class Contact : MonoBehaviour
     {
         QueryMode interrogative = interpretedQuery.QueryMode; 
         Entity subject = interpretedQuery.Subject;
-        Entity target = interpretedQuery.Object;
+        NarrativeNode target = interpretedQuery.Object;
         SentenceWordEntry verb = interpretedQuery.Verb;
 
         switch (interrogative)
         {
+            case QueryMode.Polar_Do:
+                if (subject is PersonEntity && verb.Word.Text is "know")
+                {
+                    if (target == null && Current_Topic != null)
+                    {
+                        target = Current_Topic;
+                    }
+
+                    if (target is Information info)
+                    {
+                        if (info.Knowledge_About_Knowledge.TryGetValue(ContactID, out Dictionary<string, KnowledgeState> knowledgeAboutKnowledge))
+                        {
+                            if (knowledgeAboutKnowledge.TryGetValue(subject.Id, out KnowledgeState knowledgeState))
+                            {
+                                if (knowledgeState == KnowledgeState.Known)
+                                {
+                                    ContactResponse = $"Yes {subject.Id} knows.";
+                                }
+                                else if (knowledgeState == KnowledgeState.Unknown)
+                                {
+                                    ContactResponse = $"No {subject.Id} doesn't know.";
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
             case QueryMode.Int_What:
                 if (subject is PersonEntity &&
                 subject.Id == "you" &&
@@ -142,6 +173,10 @@ public abstract class Contact : MonoBehaviour
                             if (info.Object is JobEntity job)
                             {
                                 ContactResponse = $"I work as {job.JobTitle}.";
+                                Current_Topic = info;
+                                Debug.Log("Current_Topic registered");
+                                Debug.Log("Current_Topic Subject: " + info.Subject.Id);
+                                Debug.Log("Current_Topic Relationship: " + info.Relationship);
                             }
                         }
                         else if (knowledgeState == KnowledgeState.Unknown)
@@ -165,6 +200,10 @@ public abstract class Contact : MonoBehaviour
                             if (subject is PersonEntity person && info.Object is JobEntity job)
                             {
                                 ContactResponse = $"{person.Name} works as {job.JobTitle}.";
+                                Current_Topic = info;
+                                Debug.Log("Current_Topic registered");
+                                Debug.Log("Current_Topic Subject: " + info.Subject.Id);
+                                Debug.Log("Current_Topic Relationship: " + info.Relationship);                                
                             }
                         }
                         else if (knowledgeState == KnowledgeState.Unknown)
@@ -186,6 +225,10 @@ public abstract class Contact : MonoBehaviour
                                     if (infoOfBelief.Object is JobEntity job)
                                     {
                                         ContactResponse = $"I believe {person.Name} works as {job.JobTitle}.";
+                                        Current_Topic = info;
+                                        Debug.Log("Current_Topic registered");
+                                        Debug.Log("Current_Topic Subject: " + info.Subject.Id);
+                                        Debug.Log("Current_Topic Relationship: " + info.Relationship);
                                     }
                                 }
                             }

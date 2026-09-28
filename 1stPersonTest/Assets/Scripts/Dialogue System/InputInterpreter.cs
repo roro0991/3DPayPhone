@@ -14,8 +14,7 @@ public class InterpretedInputData
 }
 
 public class InputInterpreter : MonoBehaviour
-{
-
+{    
     public InterpretedInputData InterpretPlayerInput(WorkingInputData workingInputData)
     {
         var workingData = workingInputData;
@@ -59,7 +58,7 @@ public class InputInterpreter : MonoBehaviour
         {
             QueryMode queryMode = workingData.QueryMode;
             Debug.Log("subject: " + workingData.Subject.Word.Text);
-            Debug.Log("object: " + workingData.Object.Word.Text);
+            //Debug.Log("object: " + workingData.Object.Word.Text);
             Debug.Log("verb: " + workingData.Verb.Word.Text);
 
             switch (queryMode)
@@ -84,10 +83,14 @@ public class InputInterpreter : MonoBehaviour
                     interpretedInputData.Verb = workingData.Verb;
                     break;
                 case QueryMode.Polar_Do:
+                    Debug.Log("Polar_Do Query interpreted!");
                     interpretedInputData.QueryMode = workingData.QueryMode;
                     interpretedInputData.Subject = WorldRegistryBootStrapper.World.Get(workingData.Subject.Word.EntityID);
-                    interpretedInputData.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
-                    interpretedInputData.Verb = workingData.Verb;
+                    if (workingData.Object != null)
+                    {
+                        interpretedInputData.Object = WorldRegistryBootStrapper.World.Get(workingData.Object.Word.EntityID);
+                    }
+                    interpretedInputData.Verb = workingData.Verb;                    
                     break;
                 default:
                     break;

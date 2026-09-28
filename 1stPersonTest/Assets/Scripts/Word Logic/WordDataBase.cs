@@ -121,6 +121,19 @@ public class WordDataBase : MonoBehaviour
 
         // ----------------- Verbs -----------------
 
+        var knowForms = new Word.VerbForms
+        {
+            Base = "know",
+            Past = "knew",
+            PastParticiple = "known",
+            PresentParticiple = "knowing",
+            ThirdPerson = "knows"
+        };
+
+        var knowWord = new Word("know", PartsOfSpeech.Verb, verbState: VerbStates.State);
+        knowWord.AddVerbForm(knowForms);
+        AddWord(knowWord);
+
         var driveForms = new Word.VerbForms
         {
             Base = "drive",

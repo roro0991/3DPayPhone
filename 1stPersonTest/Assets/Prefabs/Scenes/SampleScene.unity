@@ -8771,6 +8771,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   addressBook: {fileID: 626518969}
   phoneNumberManager: {fileID: 1580422715}
+  InputInterpreter: {fileID: 1431152992}
   ContactNumber: 
   ContactID: 
   OpeningLine: 
@@ -148460,6 +148461,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TestContact2
   addressBook: {fileID: 626518969}
   phoneNumberManager: {fileID: 1580422715}
+  InputInterpreter: {fileID: 1431152992}
   ContactNumber: 
   ContactID: 
   OpeningLine: 

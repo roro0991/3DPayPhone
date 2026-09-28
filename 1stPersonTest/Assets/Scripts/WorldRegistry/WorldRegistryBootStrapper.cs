@@ -75,7 +75,16 @@ public class WorldRegistryBootStrapper : MonoBehaviour
             },
             Subject = JohnEntity,
             Relationship = Relationship.WorksAs,
-            Object = Job_Accountant
+            Object = Job_Accountant,
+
+            Knowledge_About_Knowledge = new Dictionary<string, Dictionary<string, KnowledgeState>>
+            {
+                {"anna", new Dictionary<string, KnowledgeState>
+                    {
+                        {"john", KnowledgeState.Known}
+                    }   
+                }
+            }
         };
 
         Info_John_Employer = new Information
@@ -105,7 +114,16 @@ public class WorldRegistryBootStrapper : MonoBehaviour
             },
             Subject = AnnaEntity,
             Relationship = Relationship.WorksAs,
-            Object = Job_Manager
+            Object = Job_Manager,
+
+            Knowledge_About_Knowledge = new Dictionary<string, Dictionary<string, KnowledgeState>>
+            {
+                {"anna", new Dictionary<string, KnowledgeState>
+                    {
+                        {"john", KnowledgeState.Unknown}
+                    }
+                }
+            }
         };
 
         Info_Anna_Employer = new Information
@@ -141,7 +159,16 @@ public class WorldRegistryBootStrapper : MonoBehaviour
             },
             Subject = AnnaEntity,
             Relationship = Relationship.Believes,
-            Object = Belief_John_Job
+            Object = Belief_John_Job,
+
+            Knowledge_About_Knowledge = new Dictionary<string, Dictionary<string, KnowledgeState>>
+            {
+                {"anna", new Dictionary<string, KnowledgeState>
+                    {
+                        {"john", KnowledgeState.Known}
+                    }
+                }
+            }
         };
 
 
