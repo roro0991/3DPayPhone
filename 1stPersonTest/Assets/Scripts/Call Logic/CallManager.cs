@@ -1,5 +1,6 @@
 using Dialogue.Core;
 using Ink.Parsed;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -24,6 +25,8 @@ public class CallManager : MonoBehaviour
 
     public enum Call_State { ON_STANDBY, IN_CALL }
     public Call_State CurrentState;
+
+    public static event Action OnInputSubmitted;
 
     private void Start()
     {
@@ -75,11 +78,6 @@ public class CallManager : MonoBehaviour
         // NPC opens with their first line + initial SentenceWords
         currentContact.SpeakFirstLine();
         messagePanel.AddResponse(currentContact.ContactID + ": " + currentContact.ContactResponse);
-
-        WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();
-        wordBankComponent.ClearWordBank();
-        currentContact.PopulateWordBank();
-        wordBankComponent.Refresh();
     }
 
 
@@ -95,7 +93,7 @@ public class CallManager : MonoBehaviour
         PhoneManager.ClearDisplay();
         messagePanel.ClearMessagePanel();
         sentenceBuilder.ClearSentence();
-        wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
+        //wordBank.GetComponentInChildren<WordBank>().ClearWordBank();
     }
 
     // --- PLAYER INPUT ---
@@ -132,7 +130,8 @@ public class CallManager : MonoBehaviour
 
             WordBank wordBankComponent = wordBank.GetComponentInChildren<WordBank>();
 
-            wordBankComponent.AddWordsToWordBank(sentenceBuilder.storedWordList);
+            //wordBankComponent.AddWordsToWordBank(sentenceBuilder.storedWordList);
+            OnInputSubmitted?.Invoke();
             sentenceBuilder.ClearStoredWords();
 
             /*

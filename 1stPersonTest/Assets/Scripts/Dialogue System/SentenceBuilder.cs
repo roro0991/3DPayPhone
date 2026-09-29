@@ -2652,6 +2652,8 @@ public class SentenceBuilder : MonoBehaviour
             InterrogativeEntry = null;
         storedWordList.Clear();
     }
+
+    public List<SentenceWordEntry> GetStoredWords() => storedWordList;
 }
 
 

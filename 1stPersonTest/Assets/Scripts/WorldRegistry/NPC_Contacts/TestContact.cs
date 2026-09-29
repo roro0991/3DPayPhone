@@ -18,14 +18,6 @@ public class TestContact : Contact
         ContactResponse = OpeningLine;        
     }
 
-    public override void PopulateWordBank()
-    {
-        wordBank.AddWordToSentence("you");
-        wordBank.AddWordToSentence("do");
-        wordBank.AddWordToSentence("work");
-        wordBank.AddWordToSentence("anna");
-    }
-
     public override string GenerateResponse(InterpretedInputData interpretedQuery)
     {
         if (interpretedQuery.InputMode == InputMode.Query)

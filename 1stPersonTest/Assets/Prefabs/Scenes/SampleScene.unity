@@ -100215,7 +100215,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 616fc85af701cbf42b92566ba4d1389a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  wordsInQueue: []
+  SentenceBuilder: {fileID: 1130818338}
+  CurrentWordBankWords: []
+  WordBankEntries: []
   DraggableRects: []
   draggableWordPrefab: {fileID: 2872183537982447878, guid: 059e7ad3762379547838921a3020e8ad, type: 3}
 --- !u!1 &1069420650

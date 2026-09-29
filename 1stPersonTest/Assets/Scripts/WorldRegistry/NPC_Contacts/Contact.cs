@@ -280,10 +280,6 @@ public abstract class Contact : MonoBehaviour
         return ContactResponse;
     }
 
-    public virtual void PopulateWordBank()
-    {
-        // default: do nothing
-    }
 }
 
 

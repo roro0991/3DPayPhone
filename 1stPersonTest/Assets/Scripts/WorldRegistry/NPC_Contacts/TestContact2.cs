@@ -13,16 +13,7 @@ public class TestContact2 : Contact
     {
         ContactResponse = OpeningLine;
     }
-
-    public override void PopulateWordBank()
-    {
-        wordBank.AddWordToSentence("you");
-        wordBank.AddWordToSentence("do");
-        wordBank.AddWordToSentence("work");
-        wordBank.AddWordToSentence("accountant");
-        wordBank.AddWordToSentence("know");
-    }
-
+    
     public override string GenerateResponse(InterpretedInputData interpretedQuery)
     {
         if (interpretedQuery.InputMode == InputMode.Query)

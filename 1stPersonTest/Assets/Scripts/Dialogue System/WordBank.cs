@@ -3,65 +3,71 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using Dialogue.Core;
+using System.Collections.Specialized;
 
 public class WordBank : MonoBehaviour
 {
-
-    public List<SentenceWordEntry> wordsInQueue = new List<SentenceWordEntry>(); // store Word objects now        
+    public SentenceBuilder SentenceBuilder;
+    public List<string> CurrentWordBankWords = new List<string>();    
+    public List<SentenceWordEntry> WordBankEntries = new List<SentenceWordEntry>(); // store Word objects now        
     public List<RectTransform> DraggableRects = new List<RectTransform>();
     public GameObject draggableWordPrefab;
 
     private List<Coroutine> runningFades = new List<Coroutine>();
 
-
-    // Methods for adding words to wordbank based on current contact called
-    // These methods will possibly be replaced
-
-    public void AddWordToSentence(string key)
+    private void Awake()
     {
-        key = key.ToLower();
+        CurrentWordBankWords = new List<string>
+        {
+            "you", "work", "accountant", "know", "do"
+        };
+    }
 
-        // First try direct match
-        var word = WordDataBase.Instance.GetWord(key);
+    private void OnEnable()
+    {
+        PopulateWordBank();
+        CallManager.OnInputSubmitted += HandleInputSubmitted;
+    }
+
+    private void OnDisable()
+    {
+        ClearWordBank();
+        CallManager.OnInputSubmitted -= HandleInputSubmitted;
+    }
+
+    private void HandleInputSubmitted()
+    {
+        List<SentenceWordEntry> wordsToAdd = SentenceBuilder.GetStoredWords();
+
+        AddWordsToWordBank(wordsToAdd);
+    }
+
+    private void AddEntry(string surface)
+    {
+        Word word = WordDataBase.Instance.GetWord(surface);
+        
         if (word != null)
         {
-            AddEntry(word, key);
-            return;
-        }
-
-        // Check known influections       
-        foreach (var w in WordDataBase.Instance.Words.Values)
-        {
-            // Check noun forms
-            foreach (var nf in w.NounFormsList)
+            Debug.Log("word found in worddatabase");
+            WordBankEntries.Add(new SentenceWordEntry
             {
-                if (nf.Plural == key)
-                {
-                    AddEntry(w, key);
-                    return;
-                }
-            }
+                Word = word,
+                Surface = surface // ? THIS is "dogs"
+            });
+        }
+        else
+        {
+            Debug.Log("word not found in worddatabase.");
+        }
+    }
+
+    private void PopulateWordBank()
+    {
+        foreach (string word in CurrentWordBankWords)
+        {
+            AddEntry(word);
         }
 
-        Debug.LogWarning($"Couldn't find base word for '{key}'");
-    }
-
-    private void AddEntry(Word word, string surface)
-    {
-        wordsInQueue.Add(new SentenceWordEntry
-        {
-            Word = word,
-            Surface = surface // ? THIS is "dogs"
-        });
-    }
-
-    public void Refresh()
-    {
-        GenerateWords();
-    }
-
-    private void GenerateWords()
-    {
         // Stop all running fade coroutines
         foreach (var fade in runningFades)
         {
@@ -70,45 +76,26 @@ public class WordBank : MonoBehaviour
         }
         runningFades.Clear();
 
-        /*
-        foreach (Transform child in transform)
-        {
-            Destroy(child.gameObject);
-        }
-        */
-
         // Generate new words
-        foreach (SentenceWordEntry word in wordsInQueue)
+        foreach (SentenceWordEntry word in WordBankEntries)
         {
             CreateWordUI(word);
         }
-
-        //Debug.Log("GenerateWords called. Words in queue: " + wordsInQueue.Count);
     }
 
-    public void AddWordsToWordBank(List<SentenceWordEntry> words)
+    private void AddWordsToWordBank(List<SentenceWordEntry> words)
     {
-        // Queue up the words
-        wordsInQueue = new List<SentenceWordEntry>(words);
-
         // If panel is active, generate immediately
         if (gameObject.activeInHierarchy)
         {
-            GenerateWords();
+            foreach (SentenceWordEntry word in words)
+            {
+                CreateWordUI(word);
+            }
         }
-        else
-        {
-            // Wait until the panel is active
-            StartCoroutine(WaitForActivationAndGenerate());
-        }       
     }
 
-    private IEnumerator WaitForActivationAndGenerate()
-    {
-        yield return new WaitUntil(() => gameObject.activeInHierarchy);
-        GenerateWords();
-    }
-
+    // UI Generation Methods
     public void CreateWordUI(SentenceWordEntry word)
     {
         GameObject newWord = Instantiate(draggableWordPrefab, transform);
@@ -177,7 +164,7 @@ public class WordBank : MonoBehaviour
 
     public void ClearWordBank()
     {
-        wordsInQueue.Clear();
+        WordBankEntries.Clear();
         foreach (Transform child in transform)
         {
             Destroy(child.gameObject);
@@ -185,7 +172,6 @@ public class WordBank : MonoBehaviour
         DraggableRects.Clear();
         //GenerateWords();
     }
-
 }
 
 
